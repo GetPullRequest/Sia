@@ -1,0 +1,36 @@
+{
+  "name": "@sia/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "sia": "./dist/main.js"
+  },
+  "oclif": {
+    "bin": "sia",
+    "dirname": "cli",
+    "commands": "./dist/commands",
+    "topics": {}
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@sia/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.1",
+    "@sia/models": "*",
+    "@oclif/core": "^4.0.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.9"
+  }
+}

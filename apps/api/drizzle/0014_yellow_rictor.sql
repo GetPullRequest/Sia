@@ -1,0 +1,1 @@
+ALTER TABLE "gpr_jobs" ADD COLUMN "updates" varchar(10000);

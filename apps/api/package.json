@@ -1,0 +1,47 @@
+{
+  "name": "@sia/api",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.72",
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^11.1.0",
+    "@fastify/swagger": "^9.1.0",
+    "@fastify/swagger-ui": "^5.0.0",
+    "@fastify/type-provider-typebox": "^6.1.0",
+    "@fastify/websocket": "^11.0.0",
+    "@google-cloud/secret-manager": "^5.0.0",
+    "@google-cloud/storage": "^7.17.3",
+    "@grpc/grpc-js": "^1.10.0",
+    "@propelauth/node": "^2.1.0",
+    "@sinclair/typebox": "^0.34.0",
+    "@temporalio/activity": "^1.13.2",
+    "@temporalio/client": "^1.13.2",
+    "@temporalio/worker": "^1.13.2",
+    "@temporalio/workflow": "^1.13.2",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/uuid": "^10.0.0",
+    "ai": "^5.0.102",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.44.7",
+    "fastify": "^5.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "openai": "^6.9.1",
+    "pg": "^8.16.3",
+    "tsx": "^4.19.2",
+    "uuid": "^13.0.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.6",
+    "@types/ws": "^8.18.1",
+    "drizzle-kit": "^0.31.7",
+    "light-my-request": "^6.6.0",
+    "pino-pretty": "^13.1.2"
+  },
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts"
+  }
+}

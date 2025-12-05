@@ -1,0 +1,64 @@
+{
+  "name": "@sia/api",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --require @swc-node/register src/main.ts",
+        "cwd": "apps/api"
+      },
+      "cache": false
+    },
+    "debug": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --inspect --require @swc-node/register src/main.ts",
+        "cwd": "apps/api"
+      },
+      "cache": false
+    },
+    "generate-openapi": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx scripts/generate-openapi.ts",
+        "cwd": "apps/api"
+      }
+    },
+    "db:generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-kit generate {args}",
+        "cwd": "apps/api"
+      }
+    },
+    "db:migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx scripts/migrate.ts",
+        "cwd": "apps/api"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist", "{projectRoot}/openapi.json"],
+      "dependsOn": ["^build"],
+      "options": {
+        "commands": [
+          "npx nx run @sia/api:generate-openapi",
+          "tsc --build tsconfig.json"
+        ],
+        "parallel": false,
+        "cwd": "apps/api"
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/apps/api"],
+      "options": {
+        "jestConfig": "apps/api/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}
+

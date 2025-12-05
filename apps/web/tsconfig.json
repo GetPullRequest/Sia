@@ -1,0 +1,73 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"],
+      "@sia/models": ["../../libs/models/src/index.ts"],
+      "@sia/models/api-client": ["../../libs/models/src/api-client.ts"]
+    },
+    "types": ["jest", "node"],
+    "outDir": "dist"
+  },
+  "include": [
+    "../../apps/web/.next/types/**/*.ts",
+    "../../dist/apps/web/.next/types/**/*.ts",
+    "app/**/*.js",
+    "app/**/*.jsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.js",
+    "components/**/*.jsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.js",
+    "lib/**/*.ts",
+    "types/**/*.js",
+    "types/**/*.ts",
+    "hooks/**/*.js",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
+    "providers/**/*.js",
+    "providers/**/*.ts",
+    "providers/**/*.tsx",
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "config/**/*.ts"
+  ],
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "node_modules",
+    "jest.config.ts",
+    "jest.config.cts",
+    "app/**/*.spec.ts",
+    "app/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    ".next",
+    "eslint.config.js",
+    "eslint.config.cjs",
+    "eslint.config.mjs"
+  ],
+  "references": [
+    {
+      "path": "../../libs/models"
+    }
+  ]
+}

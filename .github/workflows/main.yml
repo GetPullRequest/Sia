@@ -1,0 +1,49 @@
+name: Sync Sia repository for deployments
+
+on:
+  push:
+    branches: [main, master, release]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup Git and push changes
+        run: |
+          echo "[LOG] =========> It contains new commits. Updating to fork repo"
+          echo "[LOG] =========> Cloning target repo"
+          git clone https://x-access-token:${{ secrets.TOKEN }}@github.com/{{ secrets.ORG }}/{{ secrets.REPO }} temp
+          cd temp
+          echo "[LOG] =========> Checking out the branch that triggered the workflow"
+          git checkout ${{ github.ref_name }}
+          cd ..
+          echo "[LOG] ========> Deleting all files except .git"
+          find ./temp ! -name '.git' ! -path './temp/.git/*' -mindepth 1 -exec rm -rf {} +
+          echo "[LOG] =========> Copying all files to temp dir"
+          rsync -av --exclude='temp' --exclude='.github/workflows' --exclude='.git' . temp/
+          cd temp
+          echo "[LOG] =========> Setup global config"
+          git config --global user.email "${{ secrets.USER_EMAIL }}"
+          git config --global user.name "${{ secrets.USER_NAME }}"
+          echo "[LOG] =========> Git set-url remote repository"
+          git remote set-url origin https://x-access-token:${{ secrets.TOKEN }}@github.com/{{ secrets.ORG }}/{{ secrets.REPO }}
+          echo "[LOG] =========> Git add ."
+          git add .
+          git status
+          echo "[LOG] =========> Git Commit"
+          git commit -m "Synchronize from primary repository - Triggered by GitHub Actions..!"
+          echo "Debugging logs"
+          echo "remote"
+          git remote -v
+          ls -al
+          echo "[LOG] =========> Git push"
+          git push
+          echo "[LOG] =========> Cleanup"
+          cd ..
+          rm -rf temp

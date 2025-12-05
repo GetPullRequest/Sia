@@ -1,0 +1,49 @@
+{
+  "name": "@sia/models",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "generate-proto": "./scripts/generate-proto.sh",
+    "generate-api-client": "./scripts/generate-api-client.sh",
+    "generate": "npm run generate-proto && npm run generate-api-client"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@sia/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./proto": {
+      "@sia/source": "./src/generated/index.ts",
+      "types": "./dist/generated/index.d.ts",
+      "import": "./dist/generated/index.js",
+      "default": "./dist/generated/index.js"
+    },
+    "./api-client": {
+      "@sia/source": "./src/api-client.ts",
+      "types": "./dist/api-client.d.ts",
+      "import": "./dist/api-client.js",
+      "default": "./dist/api-client.js"
+    }
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.10.1",
+    "@grpc/grpc-js": "^1.10.9",
+    "tslib": "^2.3.0",
+    "@hey-api/openapi-ts": "^0.87.5"
+  },
+  "devDependencies": {
+    "@bufbuild/protoc-gen-connect-es": "^0.13.0",
+    "@bufbuild/protoc-gen-es": "^1.10.1",
+    "@connectrpc/connect": "^2.1.0",
+    "protoc": "^33.0.0",
+    "protoc-gen-ts": "^0.8.7",
+    "ts-proto": "^2.8.3"
+  }
+}
