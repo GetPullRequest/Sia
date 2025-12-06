@@ -368,21 +368,6 @@ export function JobCard({
                     Stop
                   </Button>
                 )}
-              {job.status !== 'in-progress' && onDelete && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-xs hover:bg-destructive/10 hover:text-destructive transition-colors"
-                  onClick={event => {
-                    stopPropagation(event);
-                    onDelete(job.id);
-                  }}
-                  onPointerDown={event => event.stopPropagation()}
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Delete
-                </Button>
-              )}
               {/* <Button
                 size="sm"
                 variant="ghost"
@@ -394,6 +379,21 @@ export function JobCard({
                 </Link>
               </Button> */}
             </div>
+          )}
+          {job.status !== 'in-progress' && onDelete && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs hover:bg-destructive/10 hover:text-destructive transition-colors"
+              onClick={event => {
+                stopPropagation(event);
+                onDelete(job.id);
+              }}
+              onPointerDown={event => event.stopPropagation()}
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              Delete
+            </Button>
           )}
         </div>
       </CardContent>
