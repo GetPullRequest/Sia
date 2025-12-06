@@ -18,7 +18,7 @@ jobs:
         run: |
           echo "[LOG] =========> It contains new commits. Updating to fork repo"
           echo "[LOG] =========> Cloning target repo"
-          git clone https://x-access-token:${{ secrets.TOKEN }}@github.com/{{ secrets.ORG }}/{{ secrets.REPO }} temp
+          git clone https://x-access-token:${{ secrets.TOKEN }}@github.com/${{ secrets.ORG }}/${{ secrets.REPO }} temp
           cd temp
           echo "[LOG] =========> Checking out the branch that triggered the workflow"
           git checkout ${{ github.ref_name }}
@@ -32,7 +32,7 @@ jobs:
           git config --global user.email "${{ secrets.USER_EMAIL }}"
           git config --global user.name "${{ secrets.USER_NAME }}"
           echo "[LOG] =========> Git set-url remote repository"
-          git remote set-url origin https://x-access-token:${{ secrets.TOKEN }}@github.com/{{ secrets.ORG }}/{{ secrets.REPO }}
+          git remote set-url origin https://x-access-token:${{ secrets.TOKEN }}@github.com/${{ secrets.ORG }}/${{ secrets.REPO }}
           echo "[LOG] =========> Git add ."
           git add .
           git status
