@@ -1,3 +1,5 @@
+
+"use client";
 import { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -26,7 +28,7 @@ export default function Blogs() {
     <>
       <Navbar />
       <div className="min-h-screen bg-background">
-      
+
         <section className="py-20 sm:py-20 md:py-28 relative flex justify-center w-full">
           <div className="container px-4 sm:px-6 w-full max-w-5xl mx-auto">
             <h1 className="text-heading md:text-heading-md lg:text-heading-lg font-bold mb-2 text-center text-white">
