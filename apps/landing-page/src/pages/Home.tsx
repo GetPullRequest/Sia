@@ -1,3 +1,4 @@
+"use client";
 import { lazy, Suspense, type ReactNode } from 'react';
 
 const Navbar = lazy(() => import('../components/Navbar'));
@@ -20,11 +21,11 @@ const SuspendedSection = ({ label, children }: { label: string; children: ReactN
 export default function Home() {
   return (
     <>
-      
+
       <div className="min-h-screen bg-background max-w-screen overflow-x-hidden">
-      <SuspendedSection label="Navbar">
-        <Navbar />
-      </SuspendedSection>
+        <SuspendedSection label="Navbar">
+          <Navbar />
+        </SuspendedSection>
         <SuspendedSection label="Hero">
           <Hero />
         </SuspendedSection>
