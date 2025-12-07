@@ -178,3 +178,49 @@ export function useToggleQueue(queueType: 'rework' | 'backlog') {
     },
   });
 }
+
+/**
+ * Hook to delete a job
+ */
+export function useDeleteJob() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (jobId: string) => {
+      return await api.deleteJob(jobId);
+    },
+    onMutate: async (jobId: string) => {
+      // Cancel any outgoing refetches to prevent overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['jobs'] });
+
+      // Snapshot the previous value
+      const previousJobs = queryClient.getQueryData<JobResponse[]>(['jobs']);
+
+      // Optimistically remove the job from the list
+      if (previousJobs) {
+        const updatedJobs = previousJobs.filter(job => job.id !== jobId);
+        queryClient.setQueryData<JobResponse[]>(['jobs'], updatedJobs);
+      }
+
+      return { previousJobs };
+    },
+    onError: (_error, _jobId, context) => {
+      // Rollback to previous jobs on error
+      if (context?.previousJobs) {
+        queryClient.setQueryData<JobResponse[]>(['jobs'], context.previousJobs);
+      }
+      toast({
+        variant: 'destructive',
+        description: 'Failed to delete job. Please try again.',
+      });
+    },
+    onSuccess: (_data, jobId) => {
+      // Invalidate and refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['job', jobId] });
+      toast({
+        description: 'Job deleted successfully',
+      });
+    },
+  });
+}

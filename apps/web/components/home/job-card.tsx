@@ -3,7 +3,14 @@
 import { useState, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Play, Pause, GripVertical, Square, GitBranch } from 'lucide-react';
+import {
+  Play,
+  Pause,
+  GripVertical,
+  Square,
+  GitBranch,
+  Trash2,
+} from 'lucide-react';
 import type { JobResponse } from '@/types';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader } from '../ui/card';
@@ -19,6 +26,7 @@ interface JobCardProps {
   onPause?: (id: string) => void;
   onCancel?: (id: string) => void;
   onStop?: (id: string) => void;
+  onDelete?: (id: string) => void;
   isDraggable?: boolean;
   isClickable?: boolean;
   onCardClick?: (job: JobResponse) => void;
@@ -42,6 +50,7 @@ export function JobCard({
   onPause,
   onCancel,
   onStop,
+  onDelete,
   isDraggable = false,
   isClickable = false,
   onCardClick,
@@ -370,6 +379,21 @@ export function JobCard({
                 </Link>
               </Button> */}
             </div>
+          )}
+          {job.status !== 'in-progress' && onDelete && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs hover:bg-destructive/10 hover:text-destructive transition-colors"
+              onClick={event => {
+                stopPropagation(event);
+                onDelete(job.id);
+              }}
+              onPointerDown={event => event.stopPropagation()}
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              Delete
+            </Button>
           )}
         </div>
       </CardContent>

@@ -29,6 +29,7 @@ import {
   useReorderJob,
   useQueueStatus,
   useToggleQueue,
+  useDeleteJob,
 } from '@/hooks/use-jobs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
@@ -36,6 +37,7 @@ import { LaneColumn } from './lane-column';
 import { LANE_DEFINITIONS } from './type';
 import { PrLinkDialog } from './pr-link-dialog';
 import { QueueSelectionDialog } from './queue-selection-dialog';
+import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
 
 export type LaneId =
   | 'queue'
@@ -159,6 +161,10 @@ export function JobBoard({
     containerId: string;
     index: number;
   } | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [pendingDeleteJob, setPendingDeleteJob] = useState<JobResponse | null>(
+    null
+  );
 
   const reorderJobMutation = useReorderJob();
   const queryClient = useQueryClient();
@@ -169,6 +175,7 @@ export function JobBoard({
   const { data: backlogQueueStatus } = useQueueStatus('backlog');
   const reworkQueueMutation = useToggleQueue('rework');
   const backlogQueueMutation = useToggleQueue('backlog');
+  const deleteJobMutation = useDeleteJob();
 
   const handleToggleReworkQueue = useCallback(() => {
     const isPaused = reworkQueueStatus?.isPaused ?? false;
@@ -454,6 +461,7 @@ export function JobBoard({
         const currentPosition = currentJob?.order_in_queue ?? 0;
 
         let newPosition = resolvedIndex;
+        let isMovingBetweenQueues = false;
 
         if (sourceLane === 'queue') {
           // Get the current queue structure BEFORE updating reworkJobIds
@@ -462,6 +470,10 @@ export function JobBoard({
           // For queue lane, calculate position in the combined queue
           const wasInRework = reworkJobIds.has(activeId);
           const isInRework = updatedReworkJobIds.has(activeId);
+
+          // Check if job is moving between Rework and Backlog queues
+          // If so, skip the reprioritize API call (only update UI state)
+          isMovingBetweenQueues = wasInRework !== isInRework;
 
           // Get the container ID to determine which section we're in
           const rawTargetContainer = over.data.current?.sortable
@@ -502,6 +514,14 @@ export function JobBoard({
           newPosition = resolvedIndex;
         }
 
+        // If moving between Rework and Backlog queues, only update reworkJobIds and skip API call
+        if (isMovingBetweenQueues) {
+          // Just update the reworkJobIds state to reflect the queue change
+          setReworkJobIds(updatedReworkJobIds);
+          setActiveJobId(null);
+          return;
+        }
+
         // Check if position actually changed - if not, it's just a click, not a drag
         if (
           currentJob &&
@@ -514,7 +534,7 @@ export function JobBoard({
           return;
         }
 
-        // Only call API if position actually changed
+        // Only update UI and call API if position actually changed
         if (currentJob && currentJob.order_in_queue !== newPosition) {
           // Calculate reordered jobs array for optimistic UI update
           const calculateReorderedJobs = (): JobResponse[] => {
@@ -594,19 +614,23 @@ export function JobBoard({
           }, 150);
 
           // Make API call after transition completes
-          setTimeout(() => {
-            reorderJobMutation.mutate(
-              {
-                jobId: activeId,
-                position: newPosition,
-              },
-              {
-                onSuccess: () => {
-                  onJobMoved?.();
+          // Only call reprioritize API if NOT moving between Rework and Backlog queues
+          // The API should only be called when reordering within the same queue section
+          if (!isMovingBetweenQueues) {
+            setTimeout(() => {
+              reorderJobMutation.mutate(
+                {
+                  jobId: activeId,
+                  position: newPosition,
                 },
-              }
-            );
-          }, 200);
+                {
+                  onSuccess: () => {
+                    onJobMoved?.();
+                  },
+                }
+              );
+            }, 200);
+          }
         } else {
           setActiveJobId(null);
         }
@@ -632,19 +656,33 @@ export function JobBoard({
       setReworkJobIds(updatedReworkJobIds);
       setActiveJobId(null);
 
+      // Helper function to get toast message based on status
+      const getToastMessage = (status: JobResponse['status']): string => {
+        switch (status) {
+          case 'in-review':
+            return 'Job moved to In Review';
+          case 'completed':
+            return 'Job marked as Completed';
+          case 'in-progress':
+            return 'User cannot drag the job while one is already executing.';
+          case 'queued':
+            return 'Job moved to Queue';
+          case 'failed':
+            return 'User cannot move a job to the error lane';
+          default:
+            return 'Job updated successfully';
+        }
+      };
+
       // Then make the API call
       try {
         await api.updateJob(activeId, {
           status: newStatus,
           updated_at: new Date().toISOString(),
         });
+        // Show toast based on actual API response (success)
         toast({
-          description:
-            newStatus === 'in-review'
-              ? 'Job moved to In Review'
-              : newStatus === 'completed'
-              ? 'Job marked as Completed'
-              : 'Job updated successfully',
+          description: getToastMessage(newStatus),
         });
         onJobMoved?.();
       } catch (error) {
@@ -653,6 +691,7 @@ export function JobBoard({
         queryClient.setQueryData<JobResponse[]>(['jobs'], jobs);
         onJobsChange(jobs);
         setReworkJobIds(reworkJobIds);
+        // Show error toast based on API response (failure)
         toast({
           variant: 'destructive',
           description: 'Failed to update job status. Please try again.',
@@ -794,6 +833,30 @@ export function JobBoard({
     [pendingQueueMove, reworkJobIds, onJobMoved]
   );
 
+  const handleDeleteJob = useCallback(
+    (jobId: string) => {
+      const job = jobs.find(j => j.id === jobId);
+      if (job) {
+        setPendingDeleteJob(job);
+        setIsDeleteDialogOpen(true);
+      }
+    },
+    [jobs]
+  );
+
+  const handleConfirmDelete = useCallback(() => {
+    if (pendingDeleteJob) {
+      deleteJobMutation.mutate(pendingDeleteJob.id);
+      setIsDeleteDialogOpen(false);
+      setPendingDeleteJob(null);
+    }
+  }, [pendingDeleteJob, deleteJobMutation]);
+
+  const handleCancelDelete = useCallback(() => {
+    setIsDeleteDialogOpen(false);
+    setPendingDeleteJob(null);
+  }, []);
+
   return (
     <DndContext
       sensors={sensors}
@@ -885,6 +948,9 @@ export function JobBoard({
                         ? onCancelJob
                         : undefined
                     }
+                    onDelete={
+                      lane.id !== 'in-progress' ? handleDeleteJob : undefined
+                    }
                     hideActions={lane.id === 'queue'}
                     isDraggable={lane.id === 'queue'}
                     isClickable={true}
@@ -929,6 +995,12 @@ export function JobBoard({
           setIsQueueSelectionOpen(false);
           setPendingQueueMove(null);
         }}
+      />
+      <DeleteConfirmationDialog
+        open={isDeleteDialogOpen}
+        job={pendingDeleteJob}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
       />
     </DndContext>
   );

@@ -9,6 +9,7 @@ import {
   postJobs,
   getJobsById,
   putJobsById,
+  deleteJobsById,
   deleteReposGithubProvidersById,
   deleteIntegrationsSlackProvidersById,
   postJobsByIdExecute,
@@ -383,6 +384,19 @@ export const api = {
       headers,
     });
     return (result.data as { message?: string }) || {};
+  },
+
+  async deleteJob(id: string): Promise<void> {
+    try {
+      const headers = await getAuthHeaders();
+      await deleteJobsById({
+        path: { id },
+        headers,
+      });
+    } catch (error) {
+      console.error('Failed to delete job:', error);
+      throw error;
+    }
   },
 
   // Agents
