@@ -239,7 +239,7 @@ export default function Hero() {
             >
               Delegate coding tasks to{' '}
               <span className="font-semibold text-white">Sia</span> through
-              Slack or Discord. She queues them, executes via AI coding tools,
+              Slack or Discord. It queues them, executes via AI coding tools,
               and creates pull requests while you sleep.
             </p>
 
