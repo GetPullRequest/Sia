@@ -3,17 +3,10 @@
 import { useState, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  Play,
-  Pause,
-  GripVertical,
-  Square,
-  GitBranch,
-  Trash2,
-} from 'lucide-react';
+import { LayoutGrid, GripVertical, Trash2, Info } from 'lucide-react';
 import type { JobResponse } from '@/types';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader } from '../ui/card';
+import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { useSortable } from '@dnd-kit/sortable';
@@ -44,6 +37,34 @@ const statusColors: Record<string, string> = {
   failed: 'bg-status-failed',
 };
 
+const formatTime = (timestamp: string | Date): string => {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  let interval = seconds / 31536000;
+  if (interval > 1) {
+    return Math.floor(interval) + 'y ago';
+  }
+  interval = seconds / 2592000;
+  if (interval > 1) {
+    return Math.floor(interval) + 'mo ago';
+  }
+  interval = seconds / 86400;
+  if (interval > 1) {
+    return Math.floor(interval) + 'd ago';
+  }
+  interval = seconds / 3600;
+  if (interval > 1) {
+    return Math.floor(interval) + 'h ago';
+  }
+  interval = seconds / 60;
+  if (interval > 1) {
+    return Math.floor(interval) + 'm ago';
+  }
+  return Math.floor(seconds) + 's ago';
+};
+
 export function JobCard({
   job,
   onStart,
@@ -59,7 +80,7 @@ export function JobCard({
   onEnableLaneAnimation,
   isAnimationDisabled = false,
 }: JobCardProps) {
-  const [hasStoppedAnimation, setHasStoppedAnimation] = useState(false);
+  // const [hasStoppedAnimation, setHasStoppedAnimation] = useState(false);
   const [dragStartPosition, setDragStartPosition] = useState<{
     x: number;
     y: number;
@@ -195,10 +216,7 @@ export function JobCard({
       style={style}
       {...(isDraggable ? { ...attributes, ...listeners } : {})}
       className={cn(
-        'rounded-lg border border-border/80 bg-card backdrop-blur-sm',
-        'shadow-sm shadow-black/5',
-        'hover:border-border/60 hover:shadow-md hover:shadow-black/10',
-        'hover:bg-card/80',
+        'bg-card rounded-lg shadow-small p-4',
         isDragging && 'opacity-0 pointer-events-none',
         interactive && !isDraggable && 'cursor-pointer',
         isDraggable && 'cursor-grab active:cursor-grabbing',
@@ -208,195 +226,95 @@ export function JobCard({
       onMouseUp={handleMouseUp}
       onClick={!isDraggable ? handleCardAction : undefined}
     >
-      <CardHeader className="pb-3 px-4 pt-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-2 flex-1 min-w-0">
-            {isDraggable && (
-              <div className="mt-1 text-muted-foreground/60 flex-shrink-0 pointer-events-none">
-                <GripVertical className="h-4 w-4" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div
-                  className={cn(
-                    'h-2 w-2 rounded-full flex-shrink-0',
-                    statusColors[job.status] || 'bg-gray-400'
-                  )}
-                />
-                <button
-                  className="font-semibold text-base text-foreground hover:text-primary transition-colors truncate underline text-left"
-                  onClick={handleJobNameClick}
-                  onPointerDown={event => event.stopPropagation()}
-                >
-                  {job.generated_name || 'Untitled Job'}
-                </button>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <GitBranch className="h-3 w-3 flex-shrink-0" />
-                  {job.repo_url ? (
-                    <Link
-                      href={job.repo_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="truncate hover:text-primary transition-colors underline"
-                      onClick={event => event.stopPropagation()}
-                      onPointerDown={event => event.stopPropagation()}
-                    >
-                      {(() => {
-                        // Extract org/repo from GitHub URL
-                        try {
-                          const url = new URL(job.repo_url);
-                          if (url.hostname.includes('github.com')) {
-                            const parts = url.pathname
-                              .split('/')
-                              .filter(Boolean);
-                            if (parts.length >= 2) {
-                              return `${parts[0]}/${parts[1]}`;
-                            }
-                          }
-                        } catch {
-                          // Ignore URL parsing errors
-                        }
-                        return job.repo_name || job.repo_id || 'Repository';
-                      })()}
-                    </Link>
-                  ) : (
-                    <Link
-                      href="https://github.com/getpullrequest/sia"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="truncate hover:text-primary transition-colors underline"
-                      onClick={event => event.stopPropagation()}
-                      onPointerDown={event => event.stopPropagation()}
-                    >
-                      @getpullrequest/sia
-                    </Link>
-                  )}
-                </span>
-                {/* <span>{job.issueId}</span>
-                <Badge variant="outline" className="text-xs">
-                  {job.source}
-                </Badge> */}
-              </div>
-            </div>
-          </div>
-          {job.status !== 'failed' &&
-            job.status !== 'in-review' &&
-            job.status !== 'completed' && (
-              <Badge variant="secondary" className="text-xs flex-shrink-0">
-                {job.order_in_queue}
-              </Badge>
-            )}
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0 px-4 pb-4">
-        {(job.generated_description || job.user_input?.prompt) && (
-          <p className="text-sm text-muted-foreground mb-2 line-clamp-1 leading-relaxed">
-            {job.generated_description}
-          </p>
-        )}
-        <div className="flex items-center justify-between gap-2">
-          {/* <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="h-3 w-3 flex-shrink-0" />
-            <span>{formatTime(job.created_at)}</span>
-          </span> */}
-          {!hideActions && (
-            <div className="flex items-center gap-0.5">
-              {job.status === 'queued' && onStart && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-xs hover:bg-accent/50 transition-colors"
-                  onClick={event => {
-                    stopPropagation(event);
-                    onStart(job.id);
-                  }}
-                >
-                  <Play className="h-3 w-3 mr-1" />
-                  Start
-                </Button>
-              )}
-              {job.status === 'in-progress' && onPause && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-xs hover:bg-accent/50 transition-colors"
-                  onClick={() => onPause(job.id)}
-                >
-                  <Pause className="h-3 w-3 mr-1" />
-                  Pause
-                </Button>
-              )}
-              {job.status === 'in-progress' &&
-                onStart &&
-                hasStoppedAnimation && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-xs hover:bg-accent/50 transition-colors"
-                    onClick={event => {
-                      stopPropagation(event);
-                      onEnableLaneAnimation?.();
-                      setHasStoppedAnimation(false);
-                      onStart(job.id);
-                    }}
-                    onPointerDown={event => event.stopPropagation()}
-                  >
-                    <Play className="h-3 w-3 mr-1" />
-                    Start
-                  </Button>
-                )}
-              {job.status === 'in-progress' &&
-                (onCancel || onStop) &&
-                !hasStoppedAnimation && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-xs hover:bg-accent/50 transition-colors"
-                    onClick={event => {
-                      stopPropagation(event);
-                      onDisableLaneAnimation?.();
-                      setHasStoppedAnimation(true);
-                      onStop?.(job.id);
-                      onCancel?.(job.id);
-                    }}
-                    onPointerDown={event => event.stopPropagation()}
-                  >
-                    <Square className="h-3 w-3 mr-1" />
-                    Stop
-                  </Button>
-                )}
-              {/* <Button
-                size="sm"
-                variant="ghost"
-                asChild
-              >
-                <Link href={`/jobs/${job.id}`} onClick={stopPropagation}>
-                  <Eye className="h-3 w-3 mr-1" />
-                  View
-                </Link>
-              </Button> */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 flex-1 min-w-0">
+          {isDraggable && (
+            <div className="mt-1 text-muted-foreground/60 flex-shrink-0 pointer-events-none">
+              <GripVertical className="h-4 w-4" />
             </div>
           )}
-          {job.status !== 'in-progress' && onDelete && (
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <div
+                className={cn(
+                  'h-2 w-2 rounded-full flex-shrink-0',
+                  statusColors[job.status] || 'bg-gray-400'
+                )}
+              />
+              <button
+                className="font-semibold text-sm text-foreground hover:text-foreground/70 transition-colors truncate text-left"
+                onClick={handleJobNameClick}
+                onPointerDown={event => event.stopPropagation()}
+              >
+                {job.generated_name || 'Untitled Job'}
+              </button>
+            </div>
+          </div>
+        </div>
+        {job.status !== 'failed' &&
+          job.status !== 'in-review' &&
+          job.status !== 'completed' && (
+            <Badge variant="secondary" className="text-sm flex-shrink-0">
+              {job.order_in_queue || 0}
+            </Badge>
+          )}
+      </div>
+
+      <div className="flex items-center gap-3 text-sm text-muted-foreground ">
+        <span className="flex items-center gap-1.5">
+          <LayoutGrid className="h-3 w-3 flex-shrink-0" />
+          <Link
+            href="https://github.com/getpullrequest/sia"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="truncate text-primary hover:text-primary transition-colors "
+            onClick={event => event.stopPropagation()}
+            onPointerDown={event => event.stopPropagation()}
+          >
+            @getpullrequest/sia
+          </Link>
+        </span>
+      </div>
+
+      {(job.generated_description || job.user_input?.prompt) && (
+        <p className="text-sm text-muted-foreground mt-2 line-clamp-1 leading-relaxed">
+          {job.generated_description || job.user_input?.prompt}
+        </p>
+      )}
+
+      <div className="flex items-center justify-between gap-2 mt-4">
+        <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          Created {formatTime(job.created_at)}
+        </span>
+        <div className="flex items-center gap-0.5">
+          {onDelete && (
             <Button
               size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs hover:bg-destructive/10 hover:text-destructive transition-colors"
+              variant="outline"
+              className="h-7 px-2 text-sm hover:bg-destructive/10 hover:text-destructive transition-colors"
               onClick={event => {
                 stopPropagation(event);
                 onDelete(job.id);
               }}
               onPointerDown={event => event.stopPropagation()}
             >
-              <Trash2 className="h-3 w-3 mr-1" />
-              Delete
+              <Trash2 className="h-4 w-4 text-muted-foreground" />
             </Button>
           )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-sm hover:bg-accent/50 transition-colors text-muted-foreground"
+            onClick={event => {
+              stopPropagation(event);
+              openModal();
+            }}
+            onPointerDown={event => event.stopPropagation()}
+          >
+            <Info className="h-4 w-4 text-muted-foreground" />
+          </Button>
         </div>
-      </CardContent>
+      </div>
       <JobDetailModal
         jobId={job.id}
         open={isModalOpen}

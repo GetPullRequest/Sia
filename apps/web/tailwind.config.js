@@ -19,55 +19,84 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontSize: {
+        // Custom sizes for our typography system
+        subheading: ['14px', { lineHeight: '1.5' }],
+        heading: ['16px', { lineHeight: '1.5' }],
+        // Override Tailwind defaults to match our system
+        // Base: 12px, Subheadings: 14px, Headings: 16px
+        xs: ['12px', { lineHeight: '1.4' }],
+        sm: ['14px', { lineHeight: '1.5' }], // Base text (12px)
+        base: ['16px', { lineHeight: '1.5' }], // Also base (12px)
+        lg: ['18px', { lineHeight: '1.5' }], // Subheadings (14px)
+        xl: ['20px', { lineHeight: '1.5' }], // Headings (16px)
+        '2xl': ['22px', { lineHeight: '1.5' }],
+        '3xl': ['24px', { lineHeight: '1.5' }],
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
-        // Keep existing HSL-based colors for backward compatibility
-        background: 'hsl(var(--app-background))',
-        foreground: 'hsl(var(--foreground))',
+        // CSS variables now store hex values directly
+        background: 'var(--app-background)',
+        foreground: 'var(--foreground)',
         card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-          lane: 'hsl(var(--card-lane))',
-          sublane: 'hsl(var(--card-sublane))',
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+          lane: 'var(--card-lane)',
+          sublane: 'var(--card-sublane)',
         },
-        'app-background': 'hsl(var(--app-background))',
+        'app-background': 'var(--app-background)',
         sidebar: {
-          DEFAULT: 'hsl(var(--sidebar))',
-          background: 'hsl(var(--sidebar-background))',
-          selected: 'hsl(var(--sidebar-selected))',
+          DEFAULT: 'var(--sidebar)',
+          background: 'var(--sidebar-background)',
+          selected: 'var(--sidebar-selected)',
+          foreground: 'var(--sidebar-foreground)',
+          primary: 'var(--sidebar-primary)',
+          'primary-foreground': 'var(--sidebar-primary-foreground)',
+          accent: 'var(--sidebar-accent)',
+          'accent-foreground': 'var(--sidebar-accent-foreground)',
+          border: 'var(--sidebar-border)',
+          ring: 'var(--sidebar-ring)',
         },
-        selected: 'hsl(var(--selected))',
+        selected: 'var(--selected)',
         popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
         },
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
         },
         secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
         },
         muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
         },
         destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
+          DEFAULT: 'var(--destructive)',
+          foreground: 'var(--destructive-foreground)',
         },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
+        success: {
+          DEFAULT: 'var(--success)',
+          foreground: 'var(--success-foreground)',
+        },
+        warning: {
+          DEFAULT: 'var(--warning)',
+          foreground: 'var(--warning-foreground)',
+        },
+        border: 'var(--border)',
+        input: 'var(--input)',
+        ring: 'var(--ring)',
 
         // Chart colors
         chart: {

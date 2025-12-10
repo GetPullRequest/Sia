@@ -339,7 +339,7 @@ export function StreamingLogsViewer({
   return (
     <div
       className={cn(
-        'flex flex-col border rounded-lg bg-background overflow-hidden',
+        'flex flex-col  rounded-lg bg-background overflow-hidden',
         className
       )}
       style={{ height }}
@@ -360,7 +360,7 @@ export function StreamingLogsViewer({
 
         <div className="min-w-full">
           <table className="w-full border-collapse">
-            <thead className="sticky top-0 bg-background z-10 border-b">
+            <thead className="sticky top-0 bg-background z-10 ">
               <tr>
                 <th className="text-left p-2 text-xs font-semibold text-muted-foreground w-12">
                   Severity
@@ -373,7 +373,7 @@ export function StreamingLogsViewer({
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-card">
               {logs.map(log => {
                 const normalizedLevel = log.level.toLowerCase();
                 const isError =
@@ -385,7 +385,7 @@ export function StreamingLogsViewer({
                   <tr
                     key={log.id}
                     className={cn(
-                      'border-b border-border/50 hover:bg-muted/30 transition-colors',
+                      ' hover:bg-muted/30 transition-colors',
                       isError && 'bg-destructive/5',
                       isWarning && 'bg-yellow-500/5'
                     )}

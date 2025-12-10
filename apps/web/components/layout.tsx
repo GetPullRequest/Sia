@@ -10,12 +10,12 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   return (
-    <div className="flex flex-grow h-screen w-screen bg-background overflow-hidden">
-      <SidebarProvider defaultOpen={false}>
+    <div className="flex flex-grow h-screen w-screen bg-muted/10 overflow-hidden">
+      <SidebarProvider open={false}>
         <Sidebar />
         <SidebarInset>
           <Navbar />
-          <main className="p-4 h-screen overflow-y-auto">{children}</main>
+          <main className="p-6 h-screen overflow-y-auto">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </div>
