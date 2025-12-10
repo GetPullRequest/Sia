@@ -125,7 +125,6 @@ const groupJobsByLane = (
 
 export type JobBoardProps = {
   jobs: JobResponse[];
-  onJobsChange: (jobs: JobResponse[]) => void;
   onStartJob?: (id: string) => void;
   onCancelJob?: (id: string) => void;
   onSelectReviewJob?: (job: JobResponse) => void;
@@ -134,7 +133,6 @@ export type JobBoardProps = {
 
 export function JobBoard({
   jobs,
-  onJobsChange,
   onStartJob,
   onCancelJob,
   onSelectReviewJob,
@@ -604,7 +602,6 @@ export function JobBoard({
           // Update query cache and state immediately for smooth transitions
           // dnd-kit will handle the visual transitions automatically
           queryClient.setQueryData<JobResponse[]>(['jobs'], reorderedJobs);
-          onJobsChange(reorderedJobs);
           setReworkJobIds(updatedReworkJobIds);
 
           // Clear active job after a brief delay to allow transition to complete
@@ -652,7 +649,6 @@ export function JobBoard({
 
       // Update query cache and parent state immediately
       queryClient.setQueryData<JobResponse[]>(['jobs'], updatedJobs);
-      onJobsChange(updatedJobs);
       setReworkJobIds(updatedReworkJobIds);
       setActiveJobId(null);
 
@@ -689,7 +685,6 @@ export function JobBoard({
         console.error('Failed to update job status:', error);
         // Rollback on error - revert to original state
         queryClient.setQueryData<JobResponse[]>(['jobs'], jobs);
-        onJobsChange(jobs);
         setReworkJobIds(reworkJobIds);
         // Show error toast based on API response (failure)
         toast({
@@ -704,7 +699,6 @@ export function JobBoard({
       reworkJobIds,
       reorderJobMutation,
       onJobMoved,
-      onJobsChange,
       queryClient,
       showRework,
     ]
@@ -864,7 +858,6 @@ export function JobBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
-      // collisionDetection={collisionDetectionStrategy}
       collisionDetection={closestCenter}
       measuring={{
         droppable: {
@@ -876,12 +869,12 @@ export function JobBoard({
       }}
     >
       <div className="h-full w-full overflow-x-auto overflow-y-hidden pb-2 grid grid-cols-5">
-        <div className="flex gap-4 h-full max-w-[300px] min-w-[200px] ">
+        {/* <div className="flex-1 overflow-y-auto"> */}
+        <div className="flex gap-2 h-full max-w-[300px] min-w-[200px]">
           {LANE_DEFINITIONS.map(lane => {
             const handleExecuteRework =
               lane.id === 'queue' && onStartJob
                 ? () => {
-                    // Execute the first rework job
                     const firstReworkJob = jobsByLane.rework[0];
                     if (firstReworkJob) {
                       onStartJob(firstReworkJob.id);
@@ -892,7 +885,6 @@ export function JobBoard({
             const handleExecuteBacklog =
               lane.id === 'queue' && onStartJob
                 ? () => {
-                    // Execute the first backlog job
                     const firstBacklogJob = jobsByLane.backlog[0];
                     if (firstBacklogJob) {
                       onStartJob(firstBacklogJob.id);
@@ -964,6 +956,7 @@ export function JobBoard({
             );
           })}
         </div>
+        {/* </div> */}
       </div>
       <DragOverlay dropAnimation={DROP_ANIMATION}>
         {activeJob ? (

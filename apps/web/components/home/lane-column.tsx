@@ -11,7 +11,6 @@ import {
 import { CircleDashed, Pause, PlayCircle } from 'lucide-react';
 import type { JobResponse } from '@/types';
 import type { Agent } from '@/types';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
@@ -23,6 +22,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import type { LaneDefinition } from './type';
+import { Badge } from '../ui/badge';
 
 type LaneRenderHelpers = {
   disableAnimatedBorder: () => void;
@@ -110,7 +110,7 @@ export function LaneColumn({
     padding: '2px',
     borderRadius: '1.125rem',
     background:
-      'conic-gradient(from var(--lane-spin-angle, 0deg), hsl(var(--primary) / 0) 0deg, hsl(var(--primary) / 0.25) 110deg, hsl(var(--primary)) 180deg, hsl(var(--primary) / 0.25) 250deg, hsl(var(--primary) / 0) 360deg)',
+      'conic-gradient(from var(--lane-spin-angle, 0deg), color-mix(in srgb, var(--primary) 0%, transparent) 0deg, color-mix(in srgb, var(--primary) 25%, transparent) 110deg, var(--primary) 180deg, color-mix(in srgb, var(--primary) 25%, transparent) 250deg, color-mix(in srgb, var(--primary) 0%, transparent) 360deg)',
     animation: 'lane-spin 3s linear infinite',
     WebkitMask:
       'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
@@ -127,11 +127,17 @@ export function LaneColumn({
   return (
     <div
       ref={setNodeRef}
+      style={{
+        background:
+          theme === 'dark'
+            ? 'radial-gradient(circle at top, #181b20 0, #101218 55%, #050609 100%)'
+            : 'radial-gradient(circle at top, #ffffff 0, #f3f4f6 55%, #e5e7eb 100%)',
+      }}
       className={cn(
-        'h-[78vh] max-w-[350px] min-w-[300px] flex-shrink-0 rounded-2xl overflow-y-auto border bg-card-lane p-4 overflow-hidden backdrop-blur transition-shadow flex flex-col',
-        isInProgressLane && 'shadow-primary/20 shadow-lg relative',
-        shouldShowAnimatedBorder ? 'border-transparent ' : 'border-border/50',
-        isOver && 'ring-2 ring-primary/30 shadow-lg shadow-primary/10'
+        'h-[calc(100vh-12rem)] max-w-[280px] min-w-[280px] flex-shrink-0 rounded-xl overflow-y-auto border border-border p-3 overflow-hidden shadow-sm transition-shadow flex flex-col',
+        isInProgressLane && 'relative shadow-primary/10',
+        shouldShowAnimatedBorder ? 'border-transparent' : 'border-border',
+        isOver && 'ring-2 ring-primary/20 shadow-md shadow-primary/10'
       )}
     >
       {shouldShowAnimatedBorder && (
@@ -141,18 +147,26 @@ export function LaneColumn({
           style={inProgressBorderStyle}
         />
       )}
-      <div className="mb-4 flex items-center justify-between flex-shrink-0">
-        <div>
-          <h3 className="text-lg font-semibold">{lane.title}</h3>
+      <div className="mb-4 flex items-start justify-between flex-shrink-0">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-foreground">
+              {lane.title}
+            </h3>
+            <Badge variant="secondary" className="text-xs rounded-full px-2">
+              {jobs.length}
+            </Badge>
+          </div>
+          <p className="text-xs  text-muted-foreground">{lane.subtitle}</p>
         </div>
-        <Badge variant="secondary">{jobs.length}</Badge>
+        {/* <div className="flex items-center space-x-2">{controls}</div> */}
       </div>
       <div className="space-y-3 min-h-[64px] flex-1 overflow-y-auto overflow-x-hidden pr-1">
         {isInProgressLane && activeAgent && !isAnimationDisabled && (
           <div className="space-y-4 pb-3">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Active Agent –{' '}
                   <Link
                     href="/agents"
@@ -199,9 +213,8 @@ export function LaneColumn({
                 <div className="mb-2 flex items-center justify-between px-2">
                   <div className="flex items-center gap-1">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Rework
+                      Rework Queue
                     </p>
-                    <Badge variant="outline">{queueReworkJobs.length}</Badge>
                   </div>
                   <div className="flex items-center gap-0">
                     {onToggleReworkQueue && (
@@ -210,7 +223,7 @@ export function LaneColumn({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6"
+                            className="h-5 w-5"
                             onClick={() => onToggleReworkQueue()}
                             aria-label={
                               reworkQueuePaused
@@ -318,9 +331,8 @@ export function LaneColumn({
               <div className="mb-2 flex items-center justify-between px-2">
                 <div className="flex items-center gap-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Backlog
+                    Backlog Queue
                   </p>
-                  <Badge variant="outline">{queueBacklogJobs.length}</Badge>
                 </div>
                 <div className="flex items-center gap-0">
                   {onToggleBacklogQueue && (
@@ -363,7 +375,7 @@ export function LaneColumn({
                         >
                           <div
                             className={cn(
-                              'h-4 w-4 [&_canvas]:drop-shadow-[0_0_1px_currentColor,0_0_1px_currentColor,0_0_1px_currentColor] [&_canvas]:filter',
+                              'h-5 w-5 [&_canvas]:drop-shadow-[0_0_1px_currentColor,0_0_1px_currentColor,0_0_1px_currentColor] [&_canvas]:filter',
                               theme === 'dark'
                                 ? 'brightness-0 invert'
                                 : 'brightness-0'

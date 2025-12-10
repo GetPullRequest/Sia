@@ -17,9 +17,7 @@ import { JobRetryForm } from './job-retry-form';
 import { JobDescription } from './job-description';
 // import { JobLogs } from './job-logs'
 import { JobComments } from './job-comments';
-import { JobMetadata } from './job-metadata';
 import { JobPullRequest } from './job-pull-request';
-import { formatDateTime } from './job-constants';
 import { StreamingLogsViewer } from './streaming-logs-viewer';
 import {
   CollapsibleContent,
@@ -198,14 +196,6 @@ export function JobDetail({
   const comments = Array.isArray(job.user_comments) ? job.user_comments : [];
   const acceptanceStatus = job.user_acceptance_status ?? 'not_reviewed';
 
-  const metadataItems = [
-    // { label: 'Job ID', value: job.id },
-    { label: 'Version', value: job.version },
-    { label: 'Created By', value: job.created_by || '—' },
-    { label: 'Created', value: formatDateTime(job.created_at) },
-    { label: 'Last Updated', value: formatDateTime(job.updated_at) },
-  ];
-
   // Helper function to format JSON logs to string
   const formatLogs = (logs: unknown): string => {
     if (!logs) return '';
@@ -261,212 +251,125 @@ export function JobDetail({
   // }
 
   return (
-    <div className="space-y-8 w-full max-w-6xl mx-auto">
-      <div>
-        {/* Action Buttons at the top */}
-        <div className="mb-4 flex flex-wrap justify-end gap-3">
-          {!isEditModalOpen && !isCommentFormOpen && !isRetryFormOpen && (
-            <Button variant="outline" onClick={handleEditOpen}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Job
+    <div className="space-y-8 w-full max-w-6xl mx-auto bg-background">
+      <div className="mb-4 flex flex-wrap justify-end gap-3">
+        {!isEditModalOpen && !isCommentFormOpen && !isRetryFormOpen && (
+          <Button variant="card" onClick={handleEditOpen}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Job
+          </Button>
+        )}
+
+        {!isEditModalOpen && !isCommentFormOpen && !isRetryFormOpen && (
+          <Button variant="card" onClick={handleCommentOpen}>
+            <MessageSquarePlus className="h-4 w-4 mr-2" />
+            Add Comment
+          </Button>
+        )}
+
+        {(job.status === 'failed' || job.status === 'completed') &&
+          !isEditModalOpen &&
+          !isCommentFormOpen &&
+          !isRetryFormOpen && (
+            <Button onClick={handleRetryOpen}>
+              <RotateCw className="h-4 w-4 mr-2" />
+              Retry
             </Button>
           )}
-
-          {!isEditModalOpen && !isCommentFormOpen && !isRetryFormOpen && (
-            <Button onClick={handleCommentOpen}>
-              <MessageSquarePlus className="h-4 w-4 mr-2" />
-              Add Comment
+        {(job.status === 'queued' || job.status === 'in-progress') &&
+          !isEditModalOpen &&
+          !isCommentFormOpen &&
+          !isRetryFormOpen && (
+            <Button
+              variant="destructive"
+              onClick={handleCancel}
+              disabled={updateStatusMutation.isPending}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel job
             </Button>
           )}
-
-          {(job.status === 'failed' || job.status === 'completed') &&
-            !isEditModalOpen &&
-            !isCommentFormOpen &&
-            !isRetryFormOpen && (
-              <Button onClick={handleRetryOpen}>
-                <RotateCw className="h-4 w-4 mr-2" />
-                Retry
-              </Button>
-            )}
-          {(job.status === 'queued' || job.status === 'in-progress') &&
-            !isEditModalOpen &&
-            !isCommentFormOpen &&
-            !isRetryFormOpen && (
-              <Button
-                variant="destructive"
-                onClick={handleCancel}
-                disabled={updateStatusMutation.isPending}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Cancel job
-              </Button>
-            )}
-        </div>
-
-        <JobHeaderSection
-          job={job}
-          isEditMode={isEditModalOpen}
-          editForm={editForm}
-          titleError={titleError}
-          selectedProviderId={selectedProviderId}
-          isLoadingRepos={isLoadingRepos}
-          availableRepos={availableRepos}
-          onEditFormChange={handleEditFormChange}
-          onTitleErrorChange={setTitleError}
-          acceptanceStatus={acceptanceStatus}
-          onClose={onClose}
-          onBackClick={() => router.push('/')}
-        />
-        {isEditModalOpen && (
-          <div className="rounded-3xl bg-card p-6 shadow-lg shadow-black/5 -mt-8 pt-8">
-            <JobEditForm
-              job={job}
-              editForm={editForm}
-              userInputSource={job.user_input?.source}
-              availableRepos={availableRepos}
-              titleError={titleError}
-              onEditFormChange={handleEditFormChange}
-              onTitleErrorChange={setTitleError}
-              onSuccess={handleEditSuccess}
-              onCancel={handleEditCancel}
-            />
-          </div>
-        )}
-        {isCommentFormOpen && (
-          <div className="rounded-3xl bg-card p-6 shadow-lg shadow-black/5 -mt-8 pt-8">
-            <JobCommentForm
-              jobId={job.id}
-              currentComments={comments}
-              onSuccess={handleCommentSuccess}
-              onCancel={handleCommentCancel}
-            />
-          </div>
-        )}
-        {isRetryFormOpen && (
-          <div className="rounded-3xl bg-card p-6 shadow-lg shadow-black/5 -mt-8 pt-8">
-            <JobRetryForm
-              jobId={job.id}
-              currentComments={comments}
-              onSuccess={handleRetrySuccess}
-              onCancel={handleRetryCancel}
-            />
-          </div>
-        )}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <div className="space-y-6 xl:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+        <div className="space-y-6">
+          <div className="mt-2">
+            <JobHeaderSection
+              job={job}
+              isEditMode={isEditModalOpen}
+              editForm={editForm}
+              titleError={titleError}
+              selectedProviderId={selectedProviderId}
+              isLoadingRepos={isLoadingRepos}
+              availableRepos={availableRepos}
+              onEditFormChange={handleEditFormChange}
+              onTitleErrorChange={setTitleError}
+              acceptanceStatus={acceptanceStatus}
+              onClose={onClose}
+              onBackClick={() => router.push('/')}
+            />
+          </div>
+
+          {isEditModalOpen && (
+            <div className="rounded-2xl bg-card p-6 shadow-inner">
+              <JobEditForm
+                job={job}
+                editForm={editForm}
+                userInputSource={job.user_input?.source}
+                availableRepos={availableRepos}
+                titleError={titleError}
+                onEditFormChange={handleEditFormChange}
+                onTitleErrorChange={setTitleError}
+                onSuccess={handleEditSuccess}
+                onCancel={handleEditCancel}
+              />
+            </div>
+          )}
+
           {job.updates && (
-            <Card>
+            <Card className="border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle>Updates</CardTitle>
+                <CardTitle className="text-base font-semibold text-slate-900">
+                  Updates
+                </CardTitle>
               </CardHeader>
               <CardContent className="max-h-[400px] overflow-y-auto">
                 <JobsUpdateSection updates={job.updates} />
               </CardContent>
             </Card>
           )}
+
           <JobDescription job={job} />
 
-          <JobComments comments={comments} />
-        </div>
-
-        <div className="space-y-6">
-          <JobMetadata metadataItems={metadataItems} />
-          <JobPullRequest
-            prLink={job.pr_link}
-            confidenceScore={job.confidence_score}
-          />
-        </div>
-      </div>
-      {/* Execution Logs - Full Width */}
-      <Card className="mb-4 w-full">
-        <CardHeader>
-          <CardTitle>Execution Logs</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
-          <Collapsible
-            open={logsOpen.generation}
-            onOpenChange={isOpen =>
-              setLogsOpen(prev => ({ ...prev, generation: isOpen }))
-            }
-            className="space-y-2"
-          >
-            <div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/40 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <Code className="h-5 w-5 text-primary" />
-                <p className="font-semibold">Code Generation Logs</p>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={e => {
-                    e.stopPropagation();
-                    const logsContent = Array.isArray(job.code_generation_logs)
-                      ? job.code_generation_logs
-                          .map(log =>
-                            typeof log === 'string'
-                              ? log
-                              : JSON.stringify(log, null, 2)
-                          )
-                          .join('\n')
-                      : formatLogs(job.code_generation_logs);
-                    navigator.clipboard.writeText(logsContent || '');
-                    toast({
-                      title: 'Copied to clipboard',
-                      description: 'Code Generation Logs have been copied.',
-                    });
-                  }}
-                  disabled={
-                    !job.code_generation_logs ||
-                    (Array.isArray(job.code_generation_logs) &&
-                      job.code_generation_logs.length === 0)
-                  }
-                >
-                  <Copy className="h-4 w-4" />
-                  <span className="sr-only">Copy logs</span>
-                </Button>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:-rotate-180" />
-                    <span className="sr-only">Toggle logs</span>
-                  </Button>
-                </CollapsibleTrigger>
-              </div>
-            </div>
-            <CollapsibleContent>
-              <StreamingLogsViewer
+          {isRetryFormOpen && (
+            <div className="rounded-2xl bg-card p-6 shadow-inner">
+              <JobRetryForm
                 jobId={job.id}
-                jobVersion={job.version}
-                enabled={isModalOpen && logsOpen.generation}
-                useWebSocket={job.status === 'in-progress'}
-                height="600px"
-                initialLogs={
-                  Array.isArray(job.code_generation_logs)
-                    ? job.code_generation_logs
-                    : []
-                }
+                currentComments={comments}
+                onSuccess={handleRetrySuccess}
+                onCancel={handleRetryCancel}
               />
-            </CollapsibleContent>
-          </Collapsible>
+            </div>
+          )}
 
-          {logSections
-            .filter(section => section.key === 'verification')
-            .map(section => (
+          <Card className="w-full border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900">
+                Execution Logs
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
               <Collapsible
-                key={section.key}
-                open={logsOpen[section.key]}
+                open={logsOpen.generation}
                 onOpenChange={isOpen =>
-                  setLogsOpen(prev => ({ ...prev, [section.key]: isOpen }))
+                  setLogsOpen(prev => ({ ...prev, generation: isOpen }))
                 }
                 className="space-y-2"
               >
-                <div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/40 px-4 py-3">
+                <div className="flex items-center justify-between rounded-lg border border-border/70 bg-card px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <section.icon className="h-5 w-5 text-primary" />
-                    <p className="font-semibold">{section.title}</p>
+                    <Code className="h-5 w-5 text-primary" />
+                    <p className="font-semibold">Code Generation Logs</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
@@ -475,13 +378,28 @@ export function JobDetail({
                       className="h-8 w-8"
                       onClick={e => {
                         e.stopPropagation();
-                        navigator.clipboard.writeText(section.content || '');
+                        const logsContent = Array.isArray(
+                          job.code_generation_logs
+                        )
+                          ? job.code_generation_logs
+                              .map(log =>
+                                typeof log === 'string'
+                                  ? log
+                                  : JSON.stringify(log, null, 2)
+                              )
+                              .join('\n')
+                          : formatLogs(job.code_generation_logs);
+                        navigator.clipboard.writeText(logsContent || '');
                         toast({
                           title: 'Copied to clipboard',
-                          description: `${section.title} have been copied.`,
+                          description: 'Code Generation Logs have been copied.',
                         });
                       }}
-                      disabled={!section.content}
+                      disabled={
+                        !job.code_generation_logs ||
+                        (Array.isArray(job.code_generation_logs) &&
+                          job.code_generation_logs.length === 0)
+                      }
                     >
                       <Copy className="h-4 w-4" />
                       <span className="sr-only">Copy logs</span>
@@ -495,18 +413,117 @@ export function JobDetail({
                   </div>
                 </div>
                 <CollapsibleContent>
-                  <div className="rounded-b-lg border border-border/70 border-t-0 bg-sidebar">
-                    <ScrollArea className="h-full">
-                      <pre className=" p-4 text-xs font-mono text-foreground bg-sidebar">
-                        {section.content || section.placeholder}
-                      </pre>
-                    </ScrollArea>
-                  </div>
+                  <StreamingLogsViewer
+                    jobId={job.id}
+                    jobVersion={job.version}
+                    enabled={isModalOpen && logsOpen.generation}
+                    useWebSocket={job.status === 'in-progress'}
+                    height="600px"
+                    initialLogs={
+                      Array.isArray(job.code_generation_logs)
+                        ? job.code_generation_logs
+                        : []
+                    }
+                  />
                 </CollapsibleContent>
               </Collapsible>
-            ))}
-        </CardContent>
-      </Card>
+
+              {logSections
+                .filter(section => section.key === 'verification')
+                .map(section => (
+                  <Collapsible
+                    key={section.key}
+                    open={logsOpen[section.key]}
+                    onOpenChange={isOpen =>
+                      setLogsOpen(prev => ({ ...prev, [section.key]: isOpen }))
+                    }
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center justify-between rounded-lg border border-border/70 bg-card px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <section.icon className="h-5 w-5 text-primary" />
+                        <p className="font-semibold">{section.title}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={e => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(
+                              section.content || ''
+                            );
+                            toast({
+                              title: 'Copied to clipboard',
+                              description: `${section.title} have been copied.`,
+                            });
+                          }}
+                          disabled={!section.content}
+                        >
+                          <Copy className="h-4 w-4" />
+                          <span className="sr-only">Copy logs</span>
+                        </Button>
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
+                            <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:-rotate-180" />
+                            <span className="sr-only">Toggle logs</span>
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+                    </div>
+                    <CollapsibleContent>
+                      <div className="rounded-b-lg border border-border/70 border-t-0 bg-sidebar">
+                        <ScrollArea className="h-full">
+                          <pre className="p-4 text-xs font-mono text-foreground bg-sidebar">
+                            {section.content || section.placeholder}
+                          </pre>
+                        </ScrollArea>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          {isCommentFormOpen && (
+            <div className="rounded-2xl bg-card p-6 shadow-inner">
+              <JobCommentForm
+                jobId={job.id}
+                currentComments={comments}
+                onSuccess={handleCommentSuccess}
+                onCancel={handleCommentCancel}
+              />
+            </div>
+          )}
+
+          <JobComments comments={comments} />
+
+          {job.updates && (
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base font-semibold text-slate-900">
+                  Updates
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="max-h-[400px] overflow-y-auto">
+                <JobsUpdateSection updates={job.updates} />
+              </CardContent>
+            </Card>
+          )}
+
+          <JobPullRequest
+            prLink={job.pr_link}
+            confidenceScore={job.confidence_score}
+          />
+        </div>
+      </div>
     </div>
   );
 }

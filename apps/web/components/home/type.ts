@@ -18,36 +18,36 @@ export const LANE_DEFINITIONS: LaneDefinition[] = [
   {
     id: 'queue',
     title: 'Queue',
-    subtitle: 'Queue',
+    subtitle: 'Tasks waiting to get started',
     emptyState:
       'Nothing waiting here. Add a task and Sia will take it from there.',
   },
   {
     id: 'in-progress',
     title: 'In Progress',
-    subtitle: 'Execution',
+    subtitle: 'Tasks working on right now',
     emptyState:
       'No active jobs right now. Sia is not working on anything at the moment.',
   },
   {
     id: 'in-review',
     title: 'In Review',
-    subtitle: 'Quality',
+    subtitle: 'Finished tasks waiting for your approval',
     emptyState: 'Nothing awaiting review',
   },
   {
     id: 'completed',
     title: 'Completed',
-    subtitle: 'Shipped',
+    subtitle: 'Tasks that have been successfully completed and approved',
     emptyState:
       'Nothing shipped yet. Sia has not completed any tasks at the moment.',
   },
   {
     id: 'failed',
     title: 'Error',
-    subtitle: 'Errors',
+    subtitle: 'Tasks that have encountered errors',
     emptyState:
-      'No failed jobs. Sia has not encountered any errors at the moment.',
+      'No errors found. Sia has not encountered any errors at the moment.',
   },
 ];
 

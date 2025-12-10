@@ -1,38 +1,299 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { Bell } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bell, Search, Plus, Loader2 } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from './ui/button';
-import { SidebarTrigger } from './ui/sidebar';
-import { ThemeToggle } from './theme-toggle';
 import { ProfileAvatar } from './profileavatar';
-
-const navigation = [
-  { name: 'Home', href: '/' },
-  { name: 'Recents', href: '/recents' },
-  { name: 'Agents', href: '/agents' },
-  { name: 'Integrations', href: '/integrations' },
-  { name: 'Developer Settings', href: '/developer-settings' },
-];
+import { Badge } from './ui/badge';
+import { InputGroup, InputGroupAddon, InputGroupInput } from './ui/input-group';
+import { Kbd } from './ui/kbd';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from './ui/textarea';
+import { api, type Repo } from '@/lib/api';
+import { useAuthInfo } from '@propelauth/react';
+import { ThemeToggle } from './theme-toggle';
 
 export function Navbar() {
-  const pathname = usePathname();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const authInfo = useAuthInfo();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [prompt, setPrompt] = useState('');
+  const [selectedRepoId, setSelectedRepoId] = useState<string>('');
+  const [availableRepos, setAvailableRepos] = useState<Repo[]>([]);
+  const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+  const [isMac, setIsMac] = useState(false);
+
+  // Detect OS for keyboard shortcut display
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const platform = window.navigator.platform.toLowerCase();
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      setIsMac(
+        platform.includes('mac') ||
+          platform.includes('iphone') ||
+          platform.includes('ipad') ||
+          userAgent.includes('mac')
+      );
+    }
+  }, []);
+
+  const handleAddTaskClick = () => {
+    setIsModalOpen(true);
+  };
+
+  const createJobMutation = useMutation({
+    mutationFn: async (userPrompt: string) => {
+      return await api.createJob({
+        user_input: {
+          source: 'mobile',
+          prompt: userPrompt,
+          sourceMetadata: null,
+        },
+        repo: selectedRepoId || undefined,
+        created_by: authInfo.user?.userId || 'unknown',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      toast({
+        title: 'Task added',
+        description: 'Your task has been submitted to the Sia agent',
+      });
+      setPrompt('');
+      setSelectedRepoId('');
+      setIsModalOpen(false);
+    },
+    onError: error => {
+      const errorMessage = error
+        ? (error as Error).message
+        : 'An error occurred';
+      toast({
+        title: 'Failed to add task',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (isModalOpen) {
+      setIsLoadingRepos(true);
+      api
+        .getAllRepos()
+        .then(repos => setAvailableRepos(repos))
+        .catch(() => {
+          toast({
+            title: 'Failed to load repos',
+            description:
+              'Unable to load repositories. You can still create a job without selecting a repo.',
+            variant: 'destructive',
+          });
+        })
+        .finally(() => setIsLoadingRepos(false));
+    }
+  }, [isModalOpen, toast]);
+
+  const handleAddTask = () => {
+    if (prompt.trim()) {
+      createJobMutation.mutate(prompt.trim());
+    }
+  };
+
+  const handleCancel = () => {
+    setPrompt('');
+    setSelectedRepoId('');
+    setIsModalOpen(false);
+  };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-sidebar px-6">
-      <div className="flex items-center gap-2">
-        <SidebarTrigger />
-        <h2 className="text-lg font-semibold">
-          {navigation.find(item => item.href === pathname)?.name || 'Dashboard'}
-        </h2>
+    <header className="sticky rounded-full m-4 top-0 z-30 bg-sidebar border border-border">
+      <div className="flex h-20 w-full justify-between items-center gap-4 px-4 sm:px-6">
+        <div className="flex items-center justify-start gap-10 w-1/2">
+          <div className="flex flex-col gap-1 ">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground">
+                Jobs Overview
+              </h2>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1">
+            {/* <div className="flex items-center gap-3">
+              <Badge
+                variant="secondary"
+                className="hidden sm:inline-flex items-center gap-2  bg-secondary text-muted-foreground text-xs"
+              >
+                {jobCount} total jobs
+              </Badge>
+              {activeAgent && (
+                <Badge
+                  variant="secondary"
+                  className="hidden sm:inline-flex items-center gap-2  bg-secondary text-muted-foreground text-xs"
+                >
+                  Active agent:{' '}
+                  <span className="font-medium text-foreground">
+                    {activeAgent.name}
+                  </span>
+                </Badge>
+              )}
+            </div> */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge
+                variant="secondary"
+                className="hidden sm:inline-flex items-center gap-1.5 bg-secondary text-muted-foreground text-xs"
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                System healthy
+              </Badge>
+              <Badge
+                variant="secondary"
+                className="hidden sm:inline-flex items-center gap-1.5 bg-secondary text-muted-foreground text-xs"
+              >
+                <span className="h-2 w-2 rounded-full bg-blue-500" />1 agent
+              </Badge>
+              <Badge
+                variant="secondary"
+                className="hidden sm:inline-flex items-center gap-1.5 bg-secondary text-muted-foreground text-xs"
+              >
+                <span className="h-2 w-2 rounded-full bg-blue-500" />2 vibe
+                coding platforms connected
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center w-1/2s justify-end gap-2">
+          <div className="flex flex-1  items-center gap-3">
+            <InputGroup className="w-96 h-12  border border-border rounded-full">
+              <InputGroupAddon>
+                <Search className="h-4 w-4 text-muted-foreground" />
+              </InputGroupAddon>
+              <InputGroupInput placeholder="Search jobs" />
+              <InputGroupAddon align="inline-end">
+                {isMac ? (
+                  <>
+                    <Kbd>⌘</Kbd>
+                    <Kbd>K</Kbd>
+                  </>
+                ) : (
+                  <>
+                    <Kbd>Ctrl</Kbd>
+                    <Kbd>K</Kbd>
+                  </>
+                )}
+              </InputGroupAddon>
+            </InputGroup>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" aria-label="Notifications">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+            </Button>
+            {/* <Button variant="outline" size="icon" aria-label="Theme"> */}
+            <ThemeToggle />
+            {/* </Button> */}
+            <Button onClick={handleAddTaskClick} className="gap-2 h-9 px-3">
+              <Plus className="h-5 w-5 text-white" />
+              Add Task
+            </Button>
+            <ProfileAvatar />
+          </div>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <ThemeToggle />
-        <Button variant="outline" size="icon">
-          <Bell className="h-5 w-5" />
-        </Button>
-        <ProfileAvatar />
-      </div>
+
+      {/* Add Task Modal (shared with homepage) */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Task</DialogTitle>
+            <DialogDescription>
+              Enter a prompt for the Sia agent to execute
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="prompt-input" className="text-xs font-medium">
+                Prompt
+              </label>
+              <Textarea
+                id="prompt-input"
+                placeholder="Enter your prompt here..."
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="repo-select" className="text-xs font-medium">
+                Repository (Optional)
+              </label>
+              <select
+                id="repo-select"
+                value={selectedRepoId}
+                onChange={e => setSelectedRepoId(e.target.value)}
+                disabled={isLoadingRepos}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isLoadingRepos ? (
+                  <option value="">Loading repositories...</option>
+                ) : availableRepos.length === 0 ? (
+                  <option value="">No repositories available</option>
+                ) : (
+                  <>
+                    <option value="">No repository (use default)</option>
+                    {availableRepos.map(repo => (
+                      <option key={repo.id} value={repo.id}>
+                        {repo.name}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+              {availableRepos.length === 0 && !isLoadingRepos && (
+                <p className="text-xs text-muted-foreground">
+                  No repositories configured. Connect a GitHub provider to add
+                  repositories.
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={createJobMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddTask}
+              disabled={!prompt.trim() || createJobMutation.isPending}
+            >
+              {createJobMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" />
+                  Add
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }
