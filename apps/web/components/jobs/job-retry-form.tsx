@@ -80,7 +80,7 @@ export function JobRetryForm({
         <label htmlFor="retry_comment" className="text-sm font-medium">
           Retry Job
         </label>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Add a comment about why you&apos;re retrying this job. The job will be
           added to the rework queue.
         </p>

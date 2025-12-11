@@ -16,7 +16,7 @@ export function JobPullRequest({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pull Request</CardTitle>
+        <CardTitle className="text-base">Pull Request</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 max-h-[300px] overflow-y-auto">
         <Button
@@ -37,7 +37,7 @@ export function JobPullRequest({
         </Button>
         <div>
           <p className="text-sm text-muted-foreground mb-1">Confidence Score</p>
-          <p className="text-3xl font-semibold">{confidenceScore ?? '—'}</p>
+          <p className="text-base font-semibold">{confidenceScore ?? '—'}</p>
         </div>
       </CardContent>
     </Card>

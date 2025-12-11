@@ -83,19 +83,19 @@ export function useJobs() {
  * First tries to get the job from the jobs list cache, then fetches if not found
  */
 export function useJob(id: string) {
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: ['job', id],
     queryFn: async () => {
       // First check if job exists in jobs list cache
-      const jobs = queryClient.getQueryData<JobResponse[]>(['jobs']);
-      if (jobs) {
-        const jobFromCache = jobs.find(job => job.id === id);
-        if (jobFromCache) {
-          return jobFromCache;
-        }
-      }
+      // const jobs = queryClient.getQueryData<JobResponse[]>(['jobs']);
+      // if (jobs) {
+      //   const jobFromCache = jobs.find(job => job.id === id);
+      //   if (jobFromCache) {
+      //     return jobFromCache;
+      //   }
+      // }
 
       // If not found in cache, fetch from API
       const job = await api.getJob(id);
@@ -223,7 +223,7 @@ export function useQueueStatus(queueType: 'rework' | 'backlog') {
     queryFn: async () => {
       return await api.getQueueStatus(queueType);
     },
-    refetchInterval: 5000,
+    // refetchInterval: 5000,
     staleTime: 1000,
   });
 }

@@ -9,8 +9,15 @@ import {
 import { useState } from 'react';
 import { Timeline, TimelineItem } from '../ui/timeline';
 import { Button } from '../ui/button';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 
-export function JobsUpdateSection({ updates }: { updates: string }) {
+export function JobsUpdateSection({
+  updates,
+  currentUserName,
+}: {
+  updates: string;
+  currentUserName?: string;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const parseUpdate = (line: string, index: number) => {
@@ -88,6 +95,26 @@ export function JobsUpdateSection({ updates }: { updates: string }) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Avatar className="h-8 w-8">
+          <AvatarFallback className="text-xs">
+            {(currentUserName || 'You')
+              .split(' ')
+              .map(part => part.charAt(0))
+              .join('')
+              .slice(0, 2)
+              .toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col">
+          <span className="text-xs font-semibold">
+            {currentUserName || 'You'}
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            Latest activity
+          </span>
+        </div>
+      </div>
       <Timeline size="md" className="min-h-0 max-w-none py-0">
         {visibleUpdates.map((update, index) => {
           const IconComponent = update.icon;
