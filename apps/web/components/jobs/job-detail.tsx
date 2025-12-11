@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,6 @@ import {
 import { ScrollArea } from '../ui/scroll-area';
 import { useDebouncedCallback } from 'use-debounce';
 import { useAuthInfo } from '@propelauth/react';
-import { DeleteConfirmationDialog } from '../home/delete-confirmation-dialog';
 
 interface JobDetailProps {
   job: JobResponse;
@@ -57,7 +56,6 @@ export function JobDetail({
     generation: false,
     verification: false,
   });
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     generated_name: job?.generated_name || '',
     generated_description: job?.generated_description || '',
@@ -66,11 +64,6 @@ export function JobDetail({
     repo_id: job?.repo_id || '',
     repo_name: job?.repo_name || '',
   });
-  const [isLoadingRepos, setIsLoadingRepos] = useState(false);
-  const [availableRepos, setAvailableRepos] = useState<
-    Array<{ id: string; name: string; url: string }>
-  >([]);
-  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const [titleError, setTitleError] = useState<string>('');
 
   useEffect(() => {
@@ -112,43 +105,6 @@ export function JobDetail({
     },
   });
 
-  const deleteJobMutation = useMutation({
-    mutationFn: async (jobId: string) => {
-      await api.deleteJob(jobId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      toast({
-        title: 'Job deleted',
-        description: 'The job has been successfully deleted.',
-      });
-      if (onClose) {
-        onClose();
-      } else {
-        router.push('/');
-      }
-    },
-    onError: error => {
-      console.error('Failed to delete job:', error);
-      toast({
-        title: 'Deletion failed',
-        description: 'Unable to delete the job. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const handleDeleteJobConfirm = () => {
-    if (job?.id) {
-      deleteJobMutation.mutate(job.id);
-      setIsDeleteDialogOpen(false);
-    }
-  };
-
-  const handleDeleteJobCancel = () => {
-    setIsDeleteDialogOpen(false);
-  };
-
   const debouncedInlineUpdate = useDebouncedCallback(
     (updates: UpdateJobRequest) => {
       if (!Object.keys(updates).length) return;
@@ -157,54 +113,6 @@ export function JobDetail({
     },
     3000
   );
-
-  const loadRepos = useCallback(
-    async (providerId: string) => {
-      setIsLoadingRepos(true);
-      try {
-        const repos = await api.getGitHubRepos(providerId);
-        setAvailableRepos(
-          repos.map(repo => ({
-            id: repo.id,
-            name: repo.name,
-            url: repo.url,
-          }))
-        );
-      } catch (error) {
-        console.error('Failed to load repos:', error);
-        toast({
-          title: 'Failed to load repos',
-          description: 'Unable to load repositories. Please try again.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoadingRepos(false);
-      }
-    },
-    [toast]
-  );
-
-  useEffect(() => {
-    const fetchProvidersAndRepos = async () => {
-      try {
-        const providers = await api.getGitHubProviders();
-        if (providers.length > 0) {
-          const firstProviderId = providers[0].id;
-          setSelectedProviderId(firstProviderId);
-          await loadRepos(firstProviderId);
-        }
-      } catch (error) {
-        console.error('Failed to load providers:', error);
-        toast({
-          title: 'Failed to load providers',
-          description: 'Unable to load GitHub providers. Please try again.',
-          variant: 'destructive',
-        });
-      }
-    };
-
-    fetchProvidersAndRepos();
-  }, [loadRepos, toast]);
 
   const handleInlineChange = (field: string, value: string) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
@@ -235,15 +143,15 @@ export function JobDetail({
       }
     }
 
-    if (field === 'repo_name') {
-      const selectedRepo = availableRepos.find(repo => repo.name === value);
-      if (selectedRepo) {
-        updates.repo = selectedRepo.id;
-      } else if (!value) {
-        updates.repo = undefined;
-      }
-    }
+    debouncedInlineUpdate(updates);
+  };
 
+  const handleRepoChange = (repoName: string) => {
+    setEditForm(prev => ({ ...prev, repo_name: repoName }));
+    const updates: UpdateJobRequest = {
+      updated_by: currentUserName,
+      repo: repoName,
+    };
     debouncedInlineUpdate(updates);
   };
 
@@ -256,7 +164,6 @@ export function JobDetail({
   }
 
   const comments = Array.isArray(job.user_comments) ? job.user_comments : [];
-  const acceptanceStatus = job.user_acceptance_status ?? 'not_reviewed';
 
   // Helper function to format JSON logs to string
   const formatLogs = (logs: unknown): string => {
@@ -293,18 +200,6 @@ export function JobDetail({
   const getVerificationLogsContent = () =>
     formatLogs(job.code_verification_logs);
 
-  // const handleLogsToggle = (key: string, isOpen: boolean) => {
-  //     setLogsOpen((prev) => ({ ...prev, [key]: isOpen }))
-  // }
-
-  // const handleCopyLogs = (content: string, title: string) => {
-  //     navigator.clipboard.writeText(content)
-  //     toast({
-  //         title: 'Copied to clipboard',
-  //         description: `${title} have been copied.`,
-  //     })
-  // }
-
   return (
     <div className="  w-full max-w-full flex flex-col justify-top items-start ">
       <div className="grid  lg:grid-cols-2 ">
@@ -315,15 +210,11 @@ export function JobDetail({
               isEditMode
               editForm={editForm}
               titleError={titleError}
-              selectedProviderId={selectedProviderId}
-              isLoadingRepos={isLoadingRepos}
-              availableRepos={availableRepos}
               onEditFormChange={handleInlineChange}
               onTitleErrorChange={setTitleError}
-              acceptanceStatus={acceptanceStatus}
+              onRepoChange={handleRepoChange}
               onClose={onClose}
               onBackClick={() => router.push('/')}
-              onDeleteClick={() => setIsDeleteDialogOpen(true)}
             />
           </div>
 
@@ -354,27 +245,6 @@ export function JobDetail({
             currentUserName={currentUserName}
             updates={job.updates || ''}
           />
-
-          {/* {job.updates && (
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold text-slate-900">
-                  Updates
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-[400px] overflow-y-auto">
-                <JobsUpdateSection
-                  updates={job.updates}
-                  currentUserName={currentUserName}
-                />
-              </CardContent>
-            </Card>
-          )} */}
-
-          {/* <JobPullRequest
-            prLink={job.pr_link}
-            confidenceScore={job.confidence_score}
-          /> */}
         </Card>
       </div>
 
@@ -506,13 +376,6 @@ export function JobDetail({
           </Collapsible>
         </CardContent>
       </Card>
-
-      <DeleteConfirmationDialog
-        open={isDeleteDialogOpen}
-        job={job}
-        onConfirm={handleDeleteJobConfirm}
-        onCancel={handleDeleteJobCancel}
-      />
     </div>
   );
 }

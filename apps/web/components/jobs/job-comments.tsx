@@ -12,18 +12,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuthInfo } from '@propelauth/react';
 import { JobsUpdateSection } from './jobs-update-section';
 import { cn } from '@/lib/utils';
-
-type CommentItem = {
-  file_name: string;
-  line_no: number;
-  prompt: string;
-  author?: string;
-  created_at?: string;
-};
+import { UserComment } from '@sia/models';
 
 interface JobCommentsProps {
   jobId: string;
-  comments: CommentItem[];
+  comments: UserComment[];
   currentUserName?: string;
   updates?: string;
 }
@@ -59,19 +52,15 @@ export function JobComments({
 
   const addCommentMutation = useMutation({
     mutationFn: async (commentText: string) => {
-      const newCommentObj: CommentItem = {
+      const newCommentObj: UserComment = {
         file_name: '',
         line_no: 0,
         prompt: commentText,
-        author: currentUserName || 'You',
-        created_at: new Date().toISOString(),
       };
       const normalizedExisting = comments.map(c => ({
         file_name: c.file_name ?? '',
         line_no: c.line_no ?? 0,
         prompt: c.prompt,
-        author: c.author,
-        created_at: c.created_at,
       }));
       const result = await api.updateJob(jobId, {
         user_comments: [...normalizedExisting, newCommentObj],
@@ -98,11 +87,6 @@ export function JobComments({
       });
     },
   });
-
-  // Filter comments to only show those with available prompts
-  // const validComments = comments.filter(
-  //   comment => comment.prompt && comment.prompt.trim() !== ''
-  // );
 
   return (
     <Card className="bg-transparent shadow-none">
@@ -193,7 +177,7 @@ export function JobComments({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">
-                          {comment.author || currentUserName || 'You'}
+                          {currentUserName || 'You'}
                         </span>
                         {/* {comment.file_name && (
                           <Badge variant="secondary" className="text-xs">

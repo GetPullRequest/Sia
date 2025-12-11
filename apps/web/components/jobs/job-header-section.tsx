@@ -1,13 +1,16 @@
 'use client';
 
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, GitBranch, Trash } from 'lucide-react';
+import { ArrowLeft, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { JobResponse } from '@/types';
 import { formatRelativeTime } from './job-constants';
+import { api } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface JobHeaderProps {
   job: JobResponse;
@@ -20,15 +23,11 @@ interface JobHeaderProps {
     repo_name: string;
   };
   titleError: string;
-  selectedProviderId: string;
-  isLoadingRepos: boolean;
-  availableRepos: Array<{ id: string; name: string; url: string }>;
   onEditFormChange: (field: string, value: string) => void;
   onTitleErrorChange: (error: string) => void;
-  acceptanceStatus: string;
+  onRepoChange: (repoName: string) => void;
   onClose?: () => void;
   onBackClick?: () => void;
-  onDeleteClick: () => void;
 }
 
 export function JobHeaderSection({
@@ -36,21 +35,81 @@ export function JobHeaderSection({
   isEditMode,
   editForm,
   titleError,
-  selectedProviderId,
-  isLoadingRepos,
-  availableRepos,
   onEditFormChange,
   onTitleErrorChange,
-  acceptanceStatus,
+  onRepoChange,
   onClose,
   onBackClick,
-  onDeleteClick,
 }: JobHeaderProps) {
+  const { toast } = useToast();
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
+  const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+  const [availableRepos, setAvailableRepos] = useState<
+    Array<{ id: string; name: string; url: string }>
+  >([]);
+
+  const loadRepos = useCallback(
+    async (providerId: string) => {
+      setIsLoadingRepos(true);
+      try {
+        const repos = await api.getGitHubRepos(providerId);
+        setAvailableRepos(
+          repos.map(repo => ({
+            id: repo.id,
+            name: repo.name,
+            url: repo.url,
+          }))
+        );
+      } catch (error) {
+        console.error('Failed to load repos:', error);
+        toast({
+          title: 'Failed to load repos',
+          description: 'Unable to load repositories. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingRepos(false);
+      }
+    },
+    [toast]
+  );
+
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    const fetchProvidersAndRepos = async () => {
+      try {
+        const providers = await api.getGitHubProviders();
+        if (providers.length > 0) {
+          const firstProviderId = providers[0].id;
+          setSelectedProviderId(firstProviderId);
+          await loadRepos(firstProviderId);
+        }
+      } catch (error) {
+        console.error('Failed to load providers:', error);
+        toast({
+          title: 'Failed to load providers',
+          description: 'Unable to load GitHub providers. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    fetchProvidersAndRepos();
+  }, [isEditMode, loadRepos, toast]);
+
   const stopSpacePropagation = (event: React.KeyboardEvent) => {
     if (event.key === ' ') {
       event.stopPropagation();
       // event.preventDefault();
     }
+  };
+
+  const handleRepoChange = (value: string) => {
+    onEditFormChange('repo_name', value);
+    console.log('value', value);
+    const selectedRepo = availableRepos.find(repo => repo.id === value);
+    onRepoChange(selectedRepo?.name || value);
   };
 
   return (
@@ -62,15 +121,6 @@ export function JobHeaderSection({
               <Button variant="ghost" size="sm" onClick={onBackClick}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Home
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onDeleteClick}
-                className="text-destructive hover:bg-destructive/10"
-              >
-                <Trash className="h-4 w-4 mr-2" />
-                Delete Job
               </Button>
             </div>
           )}
@@ -113,9 +163,7 @@ export function JobHeaderSection({
                     {selectedProviderId ? (
                       <select
                         value={editForm.repo_name}
-                        onChange={e =>
-                          onEditFormChange('repo_name', e.target.value)
-                        }
+                        onChange={e => handleRepoChange(e.target.value)}
                         onKeyDown={stopSpacePropagation}
                         className="flex h-8 rounded-md border border-input bg-card px-2 py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={isLoadingRepos}
