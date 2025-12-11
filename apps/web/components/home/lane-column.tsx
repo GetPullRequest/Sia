@@ -62,6 +62,7 @@ export type LaneColumnProps = {
   onToggleBacklogQueue?: () => void;
   dropIndicator?: { containerId: string; index: number } | null;
   activeJobId?: string | null;
+  controls?: ReactNode;
 };
 
 export function LaneColumn({
@@ -83,6 +84,7 @@ export function LaneColumn({
   onToggleBacklogQueue,
   dropIndicator,
   activeJobId,
+  controls,
 }: LaneColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `lane-${lane.id}`,

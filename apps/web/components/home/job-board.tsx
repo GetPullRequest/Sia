@@ -24,6 +24,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { toast } from '@/hooks/use-toast';
+import { ArrowUpDown, Filter, MoreHorizontal, RefreshCw } from 'lucide-react';
 import { api } from '@/lib/api';
 import {
   useReorderJob,
@@ -33,6 +34,7 @@ import {
 } from '@/hooks/use-jobs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
+import { Button } from '@/components/ui/button';
 import { LaneColumn } from './lane-column';
 import { LANE_DEFINITIONS } from './type';
 import { PrLinkDialog } from './pr-link-dialog';
@@ -851,6 +853,93 @@ export function JobBoard({
     setPendingDeleteJob(null);
   }, []);
 
+  const getLaneControls = (laneId: LaneId) => {
+    switch (laneId) {
+      case 'queue':
+        return (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-muted-foreground"
+            >
+              <Filter className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs text-muted-foreground">All types</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </>
+        );
+      case 'in-progress':
+        return (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-muted-foreground"
+            >
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs text-muted-foreground">Sort</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </>
+        );
+      case 'in-review':
+        return (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-muted-foreground"
+            >
+              <Filter className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs text-muted-foreground">Filters</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </>
+        );
+      case 'completed':
+        return (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-muted-foreground"
+            >
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs text-muted-foreground">Sort</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -922,6 +1011,7 @@ export function JobBoard({
                 theme={resolvedTheme}
                 dropIndicator={lane.id === 'queue' ? dropIndicator : null}
                 activeJobId={activeJobId}
+                controls={getLaneControls(lane.id)}
                 renderJob={(job, helpers) => (
                   <JobCard
                     key={`${lane.id}-${job.id}`}
