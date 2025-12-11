@@ -16,7 +16,7 @@ export function JobMetadata({ metadataItems }: JobMetadataProps) {
         {metadataItems.map(item => (
           <div key={item.label} className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">{item.label}</p>
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-xs font-medium text-foreground">
               {item.value ?? '—'}
             </p>
           </div>

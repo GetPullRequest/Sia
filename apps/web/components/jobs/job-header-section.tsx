@@ -1,18 +1,16 @@
 'use client';
 
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { JobResponse } from '@/types';
-import {
-  statusColors,
-  acceptanceStyles,
-  formatRelativeTime,
-} from './job-constants';
+import { formatRelativeTime } from './job-constants';
+import { api } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface JobHeaderProps {
   job: JobResponse;
@@ -25,12 +23,9 @@ interface JobHeaderProps {
     repo_name: string;
   };
   titleError: string;
-  selectedProviderId: string;
-  isLoadingRepos: boolean;
-  availableRepos: Array<{ id: string; name: string; url: string }>;
   onEditFormChange: (field: string, value: string) => void;
   onTitleErrorChange: (error: string) => void;
-  acceptanceStatus: string;
+  onRepoChange: (repoName: string) => void;
   onClose?: () => void;
   onBackClick?: () => void;
 }
@@ -40,32 +35,102 @@ export function JobHeaderSection({
   isEditMode,
   editForm,
   titleError,
-  selectedProviderId,
-  isLoadingRepos,
-  availableRepos,
   onEditFormChange,
   onTitleErrorChange,
-  acceptanceStatus,
+  onRepoChange,
   onClose,
   onBackClick,
 }: JobHeaderProps) {
+  const { toast } = useToast();
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
+  const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+  const [availableRepos, setAvailableRepos] = useState<
+    Array<{ id: string; name: string; url: string }>
+  >([]);
+
+  const loadRepos = useCallback(
+    async (providerId: string) => {
+      setIsLoadingRepos(true);
+      try {
+        const repos = await api.getGitHubRepos(providerId);
+        setAvailableRepos(
+          repos.map(repo => ({
+            id: repo.id,
+            name: repo.name,
+            url: repo.url,
+          }))
+        );
+      } catch (error) {
+        console.error('Failed to load repos:', error);
+        toast({
+          title: 'Failed to load repos',
+          description: 'Unable to load repositories. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingRepos(false);
+      }
+    },
+    [toast]
+  );
+
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    const fetchProvidersAndRepos = async () => {
+      try {
+        const providers = await api.getGitHubProviders();
+        if (providers.length > 0) {
+          const firstProviderId = providers[0].id;
+          setSelectedProviderId(firstProviderId);
+          await loadRepos(firstProviderId);
+        }
+      } catch (error) {
+        console.error('Failed to load providers:', error);
+        toast({
+          title: 'Failed to load providers',
+          description: 'Unable to load GitHub providers. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    fetchProvidersAndRepos();
+  }, [isEditMode, loadRepos, toast]);
+
+  const stopSpacePropagation = (event: React.KeyboardEvent) => {
+    if (event.key === ' ') {
+      event.stopPropagation();
+      // event.preventDefault();
+    }
+  };
+
+  const handleRepoChange = (value: string) => {
+    onEditFormChange('repo_name', value);
+    console.log('value', value);
+    const selectedRepo = availableRepos.find(repo => repo.id === value);
+    onRepoChange(selectedRepo?.name || value);
+  };
+
   return (
-    <div className="rounded-3xl bg-card p-6 shadow-lg shadow-black/5">
+    <div className="rounded-3xl  p-3 ">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-3">
           {!onClose && onBackClick && (
-            <Button variant="ghost" size="sm" onClick={onBackClick}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
+            <div className="flex flex-row justify-between items-center w-full">
+              <Button variant="ghost" size="sm" onClick={onBackClick}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+            </div>
           )}
           <div className="flex items-center gap-3">
-            <span
+            {/* <span
               className={cn(
                 'h-3 w-3 rounded-full',
                 statusColors[job.status] || 'bg-muted-foreground'
               )}
-            />
+            /> */}
             <div>
               {isEditMode ? (
                 <div className="space-y-1">
@@ -75,32 +140,32 @@ export function JobHeaderSection({
                       onEditFormChange('generated_name', e.target.value);
                       onTitleErrorChange('');
                     }}
+                    onKeyDown={stopSpacePropagation}
                     placeholder="Job title"
                     className={cn(
-                      'text-2xl font-semibold h-auto py-2',
+                      'text-xl font-semibold h-auto border-none py-2 bg-card outline-none',
                       titleError && 'border-destructive'
                     )}
                   />
                   {titleError && (
-                    <p className="text-sm text-destructive">{titleError}</p>
+                    <p className="text-xs text-destructive">{titleError}</p>
                   )}
                 </div>
               ) : (
-                <h1 className="text-xl font-semibold">
+                <h1 className="text-base font-semibold">
                   {job?.generated_name || 'Untitled Job'}
                 </h1>
               )}
-              <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-muted-foreground">
                 {isEditMode ? (
                   <div className="flex items-center gap-2">
                     <GitBranch className="h-4 w-4" />
                     {selectedProviderId ? (
                       <select
                         value={editForm.repo_name}
-                        onChange={e =>
-                          onEditFormChange('repo_name', e.target.value)
-                        }
-                        className="flex h-8 rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        onChange={e => handleRepoChange(e.target.value)}
+                        onKeyDown={stopSpacePropagation}
+                        className="flex h-8 rounded-md border border-input bg-card px-2 py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={isLoadingRepos}
                       >
                         {isLoadingRepos ? (
@@ -185,8 +250,9 @@ export function JobHeaderSection({
                           onChange={e =>
                             onEditFormChange('order_in_queue', e.target.value)
                           }
+                          onKeyDown={stopSpacePropagation}
                           placeholder="Queue position"
-                          className="h-7 w-20 text-sm"
+                          className="h-7 w-20 text-xs bg-card outline-none"
                         />
                       </div>
                     ) : (
@@ -199,24 +265,6 @@ export function JobHeaderSection({
               </div>
             </div>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge className="capitalize">{job.status}</Badge>
-          <Badge variant="secondary" className="capitalize">
-            {job.priority}
-          </Badge>
-          {job.status === 'in-review' && (
-            <Badge
-              className={cn(
-                'capitalize',
-                acceptanceStyles[
-                  acceptanceStatus as keyof typeof acceptanceStyles
-                ]
-              )}
-            >
-              {acceptanceStatus.replace(/_/g, ' ')}
-            </Badge>
-          )}
         </div>
       </div>
     </div>

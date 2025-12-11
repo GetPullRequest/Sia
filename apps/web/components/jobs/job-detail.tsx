@@ -6,18 +6,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
-import type { JobResponse } from '@/types';
-import { Code, ShieldCheck, ChevronDown, Copy } from 'lucide-react';
+import type { JobResponse, UpdateJobRequest } from '@/types';
+import { Code, ShieldCheck, ChevronDown, Copy, Logs } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { JobsUpdateSection } from './jobs-update-section';
 import { JobHeaderSection } from './job-header-section';
-import { JobEditForm } from './job-edit-form';
-import { JobCommentForm } from './job-comment-form';
 import { JobRetryForm } from './job-retry-form';
 import { JobDescription } from './job-description';
-// import { JobLogs } from './job-logs'
 import { JobComments } from './job-comments';
-import { JobPullRequest } from './job-pull-request';
 import { StreamingLogsViewer } from './streaming-logs-viewer';
 import {
   CollapsibleContent,
@@ -25,20 +20,17 @@ import {
   Collapsible,
 } from '../ui/collapsible';
 import { ScrollArea } from '../ui/scroll-area';
-import { Edit, MessageSquarePlus, RotateCw, X } from 'lucide-react';
-
-type StatusUpdate =
-  | 'queued'
-  | 'in-progress'
-  | 'completed'
-  | 'failed'
-  | 'archived';
+import { useDebouncedCallback } from 'use-debounce';
+import { useAuthInfo } from '@propelauth/react';
 
 interface JobDetailProps {
   job: JobResponse;
   isLoading?: boolean;
   onClose?: () => void;
   isModalOpen?: boolean;
+  isRetryFormOpen: boolean;
+  onRetryCancel: () => void;
+  onRetrySuccess: () => void;
 }
 
 export function JobDetail({
@@ -46,17 +38,24 @@ export function JobDetail({
   isLoading,
   onClose,
   isModalOpen = true,
+  isRetryFormOpen,
+  onRetryCancel,
+  onRetrySuccess,
 }: JobDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const authInfo = useAuthInfo();
+  const currentUserName =
+    authInfo.user?.firstName || authInfo.user?.lastName
+      ? `${authInfo.user?.firstName || ''} ${
+          authInfo.user?.lastName || ''
+        }`.trim()
+      : authInfo.user?.email?.split('@')[0] || 'You';
   const [logsOpen, setLogsOpen] = useState({
-    generation: true,
+    generation: false,
     verification: false,
   });
-  const [isCommentFormOpen, setIsCommentFormOpen] = useState(false);
-  const [isRetryFormOpen, setIsRetryFormOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     generated_name: job?.generated_name || '',
     generated_description: job?.generated_description || '',
@@ -65,124 +64,95 @@ export function JobDetail({
     repo_id: job?.repo_id || '',
     repo_name: job?.repo_name || '',
   });
-  const [isLoadingRepos, setIsLoadingRepos] = useState(false);
-  const [availableRepos, setAvailableRepos] = useState<
-    Array<{ id: string; name: string; url: string }>
-  >([]);
-  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const [titleError, setTitleError] = useState<string>('');
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ status }: { status: StatusUpdate }) => {
-      const result = await api.updateJobStatus(job.id, status);
+  useEffect(() => {
+    setEditForm({
+      generated_name: job?.generated_name || '',
+      generated_description: job?.generated_description || '',
+      user_input_prompt: job?.user_input?.prompt || '',
+      order_in_queue: job?.order_in_queue?.toString() || '',
+      repo_id: job?.repo_id || '',
+      repo_name: job?.repo_name || '',
+    });
+  }, [
+    job?.generated_name,
+    job?.generated_description,
+    job?.user_input?.prompt,
+    job?.order_in_queue,
+    job?.repo_id,
+    job?.repo_name,
+  ]);
+
+  const inlineUpdateMutation = useMutation({
+    mutationFn: async (updates: UpdateJobRequest) => {
+      const result = await api.updateJob(job.id, updates);
       if (!result) {
-        throw new Error('Failed to update job status');
+        throw new Error('Failed to update job');
       }
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['job', job.id] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      toast({
-        title: 'Status updated',
-        description: 'The job status has been updated successfully.',
-      });
     },
     onError: () => {
       toast({
         title: 'Update failed',
-        description: 'Unable to update the job status. Please try again.',
+        description: 'Unable to update the job. Please try again.',
         variant: 'destructive',
       });
     },
   });
 
-  const handleRetryOpen = () => setIsRetryFormOpen(true);
-  const handleRetryCancel = () => setIsRetryFormOpen(false);
-  const handleRetrySuccess = () => setIsRetryFormOpen(false);
-  const handleCancel = () => updateStatusMutation.mutate({ status: 'failed' });
+  const debouncedInlineUpdate = useDebouncedCallback(
+    (updates: UpdateJobRequest) => {
+      if (!Object.keys(updates).length) return;
+      inlineUpdateMutation.mutate(updates);
+      console.log('updates', updates);
+    },
+    3000
+  );
 
-  useEffect(() => {
-    const loadRepos = async (providerId: string) => {
-      setIsLoadingRepos(true);
-      try {
-        const repos = await api.getGitHubRepos(providerId);
-        setAvailableRepos(
-          repos.map(repo => ({
-            id: repo.id,
-            name: repo.name,
-            url: repo.url,
-          }))
-        );
-      } catch (error) {
-        console.error('Failed to load repos:', error);
-        toast({
-          title: 'Failed to load repos',
-          description: 'Unable to load repositories. Please try again.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoadingRepos(false);
-      }
+  const handleInlineChange = (field: string, value: string) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+
+    const updates: UpdateJobRequest = {
+      updated_by: currentUserName,
     };
 
-    if (selectedProviderId && isEditModalOpen) {
-      loadRepos(selectedProviderId);
-    }
-  }, [selectedProviderId, isEditModalOpen, toast]);
-
-  const handleEditOpen = async () => {
-    setEditForm({
-      generated_name: job?.generated_name || '',
-      generated_description: job?.generated_description || '',
-      user_input_prompt: job?.user_input?.prompt || '',
-      order_in_queue: job?.order_in_queue?.toString() || '',
-      repo_id: job?.repo_id || '',
-      repo_name: job?.repo_name || '',
-    });
-    setIsEditModalOpen(true);
-
-    // Load GitHub providers and repos
-    try {
-      const providers = await api.getGitHubProviders();
-      if (providers.length > 0) {
-        const firstProviderId = providers[0].id;
-        setSelectedProviderId(firstProviderId);
+    if (field === 'generated_name') {
+      if (!value.trim()) {
+        setTitleError('Job title is mandatory.');
+        return;
       }
-    } catch (error) {
-      console.error('Failed to load providers:', error);
+      setTitleError('');
+      updates.generated_name = value;
     }
+
+    if (field === 'generated_description') {
+      updates.generated_description = value;
+    }
+
+    if (field === 'order_in_queue') {
+      const parsedOrder = parseInt(value, 10);
+      if (!Number.isNaN(parsedOrder)) {
+        updates.order_in_queue = parsedOrder;
+      } else {
+        return;
+      }
+    }
+
+    debouncedInlineUpdate(updates);
   };
 
-  const handleEditCancel = () => {
-    setIsEditModalOpen(false);
-    setTitleError('');
-    // Reset form to original values
-    setEditForm({
-      generated_name: job?.generated_name || '',
-      generated_description: job?.generated_description || '',
-      user_input_prompt: job?.user_input?.prompt || '',
-      order_in_queue: job?.order_in_queue?.toString() || '',
-      repo_id: job?.repo_id || '',
-      repo_name: job?.repo_name || '',
-    });
-  };
-
-  const handleEditSuccess = () => {
-    setIsEditModalOpen(false);
-    setTitleError('');
-  };
-
-  const handleCommentCancel = () => {
-    setIsCommentFormOpen(false);
-  };
-
-  const handleCommentOpen = () => {
-    setIsCommentFormOpen(true);
-  };
-
-  const handleCommentSuccess = () => {
-    setIsCommentFormOpen(false);
+  const handleRepoChange = (repoName: string) => {
+    setEditForm(prev => ({ ...prev, repo_name: repoName }));
+    const updates: UpdateJobRequest = {
+      updated_by: currentUserName,
+      repo: repoName,
+    };
+    debouncedInlineUpdate(updates);
   };
 
   if (isLoading) {
@@ -194,7 +164,6 @@ export function JobDetail({
   }
 
   const comments = Array.isArray(job.user_comments) ? job.user_comments : [];
-  const acceptanceStatus = job.user_acceptance_status ?? 'not_reviewed';
 
   // Helper function to format JSON logs to string
   const formatLogs = (logs: unknown): string => {
@@ -217,313 +186,196 @@ export function JobDetail({
     return '';
   };
 
-  const logSections = [
-    {
-      key: 'generation',
-      title: 'Code Generation Logs',
-      content: formatLogs(job.code_generation_logs),
-      placeholder: 'No code generation logs yet.',
-      icon: Code,
-    },
-    {
-      key: 'verification',
-      title: 'Verification Logs',
-      content: formatLogs(job.code_verification_logs),
-      placeholder: 'No verification logs yet.',
-      icon: ShieldCheck,
-    },
-  ] as const;
-
-  const handleEditFormChange = (field: string, value: string) => {
-    setEditForm(prev => ({ ...prev, [field]: value }));
+  const getGenerationLogsContent = () => {
+    if (Array.isArray(job.code_generation_logs)) {
+      return job.code_generation_logs
+        .map(log =>
+          typeof log === 'string' ? log : JSON.stringify(log, null, 2)
+        )
+        .join('\n');
+    }
+    return formatLogs(job.code_generation_logs);
   };
 
-  // const handleLogsToggle = (key: string, isOpen: boolean) => {
-  //     setLogsOpen((prev) => ({ ...prev, [key]: isOpen }))
-  // }
-
-  // const handleCopyLogs = (content: string, title: string) => {
-  //     navigator.clipboard.writeText(content)
-  //     toast({
-  //         title: 'Copied to clipboard',
-  //         description: `${title} have been copied.`,
-  //     })
-  // }
+  const getVerificationLogsContent = () =>
+    formatLogs(job.code_verification_logs);
 
   return (
-    <div className="space-y-8 w-full max-w-6xl mx-auto bg-background">
-      <div className="mb-4 flex flex-wrap justify-end gap-3">
-        {!isEditModalOpen && !isCommentFormOpen && !isRetryFormOpen && (
-          <Button variant="card" onClick={handleEditOpen}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Job
-          </Button>
-        )}
-
-        {!isEditModalOpen && !isCommentFormOpen && !isRetryFormOpen && (
-          <Button variant="card" onClick={handleCommentOpen}>
-            <MessageSquarePlus className="h-4 w-4 mr-2" />
-            Add Comment
-          </Button>
-        )}
-
-        {(job.status === 'failed' || job.status === 'completed') &&
-          !isEditModalOpen &&
-          !isCommentFormOpen &&
-          !isRetryFormOpen && (
-            <Button onClick={handleRetryOpen}>
-              <RotateCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          )}
-        {(job.status === 'queued' || job.status === 'in-progress') &&
-          !isEditModalOpen &&
-          !isCommentFormOpen &&
-          !isRetryFormOpen && (
-            <Button
-              variant="destructive"
-              onClick={handleCancel}
-              disabled={updateStatusMutation.isPending}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Cancel job
-            </Button>
-          )}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <div className="space-y-6">
+    <div className="  w-full max-w-full flex flex-col justify-top items-start ">
+      <div className="grid  lg:grid-cols-2 ">
+        <Card className="space-y-3 bg-card min-w-full  max-h-[50vh]  overflow-y-auto ">
           <div className="mt-2">
             <JobHeaderSection
               job={job}
-              isEditMode={isEditModalOpen}
+              isEditMode
               editForm={editForm}
               titleError={titleError}
-              selectedProviderId={selectedProviderId}
-              isLoadingRepos={isLoadingRepos}
-              availableRepos={availableRepos}
-              onEditFormChange={handleEditFormChange}
+              onEditFormChange={handleInlineChange}
               onTitleErrorChange={setTitleError}
-              acceptanceStatus={acceptanceStatus}
+              onRepoChange={handleRepoChange}
               onClose={onClose}
               onBackClick={() => router.push('/')}
             />
           </div>
 
-          {isEditModalOpen && (
-            <div className="rounded-2xl bg-card p-6 shadow-inner">
-              <JobEditForm
-                job={job}
-                editForm={editForm}
-                userInputSource={job.user_input?.source}
-                availableRepos={availableRepos}
-                titleError={titleError}
-                onEditFormChange={handleEditFormChange}
-                onTitleErrorChange={setTitleError}
-                onSuccess={handleEditSuccess}
-                onCancel={handleEditCancel}
-              />
-            </div>
-          )}
-
-          {job.updates && (
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold text-slate-900">
-                  Updates
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-[400px] overflow-y-auto">
-                <JobsUpdateSection updates={job.updates} />
-              </CardContent>
-            </Card>
-          )}
-
-          <JobDescription job={job} />
+          <JobDescription
+            job={job}
+            generatedDescription={editForm.generated_description}
+            onGeneratedDescriptionChange={value =>
+              handleInlineChange('generated_description', value)
+            }
+          />
 
           {isRetryFormOpen && (
             <div className="rounded-2xl bg-card p-6 shadow-inner">
               <JobRetryForm
                 jobId={job.id}
                 currentComments={comments}
-                onSuccess={handleRetrySuccess}
-                onCancel={handleRetryCancel}
+                onSuccess={onRetrySuccess}
+                onCancel={onRetryCancel}
               />
             </div>
           )}
+        </Card>
 
-          <Card className="w-full border-slate-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-slate-900">
-                Execution Logs
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
-              <Collapsible
-                open={logsOpen.generation}
-                onOpenChange={isOpen =>
-                  setLogsOpen(prev => ({ ...prev, generation: isOpen }))
-                }
-                className="space-y-2"
-              >
-                <div className="flex items-center justify-between rounded-lg border border-border/70 bg-card px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <Code className="h-5 w-5 text-primary" />
-                    <p className="font-semibold">Code Generation Logs</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={e => {
-                        e.stopPropagation();
-                        const logsContent = Array.isArray(
-                          job.code_generation_logs
-                        )
-                          ? job.code_generation_logs
-                              .map(log =>
-                                typeof log === 'string'
-                                  ? log
-                                  : JSON.stringify(log, null, 2)
-                              )
-                              .join('\n')
-                          : formatLogs(job.code_generation_logs);
-                        navigator.clipboard.writeText(logsContent || '');
-                        toast({
-                          title: 'Copied to clipboard',
-                          description: 'Code Generation Logs have been copied.',
-                        });
-                      }}
-                      disabled={
-                        !job.code_generation_logs ||
-                        (Array.isArray(job.code_generation_logs) &&
-                          job.code_generation_logs.length === 0)
-                      }
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span className="sr-only">Copy logs</span>
-                    </Button>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:-rotate-180" />
-                        <span className="sr-only">Toggle logs</span>
-                      </Button>
-                    </CollapsibleTrigger>
-                  </div>
-                </div>
-                <CollapsibleContent>
-                  <StreamingLogsViewer
-                    jobId={job.id}
-                    jobVersion={job.version}
-                    enabled={isModalOpen && logsOpen.generation}
-                    useWebSocket={job.status === 'in-progress'}
-                    height="600px"
-                    initialLogs={
-                      Array.isArray(job.code_generation_logs)
-                        ? job.code_generation_logs
-                        : []
-                    }
-                  />
-                </CollapsibleContent>
-              </Collapsible>
-
-              {logSections
-                .filter(section => section.key === 'verification')
-                .map(section => (
-                  <Collapsible
-                    key={section.key}
-                    open={logsOpen[section.key]}
-                    onOpenChange={isOpen =>
-                      setLogsOpen(prev => ({ ...prev, [section.key]: isOpen }))
-                    }
-                    className="space-y-2"
-                  >
-                    <div className="flex items-center justify-between rounded-lg border border-border/70 bg-card px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <section.icon className="h-5 w-5 text-primary" />
-                        <p className="font-semibold">{section.title}</p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={e => {
-                            e.stopPropagation();
-                            navigator.clipboard.writeText(
-                              section.content || ''
-                            );
-                            toast({
-                              title: 'Copied to clipboard',
-                              description: `${section.title} have been copied.`,
-                            });
-                          }}
-                          disabled={!section.content}
-                        >
-                          <Copy className="h-4 w-4" />
-                          <span className="sr-only">Copy logs</span>
-                        </Button>
-                        <CollapsibleTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                          >
-                            <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:-rotate-180" />
-                            <span className="sr-only">Toggle logs</span>
-                          </Button>
-                        </CollapsibleTrigger>
-                      </div>
-                    </div>
-                    <CollapsibleContent>
-                      <div className="rounded-b-lg border border-border/70 border-t-0 bg-sidebar">
-                        <ScrollArea className="h-full">
-                          <pre className="p-4 text-xs font-mono text-foreground bg-sidebar">
-                            {section.content || section.placeholder}
-                          </pre>
-                        </ScrollArea>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          {isCommentFormOpen && (
-            <div className="rounded-2xl bg-card p-6 shadow-inner">
-              <JobCommentForm
-                jobId={job.id}
-                currentComments={comments}
-                onSuccess={handleCommentSuccess}
-                onCancel={handleCommentCancel}
-              />
-            </div>
-          )}
-
-          <JobComments comments={comments} />
-
-          {job.updates && (
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold text-slate-900">
-                  Updates
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-[400px] overflow-y-auto">
-                <JobsUpdateSection updates={job.updates} />
-              </CardContent>
-            </Card>
-          )}
-
-          <JobPullRequest
-            prLink={job.pr_link}
-            confidenceScore={job.confidence_score}
+        <Card className="space-y-3 min-h-[50vh]  ml-2 min-w-full">
+          <JobComments
+            jobId={job.id}
+            comments={comments}
+            currentUserName={currentUserName}
+            updates={job.updates || ''}
           />
-        </div>
+        </Card>
       </div>
+
+      <Card className="w-full mt-4">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold text-foreground flex flex-wrap items-center gap-2">
+            <Logs className="h-4 w-4" />
+            <p>Execution Logs</p>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Collapsible
+            open={logsOpen.generation}
+            onOpenChange={isOpen =>
+              setLogsOpen(prev => ({ ...prev, generation: isOpen }))
+            }
+            className="space-y-2"
+          >
+            <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-4">
+              <div className="flex items-center gap-3">
+                <Code className="h-5 w-5 text-primary" />
+                <p className="font-semibold">Code Generation Logs</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={e => {
+                    e.stopPropagation();
+                    const logsContent = Array.isArray(job.code_generation_logs)
+                      ? job.code_generation_logs
+                          .map(log =>
+                            typeof log === 'string'
+                              ? log
+                              : JSON.stringify(log, null, 2)
+                          )
+                          .join('\n')
+                      : getGenerationLogsContent();
+                    navigator.clipboard.writeText(logsContent || '');
+                    toast({
+                      title: 'Copied to clipboard',
+                      description: 'Code Generation Logs have been copied.',
+                    });
+                  }}
+                  disabled={
+                    !job.code_generation_logs ||
+                    (Array.isArray(job.code_generation_logs) &&
+                      job.code_generation_logs.length === 0)
+                  }
+                >
+                  <Copy className="h-4 w-4" />
+                  <span className="sr-only">Copy logs</span>
+                </Button>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:-rotate-180" />
+                    <span className="sr-only">Toggle logs</span>
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+            </div>
+            <CollapsibleContent>
+              <StreamingLogsViewer
+                jobId={job.id}
+                jobVersion={job.version}
+                enabled={isModalOpen && logsOpen.generation}
+                useWebSocket={job.status === 'in-progress'}
+                height="600px"
+                initialLogs={
+                  Array.isArray(job.code_generation_logs)
+                    ? job.code_generation_logs
+                    : []
+                }
+              />
+            </CollapsibleContent>
+          </Collapsible>
+
+          <Collapsible
+            open={logsOpen.verification}
+            onOpenChange={isOpen =>
+              setLogsOpen(prev => ({ ...prev, verification: isOpen }))
+            }
+            className="space-y-2"
+          >
+            <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                <p className="font-semibold">Verification Logs</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={e => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(
+                      getVerificationLogsContent() || ''
+                    );
+                    toast({
+                      title: 'Copied to clipboard',
+                      description: 'Verification Logs have been copied.',
+                    });
+                  }}
+                  disabled={!getVerificationLogsContent()}
+                >
+                  <Copy className="h-4 w-4" />
+                  <span className="sr-only">Copy logs</span>
+                </Button>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:-rotate-180" />
+                    <span className="sr-only">Toggle logs</span>
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+            </div>
+            <CollapsibleContent>
+              <div className="rounded-b-lg border border-border/70 border-t-0 bg-sidebar">
+                <ScrollArea className="h-[600px]">
+                  <pre className="p-4 text-xs font-mono text-foreground bg-sidebar">
+                    {getVerificationLogsContent() ||
+                      'No verification logs yet.'}
+                  </pre>
+                </ScrollArea>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </CardContent>
+      </Card>
     </div>
   );
 }
