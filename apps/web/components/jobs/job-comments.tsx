@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -88,10 +88,100 @@ export function JobComments({
     },
   });
 
+  const createTaskMutation = useMutation({
+    mutationFn: async (commentText: string) => {
+      return await api.createJob({
+        user_input: {
+          source: 'mobile',
+          prompt: commentText,
+          sourceMetadata: null,
+        },
+        created_by: user?.userId || 'unknown',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      setNewComment('');
+      toast({
+        title: 'Task created',
+        description: 'A new task has been created from your comment.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Failed to create task',
+        description: 'Unable to create the task. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleSaveClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const trimmedComment = newComment.trim();
+    if (!trimmedComment) return;
+
+    if (event.metaKey || event.ctrlKey) {
+      createTaskMutation.mutate(trimmedComment);
+      return;
+    }
+
+    addCommentMutation.mutate(trimmedComment);
+  };
+
+  const handleSaveKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    // Prevent Enter key from bubbling up and triggering card clicks or modal reopening
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      const trimmedComment = newComment.trim();
+      if (!trimmedComment) return;
+
+      if (event.metaKey || event.ctrlKey) {
+        createTaskMutation.mutate(trimmedComment);
+        return;
+      }
+
+      addCommentMutation.mutate(trimmedComment);
+    }
+    // Also stop space key from propagating
+    if (event.key === ' ') {
+      event.stopPropagation();
+    }
+  };
+
+  const handleCancelKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>
+  ) => {
+    // Prevent Enter key from bubbling up
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      event.stopPropagation();
+      setNewComment('');
+    }
+  };
+
+  const handleTextareaKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>
+  ) => {
+    // Stop space key from propagating to prevent triggering button clicks or modal interactions
+    if (event.key === ' ') {
+      event.stopPropagation();
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      const trimmedComment = newComment.trim();
+      if (!trimmedComment) return;
+      addCommentMutation.mutate(trimmedComment);
+    }
+  };
+
   return (
     <Card className="bg-transparent shadow-none">
       <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <FileText className="h-5 w-5" />
           Comments & Activities
         </CardTitle>
@@ -105,7 +195,7 @@ export function JobComments({
           {showUpdates ? 'Hide Updates' : 'Show Updates'}
         </Button>
       </CardHeader>
-      <CardContent className="max-h-[300px] overflow-y-auto space-y-3 pt-2">
+      <CardContent className="max-h-[40vh] overflow-y-auto space-y-3 pt-2">
         {showUpdates && updates && (
           <div className="rounded-lg border border-border bg-card/60 p-3">
             <JobsUpdateSection
@@ -119,28 +209,51 @@ export function JobComments({
             placeholder="Write a comment..."
             value={newComment}
             onChange={e => setNewComment(e.target.value)}
+            onKeyDown={handleTextareaKeyDown}
             className={cn(
               'text-sm min-h-[60px] resize-none',
               newComment.trim().length > 0 && 'max-h-[200px] overflow-y-auto'
             )}
           />
           {newComment.trim().length > 0 && (
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setNewComment('')}
-                disabled={addCommentMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => addCommentMutation.mutate(newComment.trim())}
-                disabled={addCommentMutation.isPending || !newComment.trim()}
-              >
-                {addCommentMutation.isPending ? 'Saving...' : 'Save'}
-              </Button>
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setNewComment('');
+                  }}
+                  onKeyDown={handleCancelKeyDown}
+                  onMouseDown={e => e.stopPropagation()}
+                  onPointerDown={e => e.stopPropagation()}
+                  disabled={addCommentMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveClick}
+                  onKeyDown={handleSaveKeyDown}
+                  onMouseDown={e => e.stopPropagation()}
+                  onPointerDown={e => e.stopPropagation()}
+                  disabled={
+                    addCommentMutation.isPending ||
+                    createTaskMutation.isPending ||
+                    !newComment.trim()
+                  }
+                  title="Click to save comment. Hold Ctrl/Cmd while clicking to create a task."
+                >
+                  {addCommentMutation.isPending || createTaskMutation.isPending
+                    ? 'Saving...'
+                    : 'Save'}
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground text-right">
+                Hold Ctrl/Cmd and click Save to create a new task instead.
+              </p>
             </div>
           )}
         </div>

@@ -17,18 +17,18 @@ export function JobDescription({
   onGeneratedDescriptionChange,
 }: JobDescriptionProps) {
   return (
-    <Card className="bg-transparent shadow-none p-0">
-      <CardHeader>
-        <CardTitle className="text-base flex flex-wrap items-center gap-2">
+    <Card className="bg-transparent shadow-none border-0">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex flex-wrap items-center gap-2 text-foreground">
           <Menu className="h-4 w-4" />
-          <p>Description</p>
+          <p className="text-lg">Description</p>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 ">
+      <CardContent className="space-y-3 pt-0">
         <Textarea
           value={generatedDescription || ''}
           onChange={e => onGeneratedDescriptionChange(e.target.value)}
-          className="text-sm min-h-[200px] overflow-hidden resize-none bg-card outline-none"
+          className="text-sm min-h-[180px] max-h-full  resize-none rounded-lg bg-card border-none px-3 py-2 outline-none"
           placeholder="Add a short summary for this job..."
         />
         {/* <div className="rounded-2xl border border-dashed border-muted p-4">

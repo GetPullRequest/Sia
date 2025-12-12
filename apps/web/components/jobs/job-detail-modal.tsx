@@ -6,13 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { useJob } from '@/hooks/use-jobs';
 import { JobDetail } from './job-detail';
 import { Button } from '@/components/ui/button';
-import { RotateCw, Trash } from 'lucide-react';
+import { RotateCw, Trash, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { acceptanceStyles } from './job-constants';
-import { cn } from '@/lib/utils';
-import { DeleteConfirmationDialog } from '../home/delete-confirmation-dialog';
 
 interface JobDetailModalProps {
   jobId: string;
@@ -27,7 +24,7 @@ export function JobDetailModal({
 }: JobDetailModalProps) {
   const { data: job, isLoading, isError } = useJob(jobId);
   const [isRetryFormOpen, setIsRetryFormOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -64,7 +61,7 @@ export function JobDetailModal({
         title: 'Job deleted',
         description: 'The job has been successfully deleted.',
       });
-      setIsDeleteDialogOpen(false);
+      setShowDeleteConfirmation(false);
       onOpenChange(false);
     },
     onError: error => {
@@ -84,72 +81,94 @@ export function JobDetailModal({
   };
 
   const handleDeleteJobCancel = () => {
-    setIsDeleteDialogOpen(false);
+    setShowDeleteConfirmation(false);
   };
 
   const handleRetryOpen = () => setIsRetryFormOpen(true);
   const handleRetryCancel = () => setIsRetryFormOpen(false);
-  const handleRetrySuccess = () => setIsRetryFormOpen(false);
+  const handleRetrySuccess = () => {
+    setIsRetryFormOpen(false);
+    onOpenChange(false);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[70%] h-[90vh] p-0">
-        <DialogTitle className="text-base font-semibold  text-foreground border-b border-border  flex items-center justify-between px-6 py-3">
-          <div className="flex items-center justify-between gap-5">
-            <span>Job Details</span>
-            <div className="flex flex-wrap gap-2">
-              <Badge className="capitalize">{job?.status}</Badge>
-              <Badge variant="secondary" className="capitalize">
-                {job?.priority}
-              </Badge>
-              {job?.status === 'in-review' && (
-                <Badge
-                  className={cn(
-                    'capitalize',
-                    acceptanceStyles[
-                      job?.user_acceptance_status as keyof typeof acceptanceStyles
-                    ]
-                  )}
-                >
-                  {job?.user_acceptance_status.replace(/_/g, ' ')}
-                </Badge>
-              )}
+    <Dialog
+      open={open}
+      onOpenChange={isOpen => {
+        setShowDeleteConfirmation(false);
+        onOpenChange(isOpen);
+      }}
+    >
+      <DialogContent className="max-w-[80%] p-0 rounded-3xl">
+        <DialogTitle className="text-base font-semibold text-foreground p-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-3xl px-5 py-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-col">
+                <span className="text-lg font-semibold text-foreground">
+                  Job details
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {job?.status && (
+                  <Badge
+                    variant="outline"
+                    className="h-8 rounded-full border-primary/40 bg-primary/5 px-3 text-sm font-semibold text-primary capitalize"
+                  >
+                    {job.status}
+                  </Badge>
+                )}
+                {job?.priority && (
+                  <Badge
+                    variant="secondary"
+                    className="h-8 rounded-full px-3 text-sm font-semibold text-muted-foreground capitalize"
+                  >
+                    {job.priority}
+                  </Badge>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 pr-10">
-            {(job?.status === 'failed' || job?.status === 'completed') &&
-              !isRetryFormOpen && (
-                <Button size="sm" onClick={handleRetryOpen}>
-                  <RotateCw className="h-4 w-4 mr-2" />
-                  Retry
+            <div className="flex flex-wrap items-center gap-2 pr-14">
+              {(job?.status === 'failed' || job?.status === 'completed') &&
+                !isRetryFormOpen && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRetryOpen}
+                    className="h-8"
+                  >
+                    <RotateCw className="h-4 w-4 mr-1" />
+                    <p className="text-xs font-medium text-foreground">Retry</p>
+                  </Button>
+                )}
+              {job?.status === 'in-progress' && !isRetryFormOpen && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => cancelJobMutation.mutate()}
+                  disabled={cancelJobMutation.isPending}
+                  className="h-8 border-destructive/40 text-destructive hover:bg-destructive/10"
+                >
+                  <X className="h-4 w-4 " />
+                  <p className="text-xs  font-medium  text-destructive">
+                    Cancel job
+                  </p>
                 </Button>
               )}
-            {(job?.status === 'queued' || job?.status === 'in-progress') &&
-              !isRetryFormOpen && (
+              {!isRetryFormOpen && (
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => cancelJobMutation.mutate()}
-                  disabled={cancelJobMutation.isPending}
+                  onClick={() => setShowDeleteConfirmation(true)}
+                  className="h-8 text-white"
                 >
-                  {/* <X className="h-4 w-4 mr-2" /> */}
-                  Cancel job
+                  <Trash className="h-4 w-4 " />
+                  <p className="text-xs font-medium">Delete job</p>
                 </Button>
               )}
-            {!isRetryFormOpen && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                className="text-destructive hover:bg-destructive/10"
-              >
-                <Trash className="h-4 w-4 mr-2" />
-                Delete Job
-              </Button>
-            )}
+            </div>
           </div>
         </DialogTitle>
-        <div className="p-3 overflow-auto max-h-[90vh] mt-[-10px]">
+        <div className="p-5 mt-[-10px]">
           {isLoading ? (
             <div className="flex h-[60vh] items-center justify-center">
               <p className="text-muted-foreground">Loading job details…</p>
@@ -172,16 +191,14 @@ export function JobDetailModal({
               isRetryFormOpen={isRetryFormOpen}
               onRetryCancel={handleRetryCancel}
               onRetrySuccess={handleRetrySuccess}
+              showDeleteConfirmation={showDeleteConfirmation}
+              onDeleteConfirm={handleDeleteJobConfirm}
+              onDeleteCancel={handleDeleteJobCancel}
+              isDeleting={deleteJobMutation.isPending}
             />
           )}
         </div>
       </DialogContent>
-      <DeleteConfirmationDialog
-        open={isDeleteDialogOpen}
-        job={job || null}
-        onConfirm={handleDeleteJobConfirm}
-        onCancel={handleDeleteJobCancel}
-      />
     </Dialog>
   );
 }
