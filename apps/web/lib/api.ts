@@ -14,6 +14,7 @@ import {
   getActivities as getActivitiesSdk,
   getActivitiesById as getActivitiesByIdSdk,
   putActivitiesByIdReadStatus,
+  deleteActivitiesById as deleteActivitiesByIdSdk,
   getIntegrationsSecrets,
   postIntegrationsSecrets,
   deleteIntegrationsSecretsById,
@@ -693,6 +694,20 @@ export const api = {
       );
     } catch (error) {
       console.error('Failed to update activity read status:', error);
+      throw error;
+    }
+  },
+
+  async deleteActivity(activityId: string): Promise<Activity> {
+    try {
+      const headers = await getAuthHeaders();
+      const result = await deleteActivitiesByIdSdk({
+        path: { id: activityId },
+        headers,
+      });
+      return result.data as Activity;
+    } catch (error) {
+      console.error('Failed to delete activity:', error);
       throw error;
     }
   },
