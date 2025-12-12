@@ -277,36 +277,40 @@ export function JobComments({
                 className="group rounded-lg  bg-card p-2 transition-all hover:border-border hover:bg-card/80 hover:shadow-sm"
               >
                 <div className="flex items-start gap-3">
-                  <Avatar className="h-9 w-9 border border-border">
-                    <AvatarImage
-                      src={user?.pictureUrl}
-                      alt={getDisplayName()}
-                    />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-sm font-semibold">
-                      {getFallbackText(user)}
-                    </AvatarFallback>
-                  </Avatar>
+                  {comments.length > 0 && (
+                    <Avatar className="h-9 w-9 border border-border">
+                      <AvatarImage
+                        src={user?.pictureUrl}
+                        alt={getDisplayName()}
+                      />
+                      <AvatarFallback className="bg-muted text-muted-foreground text-sm font-semibold">
+                        {getFallbackText(user)}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                   <div className="flex-1 ">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">
-                          {currentUserName || 'You'}
-                        </span>
-                        {/* {comment.file_name && (
-                          <Badge variant="secondary" className="text-xs">
-                            {comment.file_name}
-                            {comment.line_no ? `:${comment.line_no}` : ''}
-                          </Badge>
+                    {comments.length > 0 && (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold">
+                            {currentUserName || 'You'}
+                          </span>
+                          {/* {comment.file_name && (
+                            <Badge variant="secondary" className="text-xs">
+                              {comment.file_name}
+                              {comment.line_no ? `:${comment.line_no}` : ''}
+                            </Badge>
+                          )} */}
+                        </div>
+                        {/* {comment.created_at && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {formatDistanceToNow(new Date(comment.created_at), {
+                              addSuffix: true,
+                            })}
+                          </span>
                         )} */}
                       </div>
-                      {/* {comment.created_at && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.created_at), {
-                            addSuffix: true,
-                          })}
-                        </span>
-                      )} */}
-                    </div>
+                    )}
                     <p className="text-xs leading-relaxed text-foreground/90">
                       {comment.prompt}
                     </p>
