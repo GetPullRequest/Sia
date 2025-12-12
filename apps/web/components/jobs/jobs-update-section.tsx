@@ -9,7 +9,8 @@ import {
 import { useState } from 'react';
 import { Timeline, TimelineItem } from '../ui/timeline';
 import { Button } from '../ui/button';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useAuthInfo } from '@propelauth/react';
 
 export function JobsUpdateSection({
   updates,
@@ -18,7 +19,36 @@ export function JobsUpdateSection({
   updates: string;
   currentUserName?: string;
 }) {
+  const { user } = useAuthInfo();
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const getFallbackText = () => {
+    if (user) {
+      const firstInitial = user.firstName?.[0]?.toUpperCase() || '';
+      const lastInitial = user.lastName?.[0]?.toUpperCase() || '';
+      if (firstInitial && lastInitial) return `${firstInitial}${lastInitial}`;
+      return user.email?.[0]?.toUpperCase() || '?';
+    }
+    const initials =
+      currentUserName
+        ?.split(' ')
+        .map(part => part.charAt(0))
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || '';
+    return initials || '?';
+  };
+
+  const getDisplayName = () => {
+    if (user) {
+      if (user.firstName && user.lastName) {
+        return `${user.firstName} ${user.lastName}`;
+      }
+      if (user.firstName) return user.firstName;
+      return user.email?.split('@')[0] || 'User';
+    }
+    return currentUserName || 'You';
+  };
 
   const parseUpdate = (line: string, index: number) => {
     const trimmed = line.trim();
@@ -97,19 +127,13 @@ export function JobsUpdateSection({
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Avatar className="h-8 w-8">
+          <AvatarImage src={user?.pictureUrl} alt={getDisplayName()} />
           <AvatarFallback className="text-xs">
-            {(currentUserName || 'You')
-              .split(' ')
-              .map(part => part.charAt(0))
-              .join('')
-              .slice(0, 2)
-              .toUpperCase()}
+            {getFallbackText()}
           </AvatarFallback>
         </Avatar>
         <div className="flex flex-col">
-          <span className="text-xs font-semibold">
-            {currentUserName || 'You'}
-          </span>
+          <span className="text-xs font-semibold">{getDisplayName()}</span>
           <span className="text-[10px] text-muted-foreground">
             Latest activity
           </span>

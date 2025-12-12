@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -69,15 +69,22 @@ export function JobRetryForm({
     retryMutation.mutate({ comment: comment.trim() });
   };
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      handleSubmit();
+    }
+  };
+
   const handleCancel = () => {
     setComment('');
     onCancel?.();
   };
 
   return (
-    <div className="w-full space-y-4 mt-4 pt-4">
+    <div className="w-full space-y-4">
       <div className="space-y-2">
-        <label htmlFor="retry_comment" className="text-sm font-medium">
+        <label htmlFor="retry_comment" className="text-base font-medium">
           Retry Job
         </label>
         <p className="text-xs text-muted-foreground">
@@ -89,6 +96,7 @@ export function JobRetryForm({
           placeholder="Enter your comment here (optional)..."
           value={comment}
           onChange={e => setComment(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="min-h-[50px] resize-none"
           autoFocus
         />

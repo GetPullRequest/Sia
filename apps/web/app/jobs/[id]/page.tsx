@@ -51,7 +51,10 @@ export default function JobDetailPage() {
 
   const handleRetryOpen = () => setIsRetryFormOpen(true);
   const handleRetryCancel = () => setIsRetryFormOpen(false);
-  const handleRetrySuccess = () => setIsRetryFormOpen(false);
+  const handleRetrySuccess = () => {
+    setIsRetryFormOpen(false);
+    router.push('/');
+  };
 
   if (isLoading) {
     return (
