@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthInfo } from '@propelauth/react';
 import { cn } from '@/lib/utils';
 import type { Activity } from '@sia/models';
-import { Filter, Search, Clock } from 'lucide-react';
+import { Filter, Search, Clock, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -142,8 +142,18 @@ export function ActivityList({
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search activities..."
-            className="h-12 pl-8 text-xs"
+            className="h-12 pl-8 pr-8 text-xs"
           />
+          {query && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setQuery('')}
+              className="absolute right-1 top-1.5 h-9 w-9 p-0 hover:bg-transparent"
+            >
+              <X className="h-4 w-4 text-muted-foreground/70 hover:text-foreground" />
+            </Button>
+          )}
         </div>
       </div>
 
