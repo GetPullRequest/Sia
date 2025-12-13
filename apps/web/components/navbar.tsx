@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { Bell, Search, Plus, Loader2 } from 'lucide-react';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { Bell, Search, Plus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from './ui/button';
@@ -10,22 +10,13 @@ import { ProfileAvatar } from './profileavatar';
 import { Badge } from './ui/badge';
 import { InputGroup, InputGroupAddon, InputGroupInput } from './ui/input-group';
 import { Kbd } from './ui/kbd';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Textarea } from './ui/textarea';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { api, type Repo } from '@/lib/api';
+import { AddTaskDialog } from './add-task-dialog';
+import { api } from '@/lib/api';
 import { useAuthInfo } from '@propelauth/react';
 import { ThemeToggle } from './theme-toggle';
 import type { Agent } from '@/types';
@@ -35,18 +26,12 @@ interface NavbarProps {
 }
 
 export function Navbar({ onSearchClick }: NavbarProps = {}) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   const authInfo = useAuthInfo();
   const pathname = usePathname();
   const router = useRouter();
   const { isLoggedIn } = authInfo;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [prompt, setPrompt] = useState('');
-  const [selectedRepoId, setSelectedRepoId] = useState<string>('');
-  const [availableRepos, setAvailableRepos] = useState<Repo[]>([]);
-  const [isLoadingRepos, setIsLoadingRepos] = useState(false);
   const [isMac, setIsMac] = useState(false);
   const [isAgentPopoverOpen, setIsAgentPopoverOpen] = useState(false);
   const [isVibePlatformsPopoverOpen, setIsVibePlatformsPopoverOpen] =
@@ -54,7 +39,7 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch agents
-  const { data: agents = [] } = useQuery({
+  const { data: agents = [] } = useQuery<Agent[]>({
     queryKey: ['agents'],
     queryFn: api.getAgents,
     refetchInterval: 10000,
@@ -190,70 +175,6 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
 
   const handleAddTaskClick = () => {
     setIsModalOpen(true);
-  };
-
-  const createJobMutation = useMutation({
-    mutationFn: async (userPrompt: string) => {
-      return await api.createJob({
-        user_input: {
-          source: 'mobile',
-          prompt: userPrompt,
-          sourceMetadata: null,
-        },
-        repo: selectedRepoId || undefined,
-        created_by: authInfo.user?.userId || 'unknown',
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      toast({
-        title: 'Task added',
-        description: 'Your task has been submitted to the Sia agent',
-      });
-      setPrompt('');
-      setSelectedRepoId('');
-      setIsModalOpen(false);
-    },
-    onError: error => {
-      const errorMessage = error
-        ? (error as Error).message
-        : 'An error occurred';
-      toast({
-        title: 'Failed to add task',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  useEffect(() => {
-    if (isModalOpen) {
-      setIsLoadingRepos(true);
-      api
-        .getAllRepos()
-        .then(repos => setAvailableRepos(repos))
-        .catch(() => {
-          toast({
-            title: 'Failed to load repos',
-            description:
-              'Unable to load repositories. You can still create a job without selecting a repo.',
-            variant: 'destructive',
-          });
-        })
-        .finally(() => setIsLoadingRepos(false));
-    }
-  }, [isModalOpen, toast]);
-
-  const handleAddTask = () => {
-    if (prompt.trim()) {
-      createJobMutation.mutate(prompt.trim());
-    }
-  };
-
-  const handleCancel = () => {
-    setPrompt('');
-    setSelectedRepoId('');
-    setIsModalOpen(false);
   };
 
   return (
@@ -469,89 +390,8 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
         </div>
       </div>
 
-      {/* Add Task Modal (shared with homepage) */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Task</DialogTitle>
-            <DialogDescription>
-              Enter a prompt for the Sia agent to execute
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="prompt-input" className="text-xs font-medium">
-                Prompt
-              </label>
-              <Textarea
-                id="prompt-input"
-                placeholder="Enter your prompt here..."
-                value={prompt}
-                onChange={e => setPrompt(e.target.value)}
-                className="min-h-[100px]"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="repo-select" className="text-xs font-medium">
-                Repository (Optional)
-              </label>
-              <select
-                id="repo-select"
-                value={selectedRepoId}
-                onChange={e => setSelectedRepoId(e.target.value)}
-                disabled={isLoadingRepos}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLoadingRepos ? (
-                  <option value="">Loading repositories...</option>
-                ) : availableRepos.length === 0 ? (
-                  <option value="">No repositories available</option>
-                ) : (
-                  <>
-                    <option value="">No repository (use default)</option>
-                    {availableRepos.map(repo => (
-                      <option key={repo.id} value={repo.id}>
-                        {repo.name}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
-              {availableRepos.length === 0 && !isLoadingRepos && (
-                <p className="text-xs text-muted-foreground">
-                  No repositories configured. Connect a GitHub provider to add
-                  repositories.
-                </p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              disabled={createJobMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAddTask}
-              disabled={!prompt.trim() || createJobMutation.isPending}
-            >
-              {createJobMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4" />
-                  Add
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Add Task Modal */}
+      <AddTaskDialog open={isModalOpen} onOpenChange={setIsModalOpen} />
     </header>
   );
 }

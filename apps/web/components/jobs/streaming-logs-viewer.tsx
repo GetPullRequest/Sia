@@ -354,90 +354,92 @@ export function StreamingLogsViewer({
       <div ref={scrollContainerRef} className="flex-1 overflow-auto">
         {logs.length === 0 && !isLoading && (
           <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-            No logs available yet.
+            No Code generation logs yet.
           </div>
         )}
 
-        <div className="min-w-full">
-          <table className="w-full border-collapse">
-            <thead className="sticky top-0 bg-background z-10 ">
-              <tr>
-                <th className="text-left p-2 text-xs font-semibold text-muted-foreground w-12">
-                  Severity
-                </th>
-                <th className="text-left p-2 text-xs font-semibold text-muted-foreground w-48">
-                  Timestamp
-                </th>
-                <th className="text-left p-2 text-xs font-semibold text-muted-foreground">
-                  Summary
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-card">
-              {logs.map(log => {
-                const normalizedLevel = log.level.toLowerCase();
-                const isError =
-                  normalizedLevel === 'error' || normalizedLevel === 'err';
-                const isWarning =
-                  normalizedLevel === 'warn' || normalizedLevel === 'warning';
+        {logs.length > 0 && (
+          <div className="min-w-full">
+            <table className="w-full border-collapse">
+              <thead className="sticky top-0 bg-background z-10 ">
+                <tr>
+                  <th className="text-left p-2 text-xs font-semibold text-muted-foreground w-12">
+                    Severity
+                  </th>
+                  <th className="text-left p-2 text-xs font-semibold text-muted-foreground w-48">
+                    Timestamp
+                  </th>
+                  <th className="text-left p-2 text-xs font-semibold text-muted-foreground">
+                    Summary
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-card">
+                {logs.map(log => {
+                  const normalizedLevel = log.level.toLowerCase();
+                  const isError =
+                    normalizedLevel === 'error' || normalizedLevel === 'err';
+                  const isWarning =
+                    normalizedLevel === 'warn' || normalizedLevel === 'warning';
 
-                return (
-                  <tr
-                    key={log.id}
-                    className={cn(
-                      ' hover:bg-muted/30 transition-colors',
-                      isError && 'bg-destructive/5',
-                      isWarning && 'bg-yellow-500/5'
-                    )}
-                  >
-                    <td className="p-2 text-xs">
-                      <span>{getSeverityIcon(log.level)}</span>
-                    </td>
-                    <td
+                  return (
+                    <tr
+                      key={log.id}
                       className={cn(
-                        'p-2 text-xs font-mono',
-                        isError
-                          ? 'text-destructive'
-                          : isWarning
-                          ? 'text-yellow-600'
-                          : 'text-muted-foreground'
+                        ' hover:bg-muted/30 transition-colors',
+                        isError && 'bg-destructive/5',
+                        isWarning && 'bg-yellow-500/5'
                       )}
                     >
-                      {formatTimestamp(log.timestamp)}
-                    </td>
-                    <td className="p-2 text-xs break-words">
-                      <div className="flex items-start gap-2">
-                        {log.stage && (
+                      <td className="p-2 text-xs">
+                        <span>{getSeverityIcon(log.level)}</span>
+                      </td>
+                      <td
+                        className={cn(
+                          'p-2 text-xs font-mono',
+                          isError
+                            ? 'text-destructive'
+                            : isWarning
+                            ? 'text-yellow-600'
+                            : 'text-muted-foreground'
+                        )}
+                      >
+                        {formatTimestamp(log.timestamp)}
+                      </td>
+                      <td className="p-2 text-xs break-words">
+                        <div className="flex items-start gap-2">
+                          {log.stage && (
+                            <span
+                              className={cn(
+                                'font-medium shrink-0',
+                                isError
+                                  ? 'text-destructive'
+                                  : isWarning
+                                  ? 'text-yellow-600'
+                                  : 'text-muted-foreground'
+                              )}
+                            >
+                              [{log.stage}]
+                            </span>
+                          )}
                           <span
                             className={cn(
-                              'font-medium shrink-0',
-                              isError
-                                ? 'text-destructive'
-                                : isWarning
-                                ? 'text-yellow-600'
-                                : 'text-muted-foreground'
+                              isError && 'text-destructive font-medium',
+                              isWarning && 'text-yellow-600 font-medium',
+                              !isError && !isWarning && 'text-foreground'
                             )}
                           >
-                            [{log.stage}]
+                            {log.message}
                           </span>
-                        )}
-                        <span
-                          className={cn(
-                            isError && 'text-destructive font-medium',
-                            isWarning && 'text-yellow-600 font-medium',
-                            !isError && !isWarning && 'text-foreground'
-                          )}
-                        >
-                          {log.message}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

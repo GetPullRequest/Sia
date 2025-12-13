@@ -129,7 +129,7 @@ export function JobDetail({
       inlineUpdateMutation.mutate(updates);
       console.log('updates', updates);
     },
-    800
+    1000
   );
 
   // Store pending updates to flush immediately on user actions
@@ -169,7 +169,8 @@ export function JobDetail({
 
     if (field === 'order_in_queue') {
       const parsedOrder = parseInt(value, 10);
-      if (!Number.isNaN(parsedOrder)) {
+      // Only allow non-negative values (0 and positive integers)
+      if (!Number.isNaN(parsedOrder) && parsedOrder >= 0) {
         updates.order_in_queue = parsedOrder;
       } else {
         return;

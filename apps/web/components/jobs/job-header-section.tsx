@@ -288,10 +288,24 @@ export function JobHeaderSection({
                         <span>Order:</span>
                         <Input
                           type="number"
+                          min="0"
                           value={editForm.order_in_queue}
-                          onChange={e =>
-                            onEditFormChange('order_in_queue', e.target.value)
-                          }
+                          onChange={e => {
+                            const value = e.target.value;
+                            // Allow empty string for clearing, or non-negative numbers
+                            if (value === '' || value === '-') {
+                              onEditFormChange('order_in_queue', value);
+                              return;
+                            }
+                            const numValue = parseInt(value, 10);
+                            // Only allow non-negative values (0 and positive integers)
+                            if (!isNaN(numValue) && numValue >= 0) {
+                              onEditFormChange('order_in_queue', value);
+                            } else if (value.startsWith('-')) {
+                              // If user tries to enter negative, ignore it
+                              return;
+                            }
+                          }}
                           onKeyDown={handleInputKeyDown}
                           placeholder="Queue position"
                           className="h-7 w-14 text-xs bg-card outline-none border-none"

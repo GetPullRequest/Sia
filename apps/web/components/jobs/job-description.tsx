@@ -34,6 +34,11 @@ export function JobDescription({
             if (e.key === 'Enter') {
               e.stopPropagation();
             }
+            // Prevent Space key from bubbling up to modal handlers
+            // Allow normal textarea behavior (add space) but stop propagation
+            if (e.key === ' ') {
+              e.stopPropagation();
+            }
           }}
           className="text-sm min-h-[180px] max-h-full  resize-none rounded-lg bg-card border-none px-3 py-2 outline-none"
           placeholder="No description available"
