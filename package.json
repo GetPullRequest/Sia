@@ -1,0 +1,110 @@
+{
+  "name": "@sia/source",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "build:web": "nx build @sia/web",
+    "build:api": "nx build @sia/api",
+    "build:landing-page": "nx build @sia/landing-page",
+    "build:all": "nx build @sia/api && npm run generate -w @sia/models && nx run-many --target=build --all",
+    "prepare": "husky",
+    "commit": "git-cz",
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major",
+    "release:patch": "standard-version --release-as patch",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml,html,css,scss,sass,less}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml,html,css,scss,sass,less}\"",
+    "lint:fix": "nx run-many --target=lint --all --fix",
+    "style:fix": "npm run format && npm run lint:fix"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "private": true,
+  "dependencies": {
+    "drizzle-orm": "^0.44.7",
+    "next": "~15.2.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
+    "@eslint/compat": "^1.1.1",
+    "@eslint/eslintrc": "^2.1.1",
+    "@eslint/js": "^9.8.0",
+    "@next/eslint-plugin-next": "^15.2.4",
+    "@nx/eslint": "22.0.3",
+    "@nx/eslint-plugin": "22.0.3",
+    "@nx/jest": "22.0.3",
+    "@nx/js": "22.0.3",
+    "@nx/next": "22.0.3",
+    "@nx/react": "22.0.3",
+    "@nx/vite": "^22.0.3",
+    "@nx/web": "22.0.3",
+    "@nx/workspace": "22.0.3",
+    "@swc-node/register": "~1.9.1",
+    "@swc/cli": "~0.6.0",
+    "@swc/core": "~1.15.2",
+    "@swc/helpers": "~0.5.11",
+    "@testing-library/dom": "10.4.0",
+    "@testing-library/react": "16.3.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "20.19.9",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/ui": "^3.0.0",
+    "autoprefixer": "10.4.13",
+    "babel-jest": "^30.0.2",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^9.8.0",
+    "eslint-config-next": "^15.2.4",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-import": "2.31.0",
+    "eslint-plugin-jsx-a11y": "6.10.1",
+    "eslint-plugin-react": "7.35.0",
+    "eslint-plugin-react-hooks": "5.0.0",
+    "git-cz": "^4.9.0",
+    "husky": "^9.1.7",
+    "jest": "^30.0.2",
+    "jest-environment-jsdom": "^30.0.2",
+    "jest-util": "^30.0.2",
+    "jiti": "2.4.2",
+    "jsdom": "~22.1.0",
+    "jsonc-eslint-parser": "^2.1.0",
+    "lint-staged": "^16.2.7",
+    "nx": "22.0.3",
+    "postcss": "8.4.38",
+    "prettier": "^2.6.2",
+    "standard-version": "^9.5.0",
+    "tailwindcss": "3.4.3",
+    "ts-jest": "^29.4.0",
+    "ts-node": "10.9.1",
+    "tslib": "^2.3.0",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.40.0",
+    "vite": "^7.0.0",
+    "vitest": "^3.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,scss,sass,less}": [
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,html}": [
+      "prettier --write"
+    ]
+  }
+}

@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package agent;
+
+service AgentService {
+  // Existing RPCs (agent implements these)
+  rpc ExecuteJob(ExecuteJobRequest) returns (stream LogMessage);
+  rpc HintJob(HintJobRequest) returns (HintJobResponse);
+  rpc CancelJob(CancelJobRequest) returns (CancelJobResponse);
+  
+  // New commands for workflow orchestration
+  rpc RunVerification(VerificationRequest) returns (VerificationResponse);
+  rpc CreatePR(PRRequest) returns (PRResponse);
+  rpc CleanupWorkspace(CleanupRequest) returns (CleanupResponse);
+  
+  // New RPCs (backend implements these, agents call them)
+  rpc RegisterAgent(RegisterAgentRequest) returns (RegisterAgentResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+  
+  // Bidirectional streaming for task delivery and logs
+  rpc AgentStream(stream AgentStreamRequest) returns (stream AgentStreamMessage);
+}
+
+message ExecuteJobRequest {
+  string job_id = 1;
+  string prompt = 2;
+  string repo_id = 3;
+  map<string, string> job_details = 4;
+}
+
+message HintJobRequest {
+  string job_id = 1;
+  string hint = 2;
+}
+
+message HintJobResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message CancelJobRequest {
+  string job_id = 1;
+}
+
+message CancelJobResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message LogMessage {
+  string level = 1;
+  string message = 2;
+  string timestamp = 3;
+  string job_id = 4;
+  string stage = 5;
+}
+
+message VerificationRequest {
+  string job_id = 1;
+}
+
+message VerificationResponse {
+  bool success = 1;
+  string message = 2;
+  repeated string errors = 3;
+}
+
+message PRRequest {
+  string job_id = 1;
+  string repo_id = 2;
+  string branch_name = 3;
+  string title = 4;
+  string body = 5;
+}
+
+message PRResponse {
+  bool success = 1;
+  string pr_link = 2;
+  string message = 3;
+}
+
+message CleanupRequest {
+  string job_id = 1;
+}
+
+message CleanupResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Agent registration messages
+message RegisterAgentRequest {
+  string api_key = 1;
+  string hostname = 2;
+  string ip_address = 3;
+  int32 port = 4;
+}
+
+message RegisterAgentResponse {
+  string agent_id = 1;
+  string org_id = 2;
+  bool success = 3;
+  string message = 4;
+}
+
+// Health check messages
+message HealthCheckRequest {
+  string agent_id = 1;
+}
+
+message HealthCheckResponse {
+  bool success = 1;
+  int64 timestamp = 2;
+  string version = 3;
+}
+
+// Bidirectional streaming messages
+message AgentStreamRequest {
+  string agent_id = 1;
+  AgentStreamMessageType message_type = 2;
+  bytes payload = 3; // JSON encoded message data
+}
+
+message AgentStreamMessage {
+  string message_id = 1;
+  BackendStreamMessageType message_type = 2;
+  bytes payload = 3; // JSON encoded message data
+}
+
+enum AgentStreamMessageType {
+  LOG_MESSAGE = 0;
+  HEARTBEAT = 1;
+  TASK_RESPONSE = 2;
+  STATUS_UPDATE = 3;
+}
+
+enum BackendStreamMessageType {
+  TASK_ASSIGNMENT = 0;
+  TASK_CANCEL = 1;
+  HEALTH_CHECK_PING = 2;
+  CONFIG_UPDATE = 3;
+}

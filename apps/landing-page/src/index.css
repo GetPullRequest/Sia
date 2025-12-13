@@ -1,0 +1,624 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global overflow fix - must be outside @layer to ensure it applies */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+#root {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* Mobile-specific fixes for full-width rendering */
+@media (max-width: 768px) {
+  html {
+    width: 100vw;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+
+  body {
+    width: 100vw;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+
+  #root {
+    width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Ensure all sections fill full width on mobile */
+  section {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-family: 'Nunito', ui-sans-serif, sans-serif;
+    line-height: 1.5;
+    tab-size: 4;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply antialiased;
+    font-family: inherit;
+    line-height: inherit;
+  }
+}
+
+@layer utilities {
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+
+    25% {
+      transform: translateX(-5px);
+    }
+
+    75% {
+      transform: translateX(5px);
+    }
+  }
+
+  @keyframes gradient {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-fadeInUp {
+    animation: fadeInUp 0.6s ease-out;
+    animation-fill-mode: both;
+  }
+
+  .animate-slideUp {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  .animate-shake {
+    animation: shake 0.4s ease-in-out;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) translateX(0);
+    }
+
+    33% {
+      transform: translateY(-20px) translateX(10px);
+    }
+
+    66% {
+      transform: translateY(10px) translateX(-10px);
+    }
+  }
+
+  @keyframes floatSlow {
+    0%,
+    100% {
+      transform: translateY(0) translateX(0) scale(1);
+    }
+
+    50% {
+      transform: translateY(-30px) translateX(20px) scale(1.1);
+    }
+  }
+
+  @keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes gridMove {
+    0% {
+      background-position: 0 0;
+    }
+
+    100% {
+      background-position: 60px 60px;
+    }
+  }
+
+  .animate-float {
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: floatSlow 10s ease-in-out infinite;
+  }
+
+  .animate-rotate-slow {
+    animation: rotate 20s linear infinite;
+  }
+
+  .animate-grid-move {
+    animation: gridMove 20s linear infinite;
+  }
+
+  @keyframes aurora {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1) rotate(0deg);
+      opacity: 0.5;
+    }
+
+    25% {
+      transform: translate(30%, -20%) scale(1.2) rotate(90deg);
+      opacity: 0.7;
+    }
+
+    50% {
+      transform: translate(-20%, 30%) scale(0.9) rotate(180deg);
+      opacity: 0.4;
+    }
+
+    75% {
+      transform: translate(20%, 20%) scale(1.1) rotate(270deg);
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes mesh {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+
+    33% {
+      transform: translate(50px, -50px);
+    }
+
+    66% {
+      transform: translate(-50px, 50px);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes drift {
+    0% {
+      transform: translate(0, 0) rotate(0deg);
+    }
+
+    100% {
+      transform: translate(100px, -100px) rotate(360deg);
+    }
+  }
+
+  .animate-aurora {
+    animation: aurora 15s ease-in-out infinite;
+  }
+
+  .animate-mesh {
+    animation: mesh 12s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 8s linear infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+
+  .animate-drift {
+    animation: drift 30s linear infinite;
+  }
+
+  @keyframes codeStream {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+
+    10% {
+      opacity: 0.7;
+    }
+
+    90% {
+      opacity: 0.7;
+    }
+
+    100% {
+      transform: translateY(100vh);
+      opacity: 0;
+    }
+  }
+
+  @keyframes blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes typewriter {
+    0% {
+      width: 0;
+    }
+
+    100% {
+      width: 100%;
+    }
+  }
+
+  @keyframes gitBranch {
+    0% {
+      stroke-dashoffset: 1000;
+      opacity: 0.3;
+    }
+
+    50% {
+      opacity: 0.8;
+    }
+
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 0.3;
+    }
+  }
+
+  @keyframes pulse-code {
+    0%,
+    100% {
+      opacity: 0.2;
+      transform: scale(0.95);
+    }
+
+    50% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes scan-line {
+    0% {
+      transform: translateY(-100%);
+    }
+
+    100% {
+      transform: translateY(100vh);
+    }
+  }
+
+  .animate-code-stream {
+    animation: codeStream 10s linear infinite;
+  }
+
+  .animate-blink {
+    animation: blink 1s step-end infinite;
+  }
+
+  .animate-typewriter {
+    animation: typewriter 3s steps(40) infinite;
+  }
+
+  .animate-git-branch {
+    animation: gitBranch 8s ease-in-out infinite;
+  }
+
+  .animate-pulse-code {
+    animation: pulse-code 3s ease-in-out infinite;
+  }
+
+  .animate-scan-line {
+    animation: scan-line 8s linear infinite;
+  }
+}
+
+/* Custom styles for markdown content */
+.markdown-content {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+}
+
+.markdown-content p {
+  margin-bottom: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+}
+
+.markdown-content strong,
+.markdown-content b {
+  font-weight: bold;
+  color: white;
+}
+
+.markdown-content em,
+.markdown-content i {
+  font-style: italic;
+  color: #bfdbfe;
+}
+
+.markdown-content h1 {
+  font-weight: bold;
+  margin-bottom: 1rem;
+  margin-top: 2rem;
+  color: white;
+  font-size: 1.875rem;
+}
+
+.markdown-content h2 {
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  margin-top: 1.5rem;
+  color: #93c5fd;
+  font-size: 1.5rem;
+}
+
+.markdown-content h3 {
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  margin-top: 1.25rem;
+  color: #bfdbfe;
+  font-size: 1.25rem;
+}
+
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+  color: #d1d5db;
+}
+
+.markdown-content img {
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  max-width: 100%;
+  height: auto;
+  margin: 1.5rem 0;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #60a5fa;
+  padding-left: 1rem;
+  font-style: italic;
+  margin: 1rem 0;
+  color: #bfdbfe;
+  line-height: 1.6;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  list-style-position: inside;
+  margin: 0.75rem 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.markdown-content li {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content li strong,
+.markdown-content li b {
+  color: white;
+}
+
+.markdown-content figure {
+  margin: 1.5rem 0;
+}
+
+.markdown-content figcaption {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 0.5rem;
+}
+
+/* Table scroll container for mobile responsiveness */
+.table-scroll-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+}
+
+/* Show scrollbar on mobile for better UX */
+.table-scroll-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.markdown-content table {
+  margin: 1rem auto;
+  border-collapse: collapse;
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 100%;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid #4b5563;
+  padding: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.markdown-content th {
+  background-color: #1f2937;
+  font-weight: bold;
+  color: #93c5fd;
+}
+
+/* Ensure proper styling for prose content */
+.prose * {
+  line-height: 1.6;
+}
+
+.prose h1 {
+  color: white;
+}
+
+.prose h2 {
+  color: #93c5fd;
+}
+
+.prose h3 {
+  color: #bfdbfe;
+}
+
+.prose h4,
+.prose h5,
+.prose h6 {
+  color: #d1d5db;
+}
+
+.prose p,
+.prose li {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.prose strong,
+.prose b {
+  color: white;
+  font-weight: bold;
+}
+
+.prose em,
+.prose i {
+  color: #bfdbfe;
+  font-style: italic;
+}
+
+.prose img {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.prose figure {
+  text-align: center;
+}

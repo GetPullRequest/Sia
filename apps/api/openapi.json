@@ -1,0 +1,5044 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sia - Agent Orchestration API",
+    "description": "Sia connects with code generation agents and receives your requests from Slack, Discord, or through Sia mobile app. It picks up the task, schedules it, and gets it done like your personal dev assistant.",
+    "version": "1.0.0"
+  },
+  "components": {
+    "schemas": {
+      "UserInput": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["slack"]
+              },
+              {
+                "type": "string",
+                "enum": ["discord"]
+              },
+              {
+                "type": "string",
+                "enum": ["mobile"]
+              },
+              {
+                "type": "string",
+                "enum": ["gh-issues"]
+              }
+            ]
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "sourceMetadata": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "channelId": {
+                    "type": "string"
+                  },
+                  "threadId": {
+                    "type": "string"
+                  },
+                  "threadTimestamp": {
+                    "type": "string"
+                  }
+                },
+                "required": ["channelId", "threadId", "threadTimestamp"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "channelId": {
+                    "type": "string"
+                  },
+                  "threadId": {
+                    "type": "string"
+                  },
+                  "threadTimestamp": {
+                    "type": "string"
+                  }
+                },
+                "required": ["channelId", "threadId", "threadTimestamp"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "threadId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["threadId"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "issueId": {
+                    "type": "string"
+                  },
+                  "issueNumber": {
+                    "type": "number"
+                  },
+                  "issueTitle": {
+                    "type": "string"
+                  },
+                  "issueBody": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "issueId",
+                  "issueNumber",
+                  "issueTitle",
+                  "issueBody"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["source", "prompt"]
+      },
+      "UserComment": {
+        "type": "object",
+        "properties": {
+          "file_name": {
+            "type": "string"
+          },
+          "line_no": {
+            "type": "number"
+          },
+          "prompt": {
+            "type": "string"
+          }
+        },
+        "required": ["file_name", "line_no", "prompt"]
+      },
+      "CreateJobRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "user_input": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["slack"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["discord"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["mobile"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["gh-issues"]
+                  }
+                ]
+              },
+              "prompt": {
+                "type": "string"
+              },
+              "sourceMetadata": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "channelId": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      },
+                      "threadTimestamp": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["channelId", "threadId", "threadTimestamp"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "channelId": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      },
+                      "threadTimestamp": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["channelId", "threadId", "threadTimestamp"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "threadId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["threadId"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "issueId": {
+                        "type": "string"
+                      },
+                      "issueNumber": {
+                        "type": "number"
+                      },
+                      "issueTitle": {
+                        "type": "string"
+                      },
+                      "issueBody": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "issueId",
+                      "issueNumber",
+                      "issueTitle",
+                      "issueBody"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["source", "prompt"]
+          },
+          "repo": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          }
+        },
+        "required": ["user_input", "created_by"]
+      },
+      "UpdateJobRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "generated_name": {
+            "type": "string"
+          },
+          "generated_description": {
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["queued"]
+              },
+              {
+                "type": "string",
+                "enum": ["in-progress"]
+              },
+              {
+                "type": "string",
+                "enum": ["in-review"]
+              },
+              {
+                "type": "string",
+                "enum": ["completed"]
+              },
+              {
+                "type": "string",
+                "enum": ["failed"]
+              },
+              {
+                "type": "string",
+                "enum": ["archived"]
+              }
+            ]
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["low"]
+              },
+              {
+                "type": "string",
+                "enum": ["medium"]
+              },
+              {
+                "type": "string",
+                "enum": ["high"]
+              }
+            ]
+          },
+          "order_in_queue": {
+            "type": "number"
+          },
+          "user_input": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["slack"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["discord"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["mobile"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["gh-issues"]
+                  }
+                ]
+              },
+              "prompt": {
+                "type": "string"
+              },
+              "sourceMetadata": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "channelId": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      },
+                      "threadTimestamp": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["channelId", "threadId", "threadTimestamp"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "channelId": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      },
+                      "threadTimestamp": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["channelId", "threadId", "threadTimestamp"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "threadId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["threadId"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "issueId": {
+                        "type": "string"
+                      },
+                      "issueNumber": {
+                        "type": "number"
+                      },
+                      "issueTitle": {
+                        "type": "string"
+                      },
+                      "issueBody": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "issueId",
+                      "issueNumber",
+                      "issueTitle",
+                      "issueBody"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["source", "prompt"]
+          },
+          "repo": {
+            "type": "string"
+          },
+          "updated_by": {
+            "type": "string"
+          },
+          "user_comments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file_name": {
+                  "type": "string"
+                },
+                "line_no": {
+                  "type": "number"
+                },
+                "prompt": {
+                  "type": "string"
+                }
+              },
+              "required": ["file_name", "line_no", "prompt"]
+            }
+          },
+          "user_acceptance_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["not_reviewed"]
+              },
+              {
+                "type": "string",
+                "enum": ["reviewed_and_accepted"]
+              },
+              {
+                "type": "string",
+                "enum": ["reviewed_and_asked_rework"]
+              },
+              {
+                "type": "string",
+                "enum": ["rejected"]
+              }
+            ]
+          },
+          "queue_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["rework"]
+              },
+              {
+                "type": "string",
+                "enum": ["backlog"]
+              }
+            ]
+          }
+        },
+        "required": ["updated_by"]
+      },
+      "Job": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "generated_name": {
+            "type": "string"
+          },
+          "generated_description": {
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["queued"]
+              },
+              {
+                "type": "string",
+                "enum": ["in-progress"]
+              },
+              {
+                "type": "string",
+                "enum": ["in-review"]
+              },
+              {
+                "type": "string",
+                "enum": ["completed"]
+              },
+              {
+                "type": "string",
+                "enum": ["failed"]
+              },
+              {
+                "type": "string",
+                "enum": ["archived"]
+              }
+            ]
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["low"]
+              },
+              {
+                "type": "string",
+                "enum": ["medium"]
+              },
+              {
+                "type": "string",
+                "enum": ["high"]
+              }
+            ]
+          },
+          "order_in_queue": {
+            "type": "number"
+          },
+          "queue_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["rework"]
+              },
+              {
+                "type": "string",
+                "enum": ["backlog"]
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "updated_by": {
+            "type": "string"
+          },
+          "code_generation_logs": {
+            "type": "string"
+          },
+          "code_verification_logs": {
+            "type": "string"
+          },
+          "user_input": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["slack"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["discord"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["mobile"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["gh-issues"]
+                  }
+                ]
+              },
+              "prompt": {
+                "type": "string"
+              },
+              "sourceMetadata": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "channelId": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      },
+                      "threadTimestamp": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["channelId", "threadId", "threadTimestamp"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "channelId": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      },
+                      "threadTimestamp": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["channelId", "threadId", "threadTimestamp"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "threadId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["threadId"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "issueId": {
+                        "type": "string"
+                      },
+                      "issueNumber": {
+                        "type": "number"
+                      },
+                      "issueTitle": {
+                        "type": "string"
+                      },
+                      "issueBody": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "issueId",
+                      "issueNumber",
+                      "issueTitle",
+                      "issueBody"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["source", "prompt"]
+          },
+          "repo_id": {
+            "type": "string"
+          },
+          "user_acceptance_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["not_reviewed"]
+              },
+              {
+                "type": "string",
+                "enum": ["reviewed_and_accepted"]
+              },
+              {
+                "type": "string",
+                "enum": ["reviewed_and_asked_rework"]
+              },
+              {
+                "type": "string",
+                "enum": ["rejected"]
+              }
+            ]
+          },
+          "user_comments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file_name": {
+                  "type": "string"
+                },
+                "line_no": {
+                  "type": "number"
+                },
+                "prompt": {
+                  "type": "string"
+                }
+              },
+              "required": ["file_name", "line_no", "prompt"]
+            }
+          },
+          "confidence_score": {
+            "type": "string"
+          },
+          "pr_link": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "status",
+          "priority",
+          "order_in_queue",
+          "created_at",
+          "updated_at",
+          "created_by",
+          "updated_by",
+          "user_acceptance_status"
+        ]
+      },
+      "JobResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "generated_name": {
+            "type": "string"
+          },
+          "generated_description": {
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["queued"]
+              },
+              {
+                "type": "string",
+                "enum": ["in-progress"]
+              },
+              {
+                "type": "string",
+                "enum": ["in-review"]
+              },
+              {
+                "type": "string",
+                "enum": ["completed"]
+              },
+              {
+                "type": "string",
+                "enum": ["failed"]
+              },
+              {
+                "type": "string",
+                "enum": ["archived"]
+              }
+            ]
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["low"]
+              },
+              {
+                "type": "string",
+                "enum": ["medium"]
+              },
+              {
+                "type": "string",
+                "enum": ["high"]
+              }
+            ]
+          },
+          "order_in_queue": {
+            "type": "number"
+          },
+          "queue_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["rework"]
+              },
+              {
+                "type": "string",
+                "enum": ["backlog"]
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "updated_by": {
+            "type": "string"
+          },
+          "code_generation_logs": {
+            "type": "string"
+          },
+          "code_verification_logs": {
+            "type": "string"
+          },
+          "user_input": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["slack"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["discord"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["mobile"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["gh-issues"]
+                  }
+                ]
+              },
+              "prompt": {
+                "type": "string"
+              },
+              "sourceMetadata": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "channelId": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      },
+                      "threadTimestamp": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["channelId", "threadId", "threadTimestamp"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "channelId": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      },
+                      "threadTimestamp": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["channelId", "threadId", "threadTimestamp"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "threadId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["threadId"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "issueId": {
+                        "type": "string"
+                      },
+                      "issueNumber": {
+                        "type": "number"
+                      },
+                      "issueTitle": {
+                        "type": "string"
+                      },
+                      "issueBody": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "issueId",
+                      "issueNumber",
+                      "issueTitle",
+                      "issueBody"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["source", "prompt"]
+          },
+          "repo_id": {
+            "type": "string"
+          },
+          "repo_url": {
+            "type": "string"
+          },
+          "repo_name": {
+            "type": "string"
+          },
+          "user_acceptance_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["not_reviewed"]
+              },
+              {
+                "type": "string",
+                "enum": ["reviewed_and_accepted"]
+              },
+              {
+                "type": "string",
+                "enum": ["reviewed_and_asked_rework"]
+              },
+              {
+                "type": "string",
+                "enum": ["rejected"]
+              }
+            ]
+          },
+          "user_comments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file_name": {
+                  "type": "string"
+                },
+                "line_no": {
+                  "type": "number"
+                },
+                "prompt": {
+                  "type": "string"
+                }
+              },
+              "required": ["file_name", "line_no", "prompt"]
+            }
+          },
+          "confidence_score": {
+            "type": "string"
+          },
+          "pr_link": {
+            "type": "string"
+          },
+          "updates": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "status",
+          "priority",
+          "order_in_queue",
+          "created_at",
+          "updated_at",
+          "created_by",
+          "updated_by",
+          "user_acceptance_status"
+        ]
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["error"]
+      },
+      "Repo": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "repo_provider_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url",
+          "repo_provider_id",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "RepoProvider": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "number"
+          },
+          "token_created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "repo_provider_app_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["github"]
+              },
+              {
+                "type": "string",
+                "enum": ["gitlab"]
+              },
+              {
+                "type": "string",
+                "enum": ["bitbucket"]
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "expires_in",
+          "repo_provider_app_name",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "RepoProviderToken": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "number"
+          }
+        },
+        "required": ["access_token", "expires_in"]
+      },
+      "ConnectGitHubRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "use_pat": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectGitHubCallbackRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "installation_id": {
+            "type": "string"
+          },
+          "setup_action": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": ["installation_id"]
+      },
+      "ConnectPATRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "pat": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": ["pat"]
+      },
+      "DisconnectProviderResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": ["message"]
+      },
+      "GetReposResponse": {
+        "type": "array",
+        "items": {
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "repo_provider_id": {
+              "type": "string"
+            },
+            "created_at": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "url",
+            "repo_provider_id",
+            "created_at",
+            "updated_at"
+          ]
+        }
+      },
+      "CreateActivityRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "code_generation_logs": {
+            "type": "string"
+          },
+          "verification_logs": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "job_id", "summary", "created_by"]
+      },
+      "UpdateActivityRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "updated_by": {
+            "type": "string"
+          },
+          "code_generation_logs": {
+            "type": "string"
+          },
+          "verification_logs": {
+            "type": "string"
+          }
+        },
+        "required": ["updated_by"]
+      },
+      "UpdateActivityReadStatusRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "is_read": {
+            "type": "boolean"
+          }
+        },
+        "required": ["is_read"]
+      },
+      "UpdateActivityReadStatusResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "read_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["read"]
+              },
+              {
+                "type": "string",
+                "enum": ["unread"]
+              }
+            ]
+          }
+        },
+        "required": ["message", "read_status"]
+      },
+      "Activity": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_by": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "code_generation_logs": {
+            "type": "string"
+          },
+          "verification_logs": {
+            "type": "string"
+          },
+          "read_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["read"]
+              },
+              {
+                "type": "string",
+                "enum": ["unread"]
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "job_id",
+          "summary",
+          "created_by",
+          "created_at",
+          "updated_by",
+          "updated_at",
+          "read_status"
+        ]
+      },
+      "IntegrationResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "provider_type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "provider_team_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expires_in": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "token_created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "management_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "org_id",
+          "provider_type",
+          "name",
+          "provider_team_id",
+          "provider_user_id",
+          "access_token",
+          "refresh_token",
+          "expires_in",
+          "management_url",
+          "metadata",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "ReprioritizeJobRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "position": {
+            "description": "New position in queue (0-based)",
+            "type": "number"
+          }
+        },
+        "required": ["position"]
+      },
+      "ReprioritizeJobResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "job": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              },
+              "generated_name": {
+                "type": "string"
+              },
+              "generated_description": {
+                "type": "string"
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["queued"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["in-progress"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["in-review"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["completed"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["failed"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["archived"]
+                  }
+                ]
+              },
+              "priority": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["low"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["medium"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["high"]
+                  }
+                ]
+              },
+              "order_in_queue": {
+                "type": "number"
+              },
+              "queue_type": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["rework"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["backlog"]
+                  }
+                ]
+              },
+              "created_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "created_by": {
+                "type": "string"
+              },
+              "updated_by": {
+                "type": "string"
+              },
+              "code_generation_logs": {
+                "type": "string"
+              },
+              "code_verification_logs": {
+                "type": "string"
+              },
+              "user_input": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["slack"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["discord"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["mobile"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["gh-issues"]
+                      }
+                    ]
+                  },
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "sourceMetadata": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "channelId": {
+                            "type": "string"
+                          },
+                          "threadId": {
+                            "type": "string"
+                          },
+                          "threadTimestamp": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["channelId", "threadId", "threadTimestamp"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "channelId": {
+                            "type": "string"
+                          },
+                          "threadId": {
+                            "type": "string"
+                          },
+                          "threadTimestamp": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["channelId", "threadId", "threadTimestamp"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "threadId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["threadId"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "issueId": {
+                            "type": "string"
+                          },
+                          "issueNumber": {
+                            "type": "number"
+                          },
+                          "issueTitle": {
+                            "type": "string"
+                          },
+                          "issueBody": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "issueId",
+                          "issueNumber",
+                          "issueTitle",
+                          "issueBody"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["source", "prompt"]
+              },
+              "repo_id": {
+                "type": "string"
+              },
+              "repo_url": {
+                "type": "string"
+              },
+              "repo_name": {
+                "type": "string"
+              },
+              "user_acceptance_status": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["not_reviewed"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["reviewed_and_accepted"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["reviewed_and_asked_rework"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["rejected"]
+                  }
+                ]
+              },
+              "user_comments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "file_name": {
+                      "type": "string"
+                    },
+                    "line_no": {
+                      "type": "number"
+                    },
+                    "prompt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["file_name", "line_no", "prompt"]
+                }
+              },
+              "confidence_score": {
+                "type": "string"
+              },
+              "pr_link": {
+                "type": "string"
+              },
+              "updates": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "status",
+              "priority",
+              "order_in_queue",
+              "created_at",
+              "updated_at",
+              "created_by",
+              "updated_by",
+              "user_acceptance_status"
+            ]
+          }
+        },
+        "required": ["message", "job"]
+      },
+      "CreateAgentRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "number"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["active"]
+              },
+              {
+                "type": "string",
+                "enum": ["idle"]
+              },
+              {
+                "type": "string",
+                "enum": ["offline"]
+              }
+            ]
+          },
+          "vibe_connection_id": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "host", "port"]
+      },
+      "UpdateAgentRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "number"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["active"]
+              },
+              {
+                "type": "string",
+                "enum": ["idle"]
+              },
+              {
+                "type": "string",
+                "enum": ["offline"]
+              }
+            ]
+          },
+          "vibe_connection_id": {
+            "type": "string"
+          }
+        }
+      },
+      "Agent": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["active"]
+              },
+              {
+                "type": "string",
+                "enum": ["idle"]
+              },
+              {
+                "type": "string",
+                "enum": ["offline"]
+              }
+            ]
+          },
+          "ip": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "number"
+          },
+          "vibe_connection_id": {
+            "type": "string"
+          },
+          "vibe_connection": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "provider_type": {
+                "type": "string"
+              }
+            },
+            "required": ["id", "name", "provider_type"]
+          },
+          "last_active": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "org_id",
+          "status",
+          "port",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "StoreIntegrationSecretRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "providerType": {
+            "description": "The type of integration provider (e.g., cursor, claude-code, kiro-cli)",
+            "type": "string"
+          },
+          "name": {
+            "description": "A short description/label to help identify the key",
+            "type": "string"
+          },
+          "apiKey": {
+            "description": "The API key to store (optional if agent is already authenticated)",
+            "type": "string"
+          }
+        },
+        "required": ["providerType", "name"]
+      },
+      "StoreIntegrationSecretResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "providerType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "storageType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["gcp"]
+              },
+              {
+                "type": "string",
+                "enum": ["encrypted_local"]
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": ["id", "providerType", "name", "storageType", "createdAt"]
+      },
+      "GetIntegrationSecretResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "providerType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "storageType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["gcp"]
+              },
+              {
+                "type": "string",
+                "enum": ["encrypted_local"]
+              }
+            ]
+          },
+          "hasApiKey": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "providerType",
+          "name",
+          "storageType",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "GetIntegrationSecretPlaintextResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "apiKey": {
+            "type": "string"
+          }
+        },
+        "required": ["apiKey"]
+      },
+      "CreateApiKeyRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "A name/label to identify this API key",
+            "type": "string"
+          }
+        },
+        "required": ["name"]
+      },
+      "CreateApiKeyResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "keyPrefix": {
+            "type": "string"
+          },
+          "apiKey": {
+            "description": "The full API key (only shown once on creation)",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": ["id", "name", "keyPrefix", "apiKey", "createdAt"]
+      },
+      "ApiKey": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "keyPrefix": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": ["id", "name", "keyPrefix", "createdAt", "updatedAt"]
+      },
+      "GetApiKeysResponse": {
+        "type": "array",
+        "items": {
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "keyPrefix": {
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "createdAt": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "updatedAt": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": ["id", "name", "keyPrefix", "createdAt", "updatedAt"]
+        }
+      }
+    }
+  },
+  "paths": {
+    "/jobs": {
+      "post": {
+        "tags": ["jobs"],
+        "description": "Create a new job",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJobRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Job created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["jobs"],
+        "description": "List all jobs",
+        "responses": {
+          "200": {
+            "description": "List of jobs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{id}": {
+      "get": {
+        "tags": ["jobs"],
+        "description": "Get a job by ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "version",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["jobs"],
+        "description": "Update a job",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateJobRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["jobs"],
+        "description": "Delete (archive) a job",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job archived successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{id}/execute": {
+      "post": {
+        "tags": ["jobs"],
+        "description": "Execute a job",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Job execution started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{id}/reprioritize": {
+      "post": {
+        "tags": ["jobs"],
+        "description": "Reprioritize a job by changing its queue position",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReprioritizeJobRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job reprioritized successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReprioritizeJobResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/queues/{queueType}/start": {
+      "post": {
+        "tags": ["queues"],
+        "description": "Resume queue processing for an organization (database state only)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["rework", "backlog"]
+            },
+            "in": "path",
+            "name": "queueType",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/queues/{queueType}/pause": {
+      "post": {
+        "tags": ["queues"],
+        "description": "Pause queue workflow",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["rework", "backlog"]
+            },
+            "in": "path",
+            "name": "queueType",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/queues/{queueType}/resume": {
+      "post": {
+        "tags": ["queues"],
+        "description": "Resume queue workflow",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["rework", "backlog"]
+            },
+            "in": "path",
+            "name": "queueType",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/queues/{queueType}/status": {
+      "get": {
+        "tags": ["queues"],
+        "description": "Get queue pause state (database only)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["rework", "backlog"]
+            },
+            "in": "path",
+            "name": "queueType",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "isPaused": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{id}/logs": {
+      "get": {
+        "tags": ["job-logs"],
+        "description": "Get job logs",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "version",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "stage",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "level",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{id}/logs/stream": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/repos/github/connect": {
+      "get": {
+        "tags": ["repos"],
+        "description": "Initiate GitHub App installation or PAT fallback",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "name",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "description",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "use_pat",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Redirect URL in JSON format (when Accept: application/json)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "redirectUrl": {
+                      "type": "string",
+                      "description": "URL to redirect to for GitHub App installation"
+                    }
+                  },
+                  "required": ["redirectUrl"]
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect to GitHub App installation or PAT page (when not requesting JSON)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Redirect to GitHub App installation or PAT page (when not requesting JSON)"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/github/connect/callback": {
+      "get": {
+        "tags": ["repos"],
+        "description": "Handle GitHub App installation callback",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "installation_id",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "setup_action",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "state",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Installation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoProvider"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/github/connect/pat": {
+      "post": {
+        "tags": ["repos"],
+        "description": "Connect using Personal Access Token (fallback)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectPATRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "PAT connection successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoProvider"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/github/providers": {
+      "get": {
+        "tags": ["repos"],
+        "description": "Get all GitHub repo providers for the current organization",
+        "responses": {
+          "200": {
+            "description": "List of GitHub repo providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RepoProvider"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/github/providers/{id}": {
+      "delete": {
+        "tags": ["repos"],
+        "description": "Disconnect a repo provider",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Repo provider disconnected successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisconnectProviderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repo provider not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/github/providers/{providerId}/repos": {
+      "get": {
+        "tags": ["repos"],
+        "description": "Get all repos for a GitHub repo provider (fetched from GitHub API)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "providerId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of repos from GitHub",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetReposResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repo provider not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/github/{id}": {
+      "get": {
+        "tags": ["repos"],
+        "description": "Get a repo by ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Repo retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Repo"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repo not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/github/providers/{id}/token": {
+      "get": {
+        "tags": ["repos"],
+        "description": "Get repo provider token by ID (returns installation token if available)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoProviderToken"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repo provider not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos": {
+      "get": {
+        "tags": ["repos"],
+        "description": "Get all repos for the current organization",
+        "responses": {
+          "200": {
+            "description": "List of repos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Repo"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/{id}": {
+      "patch": {
+        "tags": ["repos"],
+        "description": "Update a repo description",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Repo updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Repo"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repo not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/slack/connect": {
+      "get": {
+        "tags": ["integrations"],
+        "description": "Initiate Slack OAuth connection",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "state",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "redirect_uri",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Redirect URL in JSON format (when Accept: application/json)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "redirectUrl": {
+                      "type": "string",
+                      "description": "URL to redirect to for Slack OAuth"
+                    }
+                  },
+                  "required": ["redirectUrl"]
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect to Slack OAuth (when not requesting JSON)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Redirect to Slack OAuth (when not requesting JSON)"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/slack/connect/callback": {
+      "get": {
+        "tags": ["integrations"],
+        "description": "Handle Slack OAuth callback",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "code",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "state",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "error",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integration successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/slack/providers": {
+      "get": {
+        "tags": ["integrations"],
+        "description": "Get all Slack integrations for the current organization",
+        "responses": {
+          "200": {
+            "description": "List of Slack integrations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntegrationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/slack/providers/{id}": {
+      "get": {
+        "tags": ["integrations"],
+        "description": "Get a Slack integration by ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integration retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Integration not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["integrations"],
+        "description": "Delete a Slack integration",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integration deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Integration not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/slack/providers/{id}/token": {
+      "get": {
+        "tags": ["integrations"],
+        "description": "Get or refresh access token for a Slack integration",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "refresh_token": {
+                      "type": "string"
+                    },
+                    "expires_in": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Integration not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/slack/events": {
+      "post": {
+        "tags": ["integrations"],
+        "description": "Handle Slack events",
+        "responses": {
+          "200": {
+            "description": "Event processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities": {
+      "post": {
+        "tags": ["activities"],
+        "description": "Create a new activity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateActivityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Activity created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["activities"],
+        "description": "List all activities",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "job_id",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of activities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Activity"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}": {
+      "get": {
+        "tags": ["activities"],
+        "description": "Get an activity by ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activity"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["activities"],
+        "description": "Update an activity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateActivityRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activity"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["activities"],
+        "description": "Delete an activity",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activity"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}/read-status": {
+      "put": {
+        "tags": ["activities"],
+        "description": "Update activity read status",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateActivityReadStatusRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateActivityReadStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents": {
+      "post": {
+        "tags": ["agents"],
+        "description": "Create a new agent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAgentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agent created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Agent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["agents"],
+        "description": "List all agents",
+        "responses": {
+          "200": {
+            "description": "List of agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Agent"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{id}": {
+      "get": {
+        "tags": ["agents"],
+        "description": "Get an agent by ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Agent"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["agents"],
+        "description": "Update an agent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAgentRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Agent"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["agents"],
+        "description": "Delete an agent",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Agent"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{id}/reconnect": {
+      "post": {
+        "tags": ["agents"],
+        "description": "Reconnect an offline agent - attempts to ping the agent and resume schedule if successful",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reconnection attempt completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "agent": {
+                      "$ref": "#/components/schemas/Agent"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/secrets": {
+      "post": {
+        "tags": ["integrations"],
+        "description": "Store an integration secret (API key)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoreIntegrationSecretRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Secret stored successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreIntegrationSecretResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["integrations"],
+        "description": "List all integration secrets for the current organization",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "providerType",
+            "required": false,
+            "description": "Filter by provider type (e.g., cursor, claude-code, kiro-cli)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integration secrets retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GetIntegrationSecretResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/secrets/{id}": {
+      "get": {
+        "tags": ["integrations"],
+        "description": "Retrieve an integration secret",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "The integration ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integration secret retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetIntegrationSecretResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Integration not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["integrations"],
+        "description": "Delete an integration secret (API key)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "The integration ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integration secret deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisconnectProviderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Integration not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/secrets/{id}/plaintext": {
+      "get": {
+        "tags": ["integrations"],
+        "description": "Retrieve the plaintext API key for an integration (use with caution)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "The integration ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plaintext secret retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetIntegrationSecretPlaintextResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Integration not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-keys": {
+      "post": {
+        "tags": ["api-keys"],
+        "description": "Create a new API key",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateApiKeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["api-keys"],
+        "description": "Get all API keys for the current user",
+        "responses": {
+          "200": {
+            "description": "List of API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetApiKeysResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-keys/{id}": {
+      "delete": {
+        "tags": ["api-keys"],
+        "description": "Delete an API key",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "The ID of the API key to delete"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "API key deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "API key deleted successfully"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001",
+      "description": "Development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "jobs",
+      "description": "Job management endpoints"
+    },
+    {
+      "name": "job-logs",
+      "description": "Job logs endpoints"
+    },
+    {
+      "name": "repos",
+      "description": "Repository management endpoints"
+    },
+    {
+      "name": "integrations",
+      "description": "Integration management endpoints"
+    },
+    {
+      "name": "activities",
+      "description": "Activity management endpoints"
+    },
+    {
+      "name": "agents",
+      "description": "Agent management endpoints"
+    },
+    {
+      "name": "queues",
+      "description": "Queue management endpoints"
+    },
+    {
+      "name": "api-keys",
+      "description": "API key management endpoints"
+    }
+  ]
+}

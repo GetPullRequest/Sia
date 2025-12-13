@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://getpullrequest.com/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Disallow admin paths (if any)
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /api/
+
+# Allow important pages
+Allow: /
+Allow: /blogs
+Allow: /blogs/*
+Allow: /privacy-policy
+Allow: /terms-of-service

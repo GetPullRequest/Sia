@@ -1,0 +1,71 @@
+# Dockerfile for sia-dev-env
+# Long-lived development container with all tools pre-installed
+
+FROM ubuntu:22.04
+
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install basic tools
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    build-essential \
+    python3 \
+    python3-pip \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    sudo \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js via nvm (for multi-version support)
+ENV NVM_DIR=/root/.nvm
+ENV NODE_VERSION=20.11.0
+
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash \
+    && . $NVM_DIR/nvm.sh \
+    && nvm install $NODE_VERSION \
+    && nvm alias default $NODE_VERSION \
+    && nvm use default
+
+# Add nvm to PATH
+ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
+# Verify installations
+RUN node --version && npm --version
+
+# Install global npm packages
+RUN npm install -g pnpm yarn
+
+# Install Python packages
+RUN pip3 install --upgrade pip
+
+# Install Cursor (if available)
+# Note: Cursor installation might need to be customized based on availability
+# For now, we'll add a placeholder
+# RUN curl -fsSL https://cursor.sh/install.sh | sh
+
+# Install additional build tools
+RUN apt-get update && apt-get install -y \
+    make \
+    cmake \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create workspace directory structure
+RUN mkdir -p /workspace/.bare-repos /workspace/jobs
+
+# Set working directory
+WORKDIR /workspace
+
+# Create a non-root user (optional, for better security)
+# RUN useradd -m -s /bin/bash siauser && \
+#     chown -R siauser:siauser /workspace
+# USER siauser
+
+# Keep container running
+CMD ["tail", "-f", "/dev/null"]

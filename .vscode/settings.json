@@ -1,0 +1,7 @@
+{
+  "jest.jestCommandLine": "npx nx test @sia/api",
+  "jest.autoRun": "off",
+  "jest.rootPath": "apps/api",
+  "jest.disabledWorkspaceFolders": ["apps/web"],
+  "kiroAgent.configureMCP": "Enabled"
+}

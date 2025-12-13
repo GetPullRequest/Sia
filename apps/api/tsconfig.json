@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "es2022",
+    "lib": ["es2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "emitDeclarationOnly": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "baseUrl": "."
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    {
+      "path": "../../libs/models"
+    }
+  ]
+}

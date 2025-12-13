@@ -1,0 +1,21 @@
+{
+  "name": "@sia/web",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "next dev",
+        "cwd": "apps/web"
+      },
+      "cache": true
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "next build",
+        "cwd": "apps/web"
+      },
+      "cache": true
+    }
+  }
+}

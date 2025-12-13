@@ -1,0 +1,80 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug @sia/agent",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx", "apps/agent/src/main.ts"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "SIA_API_KEY": "${env:SIA_API_KEY}",
+        "SIA_BACKEND_URL": "${env:SIA_BACKEND_URL}"
+      },
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug @sia/agent (with args)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "tsx",
+        "apps/agent/src/main.ts",
+        "--api-key",
+        "${input:apiKey}",
+        "--backend-url",
+        "${input:backendUrl}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug @sia/api",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx", "src/main.ts"],
+      "cwd": "${workspaceFolder}/apps/api",
+      "envFile": "${workspaceFolder}/apps/api/.env",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug @sia/web (Next.js)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/apps/web",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "serverReadyAction": {
+        "pattern": "- Local:.+https?://localhost:([0-9]+)",
+        "uriFormat": "http://localhost:%s",
+        "action": "debugWithChrome"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "apiKey",
+      "type": "promptString",
+      "description": "Enter API Key",
+      "default": ""
+    },
+    {
+      "id": "backendUrl",
+      "type": "promptString",
+      "description": "Enter Backend URL (optional, defaults to localhost:50052)",
+      "default": "localhost:50052"
+    }
+  ]
+}

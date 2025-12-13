@@ -1,0 +1,1 @@
+ALTER TYPE "public"."gpr_job_status" ADD VALUE 'in-review' BEFORE 'completed';

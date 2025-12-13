@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "gcloud": {
+      "command": "npx",
+      "args": ["-y", "@google-cloud/gcloud-mcp"]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://getpullrequest.com/</loc>
+    <lastmod>2025-12-11T15:02:16.267Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1</priority>
+  </url>
+  <url>
+    <loc>https://getpullrequest.com/blogs</loc>
+    <lastmod>2025-12-11T15:02:16.267Z</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://getpullrequest.com/privacy-policy</loc>
+    <lastmod>2025-12-11T15:02:16.267Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://getpullrequest.com/terms-of-service</loc>
+    <lastmod>2025-12-11T15:02:16.267Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://getpullrequest.com/blogs/the-vibe-coding-landscape-tools-gaps-and-the-orchestrator-fix</loc>
+    <lastmod>2025-12-11T11:50:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>

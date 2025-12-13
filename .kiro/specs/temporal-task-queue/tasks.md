@@ -1,0 +1,258 @@
+# Implementation Plan
+
+- [x] 1. Set up Temporal dependencies and configuration
+
+  - [x] 1.1 Add Temporal SDK dependencies to apps/api
+    - Add `@temporalio/client`, `@temporalio/worker`, `@temporalio/workflow`, `@temporalio/activity` to package.json
+    - Add `@temporalio/testing` as dev dependency
+    - _Requirements: 7.3_
+  - [x] 1.2 Create Temporal configuration module
+    - Create `apps/api/src/temporal/client.ts` with environment variable configuration
+    - Define TEMPORAL_ADDRESS, TEMPORAL_NAMESPACE, TEMPORAL_API_KEY env vars
+    - _Requirements: 7.3_
+  - [ ] 1.3 Add database schema updates for Temporal fields
+    - Add `temporal_workflow_id` and `temporal_run_id` columns to gpr_jobs table
+    - Create migration file
+    - _Requirements: 1.4_
+
+- [x] 2. Implement Temporal Client Service
+
+  - [x] 2.1 Create Temporal client service
+    - Create `apps/api/src/temporal/client.ts`
+    - Implement `createTemporalConnection` and `createTemporalClient` functions
+    - Support both local and Temporal Cloud with API key authentication
+    - _Requirements: 1.1, 6.1, 8.2_
+  - [ ]\* 2.2 Write property test for workflow creation
+    - **Property 1: Workflow Creation Round-Trip**
+    - **Validates: Requirements 1.1, 1.4**
+  - [ ]\* 2.3 Write property test for workflow parameters
+    - **Property 2: Workflow Parameters Completeness**
+    - **Validates: Requirements 1.2**
+
+- [x] 3. Implement Temporal Activities
+
+  - [x] 3.1 Create sendCommandToAgent activity
+    - Create `apps/api/src/temporal/activities/send-command-to-agent-activity.ts`
+    - Implement activity that invokes Agent via gRPC for various commands
+    - Support startExecution, runVerification, createPR, cleanup commands
+    - Forward log messages to database and WebSocket
+    - _Requirements: 3.1, 3.3, 3.4, 4.1, 4.2_
+  - [ ]\* 3.2 Write property test for gRPC activity invocation
+    - **Property 7: gRPC Activity Invocation**
+    - **Validates: Requirements 3.1**
+  - [ ]\* 3.3 Write property test for activity result propagation
+    - **Property 8: Activity Result Propagation**
+    - **Validates: Requirements 3.3**
+  - [x] 3.4 Implement getNextJob activity
+    - Create `apps/api/src/temporal/activities/get-next-job-activity.ts`
+    - Query database for next queued task by orderInQueue
+    - Return null if no tasks remain
+    - _Requirements: 2.1, 2.2_
+  - [x] 3.5 Implement updateJobStatus activity
+    - Create `apps/api/src/temporal/activities/update-job-activity.ts`
+    - Update job status in database with prLink and error fields
+    - _Requirements: 1.4, 5.2, 6.3_
+  - [x] 3.6 Implement logToJobActivity
+    - Create `apps/api/src/temporal/activities/log-to-job-activity.ts`
+    - Log messages to job with level, message, and stage
+    - _Requirements: 4.1, 4.2_
+  - [ ]\* 3.7 Write property test for log persistence
+    - **Property 9: Log Streaming Persistence**
+    - **Validates: Requirements 4.1, 5.3**
+  - [ ]\* 3.8 Write property test for log broadcast
+    - **Property 10: Log Streaming Broadcast**
+    - **Validates: Requirements 4.2**
+
+- [x] 4. Implement Job Execution Workflow
+
+  - [x] 4.1 Create job execution workflow
+    - Create `apps/api/src/temporal/workflows/job-execution-workflow.ts`
+    - Implement full job execution: get credentials -> execute -> verify -> create PR -> cleanup
+    - Configure heartbeat timeout of 5 minutes for agent responsiveness detection
+    - Handle errors with detailed logging and status updates
+    - _Requirements: 2.1, 2.2, 2.4, 6.2, 9.1, 9.4_
+  - [ ]\* 4.2 Write property test for sequential execution order
+    - **Property 3: Sequential Execution Order**
+    - **Validates: Requirements 2.1**
+  - [ ]\* 4.3 Write property test for queue continuation
+    - **Property 4: Queue Continuation After Completion**
+    - **Validates: Requirements 2.2, 5.4, 6.4**
+  - [ ]\* 4.4 Write property test for single execution per org
+    - **Property 5: Single Execution Per Organization**
+    - **Validates: Requirements 2.4**
+  - [ ]\* 4.5 Write property test for non-preemptive queuing
+    - **Property 6: Non-Preemptive Queuing**
+    - **Validates: Requirements 2.3**
+  - [ ]\* 4.6 Write property test for heartbeat timeout configuration
+    - **Property 18: Heartbeat Timeout Configuration**
+    - **Validates: Requirements 9.1, 9.4**
+
+- [x] 5. Implement Queue Monitor Workflow
+
+  - [x] 5.1 Create queue monitor workflow
+    - Create `apps/api/src/temporal/workflows/queue-monitor-workflow.ts`
+    - Implement short-lived workflow triggered by Temporal Schedules
+    - Check rework queue before backlog queue (priority order)
+    - Atomically claim jobs to prevent race conditions
+    - Execute job via child workflow
+    - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
+  - [ ]\* 5.2 Write property test for atomic job claiming
+    - **Property 28: Atomic Job Claiming**
+    - **Validates: Requirements 13.2, 13.3**
+  - [ ]\* 5.3 Write property test for queue priority order
+    - **Property 29: Queue Priority Order**
+    - **Validates: Requirements 13.4**
+  - [ ]\* 5.4 Write property test for single job per agent
+    - **Property 30: Single Job Per Agent**
+    - **Validates: Requirements 13.5**
+
+- [ ] 6. Checkpoint - Ensure all tests pass
+
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 7. Implement Temporal Worker
+
+  - [x] 7.1 Create Temporal worker module
+    - Create `apps/api/src/temporal/worker.ts`
+    - Register workflows and activities
+    - Configure sequential execution with maxConcurrentActivityTaskExecutions: 1
+    - Configure bundler to ignore activity-only modules
+    - _Requirements: 7.4, 5.1_
+  - [ ] 7.2 Integrate worker startup with API server
+    - Start worker when API server starts
+    - Graceful shutdown on server stop
+    - _Requirements: 7.4_
+
+- [x] 8. Implement Orphan Job Detection and Recovery
+
+  - [x] 8.1 Create detectStuckJobs activity
+    - Create `apps/api/src/temporal/activities/detect-stuck-jobs-activity.ts`
+    - Check for jobs in 'in-progress' status whose Temporal workflow is not running
+    - Check for jobs that haven't been updated within threshold (default 60 minutes)
+    - Return orphan jobs to queue or mark as failed
+    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 11.1, 11.2, 11.3_
+  - [ ]\* 8.2 Write property test for orphan job detection
+    - **Property 19: Orphan Job Detection**
+    - **Validates: Requirements 10.1, 10.2**
+  - [ ]\* 8.3 Write property test for orphan job queue recovery
+    - **Property 20: Orphan Job Queue Recovery**
+    - **Validates: Requirements 10.3, 10.5**
+  - [ ]\* 8.4 Write property test for orphan job failure marking
+    - **Property 21: Orphan Job Failure Marking**
+    - **Validates: Requirements 10.4**
+  - [ ]\* 8.5 Write property test for stuck job detection
+    - **Property 22: Stuck Job Detection**
+    - **Validates: Requirements 11.1, 11.2**
+
+- [x] 9. Implement Agent Health Check System
+
+  - [x] 9.1 Create agent health check workflow
+    - Create `apps/api/src/temporal/workflows/agent-health-check-workflow.ts`
+    - Ping agent via stream connection
+    - Track consecutive failures
+    - Mark agent offline after 3 consecutive failures
+    - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
+  - [x] 9.2 Create pingAgentViaStream activity
+    - Create `apps/api/src/temporal/activities/ping-agent-via-stream-activity.ts`
+    - Send HEALTH_CHECK_PING via agent stream manager
+    - Wait for response with 5 second timeout
+    - _Requirements: 12.1_
+  - [x] 9.3 Create updateAgentStatus activity
+    - Create `apps/api/src/temporal/activities/update-agent-status-activity.ts`
+    - Update agent status and consecutive failure count
+    - _Requirements: 12.2, 12.3, 12.4_
+  - [x] 9.4 Create pauseAgentSchedules activity
+    - Create `apps/api/src/temporal/activities/pause-agent-schedules-activity.ts`
+    - Pause queue monitor and health check schedules when agent goes offline
+    - _Requirements: 12.5_
+  - [ ]\* 9.5 Write property test for agent health check ping
+    - **Property 23: Agent Health Check Ping**
+    - **Validates: Requirements 12.1**
+  - [ ]\* 9.6 Write property test for agent health check success
+    - **Property 24: Agent Health Check Success**
+    - **Validates: Requirements 12.2**
+  - [ ]\* 9.7 Write property test for agent health check failure tracking
+    - **Property 25: Agent Health Check Failure Tracking**
+    - **Validates: Requirements 12.3**
+  - [ ]\* 9.8 Write property test for agent offline detection
+    - **Property 26: Agent Offline Detection**
+    - **Validates: Requirements 12.4**
+  - [ ]\* 9.9 Write property test for agent schedule pausing
+    - **Property 27: Agent Schedule Pausing**
+    - **Validates: Requirements 12.5**
+
+- [x] 10. Implement Queue Management Activities
+
+  - [x] 10.1 Create queue management activities
+    - Create `apps/api/src/temporal/activities/queue-management-activity.ts`
+    - Implement removeJobFromQueue and reprioritizeQueueAfterRemoval
+    - _Requirements: 13.2, 13.3_
+  - [x] 10.2 Create queue status activities
+    - Create `apps/api/src/temporal/activities/queue-status-activity.ts`
+    - Implement isQueuePaused, getAgent, hasAgentInProgressJob
+    - _Requirements: 8.1, 8.3, 13.5_
+  - [ ]\* 10.3 Write property test for queue status completeness
+    - **Property 16: Queue Status Completeness**
+    - **Validates: Requirements 8.1, 8.3**
+  - [ ]\* 10.4 Write property test for workflow status query
+    - **Property 17: Workflow Status Query**
+    - **Validates: Requirements 8.2**
+
+- [ ] 11. Checkpoint - Ensure all tests pass
+
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 12. Implement Credentials Activities
+
+  - [x] 12.1 Create getGitCredentials activity
+    - Create `apps/api/src/temporal/activities/get-credentials-activity.ts`
+    - Retrieve git credentials for repository access
+    - _Requirements: 3.1_
+  - [x] 12.2 Create getVibeCoderCredentials activity
+    - Retrieve vibe coder credentials from agent configuration
+    - _Requirements: 3.1_
+
+- [x] 13. Implement Job Details Activity
+
+  - [x] 13.1 Create getJobDetails activity
+    - Create `apps/api/src/temporal/activities/get-job-details-activity.ts`
+    - Retrieve job details including prompt and repoId
+    - _Requirements: 3.1_
+
+- [x] 14. Export Temporal Modules
+
+  - [x] 14.1 Create activities index
+    - Create `apps/api/src/temporal/activities/index.ts`
+    - Export all activities
+    - _Requirements: 7.1_
+  - [x] 14.2 Create workflows index
+    - Create `apps/api/src/temporal/workflows/index.ts`
+    - Export all workflows
+    - _Requirements: 7.1_
+
+- [ ] 15. Implement API Routes
+
+  - [ ] 15.1 Create queue status API endpoint
+    - Add GET `/api/orgs/:orgId/queue` endpoint
+    - Return queue status with executing and queued tasks
+    - _Requirements: 8.1, 8.3_
+  - [ ] 15.2 Create workflow status API endpoint
+    - Add GET `/api/jobs/:jobId/workflow-status` endpoint
+    - Query Temporal for workflow state
+    - _Requirements: 8.2_
+  - [ ] 15.3 Update job cancellation endpoint
+    - Modify cancellation route to signal Temporal workflow
+    - _Requirements: 6.1_
+
+- [ ] 16. Implement Stage Change Events
+
+  - [ ] 16.1 Add stage change event emission
+    - Emit stage-change events when task stage transitions
+    - Broadcast via WebSocket to subscribers
+    - _Requirements: 4.4_
+  - [ ]\* 16.2 Write property test for stage change events
+    - **Property 11: Stage Change Events**
+    - **Validates: Requirements 4.4**
+
+- [ ] 17. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
