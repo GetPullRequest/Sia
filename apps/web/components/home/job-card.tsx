@@ -65,6 +65,24 @@ const formatTime = (timestamp: string | Date): string => {
   return Math.floor(seconds) + 's ago';
 };
 
+const formatPriority = (priority: string | undefined): string => {
+  if (!priority) return 'Medium';
+  return priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase();
+};
+
+const getPriorityStyles = (priority: string | undefined): string => {
+  const priorityValue = (priority || 'medium').toLowerCase();
+  switch (priorityValue) {
+    case 'low':
+      return 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20';
+    case 'high':
+      return 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20';
+    case 'medium':
+    default:
+      return 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20';
+  }
+};
+
 export function JobCard({
   job,
   onStart,
@@ -290,9 +308,18 @@ export function JobCard({
       )}
 
       <div className="flex items-center justify-between gap-2 mt-4">
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-          Created {formatTime(job.created_at)}
-        </span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Created {formatTime(job.created_at)}</span>
+          <Badge
+            variant="outline"
+            className={cn(
+              'text-xs font-medium border',
+              getPriorityStyles(job.priority)
+            )}
+          >
+            {formatPriority(job.priority)}
+          </Badge>
+        </div>
         {/* <div className="flex items-center gap-0.5">
           {onDelete && (
             <Button

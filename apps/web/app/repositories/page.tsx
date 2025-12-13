@@ -96,7 +96,7 @@ export default function Repositories() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Please log in to view repositories.
             </p>
           </CardContent>
@@ -108,8 +108,8 @@ export default function Repositories() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Repositories</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-base font-bold text-foreground">Repositories</h1>
+        <p className="text-sm text-muted-foreground mt-2">
           Manage repository descriptions to help decide which repository to use
           for tasks.
         </p>
@@ -132,7 +132,7 @@ export default function Repositories() {
       ) : repos.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-muted-foreground text-center py-8">
+            <p className="text-xs text-muted-foreground text-center py-8">
               No repositories found. Connect a GitHub provider in Integrations
               to get started.
             </p>
@@ -145,7 +145,7 @@ export default function Repositories() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-lg">{repo.name}</CardTitle>
+                    <CardTitle className="text-sm">{repo.name}</CardTitle>
                     <CardDescription className="mt-1">
                       <a
                         href={repo.url}
@@ -163,11 +163,11 @@ export default function Repositories() {
               <CardContent className="flex-1 flex flex-col">
                 <div className="flex-1 mb-4">
                   {repo.description ? (
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap">
                       {repo.description}
                     </p>
                   ) : (
-                    <p className="text-sm text-muted-foreground italic">
+                    <p className="text-xs text-muted-foreground italic">
                       No description provided
                     </p>
                   )}

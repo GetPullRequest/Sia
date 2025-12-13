@@ -78,6 +78,7 @@ export function JobDetail({
     order_in_queue: job?.order_in_queue?.toString() || '',
     repo_id: job?.repo_id || '',
     repo_name: job?.repo_name || '',
+    priority: job?.priority || 'medium',
   });
   const [titleError, setTitleError] = useState<string>('');
 
@@ -89,6 +90,7 @@ export function JobDetail({
       order_in_queue: job?.order_in_queue?.toString() || '',
       repo_id: job?.repo_id || '',
       repo_name: job?.repo_name || '',
+      priority: job?.priority || 'medium',
     });
   }, [
     job?.generated_name,
@@ -97,6 +99,7 @@ export function JobDetail({
     job?.order_in_queue,
     job?.repo_id,
     job?.repo_name,
+    job?.priority,
   ]);
 
   const inlineUpdateMutation = useMutation({
@@ -168,6 +171,14 @@ export function JobDetail({
       const parsedOrder = parseInt(value, 10);
       if (!Number.isNaN(parsedOrder)) {
         updates.order_in_queue = parsedOrder;
+      } else {
+        return;
+      }
+    }
+
+    if (field === 'priority') {
+      if (value === 'low' || value === 'medium' || value === 'high') {
+        updates.priority = value;
       } else {
         return;
       }
@@ -377,9 +388,6 @@ export function JobDetail({
             <Logs className="h-4 w-4" />
             <p className="text-lg">Execution logs</p>
           </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Streams update as events arrive
-          </p>
         </CardHeader>
         <CardContent className="space-y-3 px-5 pb-5 pt-0">
           <Collapsible

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type MouseEvent } from 'react';
+import { useState, useEffect, type MouseEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -29,9 +29,24 @@ export function JobComments({
 }: JobCommentsProps) {
   const [newComment, setNewComment] = useState('');
   const [showUpdates, setShowUpdates] = useState(false);
+  const [isMac, setIsMac] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuthInfo();
+
+  // Detect OS for keyboard shortcut display
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const platform = window.navigator.platform.toLowerCase();
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      setIsMac(
+        platform.includes('mac') ||
+          platform.includes('iphone') ||
+          platform.includes('ipad') ||
+          userAgent.includes('mac')
+      );
+    }
+  }, []);
 
   const getFallbackText = (user: any) => {
     if (!user) return '?';
@@ -63,7 +78,7 @@ export function JobComments({
         prompt: c.prompt,
       }));
       const result = await api.updateJob(jobId, {
-        user_comments: [...normalizedExisting, newCommentObj],
+        user_comments: [newCommentObj, ...normalizedExisting],
       });
       if (!result) {
         throw new Error('Failed to add comment');
@@ -124,6 +139,7 @@ export function JobComments({
 
     if (event.metaKey || event.ctrlKey) {
       createTaskMutation.mutate(trimmedComment);
+
       return;
     }
 
@@ -136,10 +152,14 @@ export function JobComments({
       event.preventDefault();
       event.stopPropagation();
       const trimmedComment = newComment.trim();
-      if (!trimmedComment) return;
+      if (!trimmedComment) {
+        event.preventDefault();
+        return;
+      }
 
       if (event.metaKey || event.ctrlKey) {
         createTaskMutation.mutate(trimmedComment);
+
         return;
       }
 
@@ -147,6 +167,15 @@ export function JobComments({
     }
     // Also stop space key from propagating
     if (event.key === ' ') {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
+  const handleSaveKeyUp = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    // Also prevent Enter key from bubbling up in keyup phase
+    if (event.key === 'Enter') {
+      event.preventDefault();
       event.stopPropagation();
     }
   };
@@ -162,6 +191,14 @@ export function JobComments({
     }
   };
 
+  const handleCancelKeyUp = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    // Also prevent Enter key from bubbling up in keyup phase
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
   const handleTextareaKeyDown = (
     event: React.KeyboardEvent<HTMLTextAreaElement>
   ) => {
@@ -172,6 +209,7 @@ export function JobComments({
 
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
       event.preventDefault();
+      event.stopPropagation();
       const trimmedComment = newComment.trim();
       if (!trimmedComment) return;
       addCommentMutation.mutate(trimmedComment);
@@ -204,14 +242,33 @@ export function JobComments({
             />
           </div>
         )}
-        <div className="space-y-2">
+        <div
+          className="space-y-2"
+          onKeyDown={e => {
+            // Prevent Enter key from bubbling up to parent elements
+            if (e.key === 'Enter' && e.target !== e.currentTarget) {
+              // Only stop if the event is from a child element, not the container itself
+              const target = e.target as HTMLElement;
+              if (
+                target.tagName === 'BUTTON' ||
+                target.tagName === 'TEXTAREA'
+              ) {
+                e.stopPropagation();
+              }
+            }
+          }}
+          onClick={e => {
+            // Stop click events from bubbling up
+            e.stopPropagation();
+          }}
+        >
           <Textarea
             placeholder="Write a comment..."
             value={newComment}
             onChange={e => setNewComment(e.target.value)}
             onKeyDown={handleTextareaKeyDown}
             className={cn(
-              'text-sm min-h-[60px] resize-none',
+              'text-sm min-h-[60px] max-h-[180px] resize-none',
               newComment.trim().length > 0 && 'max-h-[200px] overflow-y-auto'
             )}
           />
@@ -219,6 +276,7 @@ export function JobComments({
             <div className="flex flex-col gap-1">
               <div className="flex justify-end gap-2">
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={e => {
@@ -227,6 +285,7 @@ export function JobComments({
                     setNewComment('');
                   }}
                   onKeyDown={handleCancelKeyDown}
+                  onKeyUp={handleCancelKeyUp}
                   onMouseDown={e => e.stopPropagation()}
                   onPointerDown={e => e.stopPropagation()}
                   disabled={addCommentMutation.isPending}
@@ -234,9 +293,11 @@ export function JobComments({
                   Cancel
                 </Button>
                 <Button
+                  type="button"
                   size="sm"
                   onClick={handleSaveClick}
                   onKeyDown={handleSaveKeyDown}
+                  onKeyUp={handleSaveKeyUp}
                   onMouseDown={e => e.stopPropagation()}
                   onPointerDown={e => e.stopPropagation()}
                   disabled={
@@ -246,14 +307,19 @@ export function JobComments({
                   }
                   title="Click to save comment. Hold Ctrl/Cmd while clicking to create a task."
                 >
-                  {addCommentMutation.isPending || createTaskMutation.isPending
-                    ? 'Saving...'
-                    : 'Save'}
+                  {addCommentMutation.isPending ||
+                  createTaskMutation.isPending ? (
+                    'Saving...'
+                  ) : (
+                    <>
+                      Save{' '}
+                      <span className="text-[10px] opacity-70 ml-1">
+                        ({isMac ? '⌘' : 'Ctrl'}+Enter)
+                      </span>
+                    </>
+                  )}
                 </Button>
               </div>
-              <p className="text-[10px] text-muted-foreground text-right">
-                Hold Ctrl/Cmd and click Save to create a new task instead.
-              </p>
             </div>
           )}
         </div>

@@ -117,23 +117,23 @@ export function JobDetailModal({
                     {job.status}
                   </Badge>
                 )}
-                {job?.priority && (
-                  <Badge
-                    variant="secondary"
-                    className="h-8 rounded-full px-3 text-sm font-semibold text-muted-foreground capitalize"
-                  >
-                    {job.priority}
-                  </Badge>
-                )}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 pr-14">
               {(job?.status === 'failed' || job?.status === 'completed') &&
                 !isRetryFormOpen && (
                   <Button
+                    type="button"
                     size="sm"
                     variant="outline"
                     onClick={handleRetryOpen}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRetryOpen();
+                      }
+                    }}
                     className="h-8"
                   >
                     <RotateCw className="h-4 w-4 mr-1" />
@@ -142,9 +142,17 @@ export function JobDetailModal({
                 )}
               {job?.status === 'in-progress' && !isRetryFormOpen && (
                 <Button
+                  type="button"
                   size="sm"
                   variant="outline"
                   onClick={() => cancelJobMutation.mutate()}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      cancelJobMutation.mutate();
+                    }
+                  }}
                   disabled={cancelJobMutation.isPending}
                   className="h-8 border-destructive/40 text-destructive hover:bg-destructive/10"
                 >
@@ -156,9 +164,17 @@ export function JobDetailModal({
               )}
               {!isRetryFormOpen && (
                 <Button
+                  type="button"
                   size="sm"
                   variant="destructive"
                   onClick={() => setShowDeleteConfirmation(true)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowDeleteConfirmation(true);
+                    }
+                  }}
                   className="h-8 text-white"
                 >
                   <Trash className="h-4 w-4 " />

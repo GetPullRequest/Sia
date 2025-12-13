@@ -547,7 +547,7 @@ export default function Integrations() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-xl flex items-center gap-2">
+              <CardTitle className="text-base flex items-center gap-2">
                 {renderIcon()}
                 {integration.name}
               </CardTitle>
@@ -558,11 +558,11 @@ export default function Integrations() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <CardDescription className="text-sm">
+          <CardDescription className="text-xs">
             {integration.description}
           </CardDescription>
           {isVibePlatform && isConnected && integrationSecret && (
-            <div className="text-sm space-y-2 pt-2 border-t">
+            <div className="text-xs space-y-2 pt-2 border-t">
               <p className="text-muted-foreground">
                 Connected to:{' '}
                 <span className="font-medium">{integrationSecret.name}</span>
@@ -579,7 +579,7 @@ export default function Integrations() {
             </div>
           )}
           {isGitHub && isConnected && githubProvider && (
-            <div className="text-sm space-y-1 pt-2 border-t">
+            <div className="text-xs space-y-1 pt-2 border-t">
               <p className="text-muted-foreground">
                 Connected to:{' '}
                 <span className="font-medium">
@@ -607,7 +607,7 @@ export default function Integrations() {
             </div>
           )}
           {isSlack && isConnected && slackProvider && (
-            <div className="text-sm space-y-1 pt-2 border-t">
+            <div className="text-xs space-y-1 pt-2 border-t">
               <p className="text-muted-foreground">
                 Connected to:{' '}
                 <span className="font-medium">
@@ -659,8 +659,8 @@ export default function Integrations() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Integrations</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-xl font-bold">Integrations</h1>
+        <p className="text-sm text-muted-foreground">
           Connect external services to enhance your workflow
         </p>
       </div>
@@ -678,7 +678,7 @@ export default function Integrations() {
       {comingSoonIntegrationsList.length > 0 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-xl font-bold">Coming Soon</h2>
+            <h2 className="text-base font-bold">Coming Soon</h2>
             <p className="text-sm text-muted-foreground">
               Integrations we&apos;re working on
             </p>
@@ -709,7 +709,7 @@ export default function Integrations() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label htmlFor="api-key-name" className="text-sm font-medium">
+              <label htmlFor="api-key-name" className="text-xs font-medium">
                 Name / Label
               </label>
               <Input
@@ -725,7 +725,7 @@ export default function Integrations() {
               </p>
             </div>
             <div className="space-y-2">
-              <label htmlFor="api-key" className="text-sm font-medium">
+              <label htmlFor="api-key" className="text-xs font-medium">
                 API Key{' '}
                 <span className="text-muted-foreground font-normal">
                   (Optional)
@@ -798,7 +798,7 @@ export default function Integrations() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Progress value={progress} />
-            <p className="text-sm text-center text-muted-foreground">
+            <p className="text-xs text-center text-muted-foreground">
               {progress < 30 && 'Redirecting to OAuth provider...'}
               {progress >= 30 && progress < 60 && 'Authenticating...'}
               {progress >= 60 && progress < 90 && 'Authorizing access...'}

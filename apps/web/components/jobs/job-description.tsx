@@ -28,8 +28,15 @@ export function JobDescription({
         <Textarea
           value={generatedDescription || ''}
           onChange={e => onGeneratedDescriptionChange(e.target.value)}
+          onKeyDown={e => {
+            // Prevent Enter key from bubbling up to modal handlers
+            // Allow normal textarea behavior (new line) but stop propagation
+            if (e.key === 'Enter') {
+              e.stopPropagation();
+            }
+          }}
           className="text-sm min-h-[180px] max-h-full  resize-none rounded-lg bg-card border-none px-3 py-2 outline-none"
-          placeholder="Add a short summary for this job..."
+          placeholder="No description available"
         />
         {/* <div className="rounded-2xl border border-dashed border-muted p-4">
           <p className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">

@@ -1,9 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -20,6 +27,7 @@ interface JobHeaderProps {
     user_input_prompt: string;
     order_in_queue: string;
     repo_name: string;
+    priority: string;
   };
   titleError: string;
   onEditFormChange: (field: string, value: string) => void;
@@ -45,6 +53,19 @@ export function JobHeaderSection({
   const [availableRepos, setAvailableRepos] = useState<
     Array<{ id: string; name: string; url: string }>
   >([]);
+  // Track the last valid name to restore if user tries to clear it
+  const lastValidNameRef = useRef<string>(
+    editForm.generated_name || job?.generated_name || ''
+  );
+
+  // Update lastValidNameRef when editForm.generated_name or job.generated_name changes from external updates
+  useEffect(() => {
+    if (editForm.generated_name && editForm.generated_name.trim() !== '') {
+      lastValidNameRef.current = editForm.generated_name;
+    } else if (job?.generated_name && job.generated_name.trim() !== '') {
+      lastValidNameRef.current = job.generated_name;
+    }
+  }, [editForm.generated_name, job?.generated_name]);
 
   const loadRepos = useCallback(
     async (providerId: string) => {
@@ -94,17 +115,32 @@ export function JobHeaderSection({
     fetchProvidersAndRepos();
   }, [loadRepos, toast]);
 
-  const stopSpacePropagation = (event: React.KeyboardEvent) => {
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // Prevent Enter key from bubbling up and triggering modal reopening
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      // Blur the input to remove focus
+      event.currentTarget.blur();
+    }
+    // Prevent space key from propagating
     if (event.key === ' ') {
       event.stopPropagation();
-      // event.preventDefault();
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    // Prevent Enter key from bubbling up and triggering modal reopening
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
     }
   };
 
   const handleRepoChange = (value: string) => {
     onEditFormChange('repo_name', value);
     console.log('value', value);
-    const selectedRepo = availableRepos.find(repo => repo.id === value);
+    const selectedRepo = availableRepos.find(repo => repo.name === value);
     onRepoChange(selectedRepo?.name || value);
   };
 
@@ -132,10 +168,22 @@ export function JobHeaderSection({
                 <Input
                   value={editForm.generated_name}
                   onChange={e => {
-                    onEditFormChange('generated_name', e.target.value);
+                    const newValue = e.target.value;
+                    // If user tries to clear the field entirely, restore last valid name
+                    if (newValue.trim() === '') {
+                      const lastValid =
+                        lastValidNameRef.current || job?.generated_name || '';
+                      // Restore the last valid name immediately
+                      onEditFormChange('generated_name', lastValid);
+                      onTitleErrorChange('Job title is mandatory.');
+                      return;
+                    }
+                    // Update last valid name if the new value is valid
+                    lastValidNameRef.current = newValue;
+                    onEditFormChange('generated_name', newValue);
                     onTitleErrorChange('');
                   }}
-                  onKeyDown={stopSpacePropagation}
+                  onKeyDown={handleInputKeyDown}
                   placeholder="Job title"
                   className={cn(
                     'text-2xl font-semibold max-w-2xl h-14 border-none  bg-card outline-none',
@@ -147,7 +195,20 @@ export function JobHeaderSection({
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2 mt-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
+                <div
+                  className="flex items-center gap-1.5"
+                  onKeyDown={e => {
+                    // Prevent Enter key from bubbling up to parent elements
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                  onClick={e => {
+                    // Stop click events from bubbling up
+                    e.stopPropagation();
+                  }}
+                >
                   <Image
                     src="/icons/github.png"
                     alt="GitHub"
@@ -156,51 +217,69 @@ export function JobHeaderSection({
                     className="h-4 w-4"
                   />
                   {selectedProviderId ? (
-                    <select
-                      value={editForm.repo_name}
-                      onChange={e => handleRepoChange(e.target.value)}
-                      onKeyDown={stopSpacePropagation}
-                      className={cn(
-                        'flex h-8 rounded-md border-none bg-card py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-                        !editForm.repo_name && 'text-destructive font-semibold'
-                      )}
-                      disabled={isLoadingRepos}
+                    <Select
+                      value={editForm.repo_name || undefined}
+                      onValueChange={value => {
+                        if (value && value !== '__none__') {
+                          handleRepoChange(value);
+                        } else if (value === '__none__') {
+                          handleRepoChange('');
+                        }
+                      }}
+                      disabled={isLoadingRepos || availableRepos.length === 0}
                     >
-                      {isLoadingRepos ? (
-                        <option value="">Loading repos...</option>
-                      ) : availableRepos.length === 0 ? (
-                        <option value="">No repositories available</option>
-                      ) : (
-                        <>
-                          <option
-                            value=""
-                            className="text-destructive font-semibold"
+                      <SelectTrigger
+                        className={cn(
+                          'h-8 gap-2  w-fit border-none bg-card px-2 py-1 text-xs cursor-pointer focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                          !editForm.repo_name &&
+                            'text-destructive font-semibold'
+                        )}
+                        onClick={e => {
+                          e.stopPropagation();
+                        }}
+                        onKeyDown={handleKeyDown}
+                      >
+                        <SelectValue
+                          placeholder={
+                            isLoadingRepos
+                              ? 'Loading repos...'
+                              : availableRepos.length === 0
+                              ? 'No repositories available'
+                              : '⚠️ No repository selected'
+                          }
+                        />
+                      </SelectTrigger>
+                      {!isLoadingRepos && availableRepos.length > 0 && (
+                        <SelectContent
+                          className="z-[10000] border-border"
+                          position="popper"
+                          onKeyDown={handleKeyDown}
+                        >
+                          <SelectItem
+                            value="__none__"
+                            className="text-destructive"
                           >
                             ⚠️ No repository selected
-                          </option>
+                          </SelectItem>
                           {availableRepos.map(repo => (
-                            <option
-                              key={repo.id}
-                              value={repo.name}
-                              className="text-foreground"
-                            >
+                            <SelectItem key={repo.id} value={repo.name}>
                               {repo.name}
-                            </option>
+                            </SelectItem>
                           ))}
-                        </>
+                        </SelectContent>
                       )}
-                    </select>
+                    </Select>
                   ) : (
                     <span className="text-xs">Loading providers...</span>
                   )}
                 </div>
 
-                {job.user_input?.source && (
+                {/* {job.user_input?.source && (
                   <>
                     <Separator orientation="vertical" className="h-4" />
                     <span className="capitalize">{job.user_input.source}</span>
                   </>
-                )}
+                )} */}
                 {job.status === 'queued' &&
                   job.order_in_queue !== undefined && (
                     <>
@@ -213,13 +292,73 @@ export function JobHeaderSection({
                           onChange={e =>
                             onEditFormChange('order_in_queue', e.target.value)
                           }
-                          onKeyDown={stopSpacePropagation}
+                          onKeyDown={handleInputKeyDown}
                           placeholder="Queue position"
                           className="h-7 w-14 text-xs bg-card outline-none border-none"
                         />
                       </div>
                     </>
                   )}
+                <Separator orientation="vertical" className="h-4" />
+                <div
+                  className="flex items-center gap-1.5"
+                  onKeyDown={e => {
+                    // Prevent Enter key from bubbling up to parent elements
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                  onClick={e => {
+                    // Stop click events from bubbling up
+                    e.stopPropagation();
+                  }}
+                >
+                  <span>Priority:</span>
+                  <Select
+                    value={editForm.priority || 'medium'}
+                    onValueChange={value => {
+                      if (value) {
+                        onEditFormChange('priority', value);
+                      }
+                    }}
+                    onOpenChange={open => {
+                      // When select closes, ensure no events bubble up
+                      if (!open) {
+                        // Small delay to ensure any pending events are handled
+                        setTimeout(() => {
+                          // Focus management to prevent modal reopening
+                          const activeElement =
+                            document.activeElement as HTMLElement;
+                          if (activeElement) {
+                            activeElement.blur();
+                          }
+                        }, 0);
+                      }
+                    }}
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        'h-8 gap-2  w-fit border-none bg-card px-2 py-1 text-xs cursor-pointer focus:ring-2 focus:ring-ring focus:ring-offset-2'
+                      )}
+                      onClick={e => {
+                        e.stopPropagation();
+                      }}
+                      onKeyDown={handleKeyDown}
+                    >
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent
+                      className="z-[10000] border-border"
+                      position="popper"
+                      onKeyDown={handleKeyDown}
+                    >
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Separator orientation="vertical" className="h-4" />
                 <span>Updated {formatRelativeTime(job.updated_at)}</span>
               </div>

@@ -268,8 +268,8 @@ export default function AgentsPage() {
     <div className="flex flex-col h-full w-full bg-background">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Agents</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-base font-bold">Agents</h1>
+          <p className="text-sm text-muted-foreground">
             Manage your Sia execution agents
           </p>
         </div>
@@ -302,7 +302,7 @@ export default function AgentsPage() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="text-base flex items-center gap-2">
                     <Server className="h-5 w-5 text-primary" />
                     {agent.name}
                   </CardTitle>
@@ -310,7 +310,7 @@ export default function AgentsPage() {
                   {(!agent.vibeConnection ||
                     !agent.vibeConnection.id ||
                     !agent.vibeConnection.name) && (
-                    <div className="flex items-center gap-2 text-sm text-destructive mt-1">
+                    <div className="flex items-center gap-2 text-xs text-destructive mt-1">
                       <AlertTriangle className="h-4 w-4" />
                       <span>Not attached to a vibe coding agent</span>
                     </div>
@@ -348,7 +348,7 @@ export default function AgentsPage() {
                 <p className="text-xs font-medium text-muted-foreground mb-2">
                   Machine Configuration
                 </p>
-                <div className="space-y-1 text-sm">
+                <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">IP:</span>
                     <span className="font-mono">
@@ -392,7 +392,7 @@ export default function AgentsPage() {
                           className="h-5 w-5"
                         />
                       )}
-                      <span className="text-sm font-medium">
+                      <span className="text-xs font-medium">
                         {agent.vibeConnection.name}
                       </span>
                     </div>
@@ -410,7 +410,7 @@ export default function AgentsPage() {
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Not connected</p>
+                  <p className="text-xs text-muted-foreground">Not connected</p>
                 )}
               </div>
 
@@ -420,7 +420,7 @@ export default function AgentsPage() {
                 <p className="text-xs font-medium text-muted-foreground mb-2">
                   Last Active
                 </p>
-                <p className="text-sm">{formatTime(agent.lastActive)}</p>
+                <p className="text-xs">{formatTime(agent.lastActive)}</p>
               </div>
 
               <Separator />
@@ -432,13 +432,13 @@ export default function AgentsPage() {
                     Recent Activity
                   </p>
                   {isLoadingActivities ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Loading activities...
                     </p>
                   ) : activities.length > 0 ? (
                     <div className="space-y-2">
                       {activities.slice(0, 3).map(activity => (
-                        <div key={activity.id} className="text-sm">
+                        <div key={activity.id} className="text-xs">
                           <p>{activity.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {formatTime(activity.created_at)}
@@ -447,7 +447,7 @@ export default function AgentsPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       No recent activity
                     </p>
                   )}
@@ -468,7 +468,7 @@ export default function AgentsPage() {
                           action: string;
                           timestamp: string;
                         }) => (
-                          <div key={activity.id} className="text-sm">
+                          <div key={activity.id} className="text-xs">
                             <p>{activity.action}</p>
                             <p className="text-xs text-muted-foreground">
                               {formatTime(activity.timestamp)}
@@ -478,7 +478,7 @@ export default function AgentsPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       No recent activity
                     </p>
                   )}
@@ -499,7 +499,7 @@ export default function AgentsPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">
+              <label htmlFor="name" className="text-xs font-medium">
                 Name
               </label>
               <Input
@@ -512,7 +512,7 @@ export default function AgentsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="host" className="text-sm font-medium">
+              <label htmlFor="host" className="text-xs font-medium">
                 Host
               </label>
               <Input
@@ -525,7 +525,7 @@ export default function AgentsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="port" className="text-sm font-medium">
+              <label htmlFor="port" className="text-xs font-medium">
                 Port
               </label>
               <Input
@@ -541,7 +541,7 @@ export default function AgentsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="ip" className="text-sm font-medium">
+              <label htmlFor="ip" className="text-xs font-medium">
                 IP Address (optional)
               </label>
               <Input
@@ -552,7 +552,7 @@ export default function AgentsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="vibe_connection" className="text-sm font-medium">
+              <label htmlFor="vibe_connection" className="text-xs font-medium">
                 Vibe Coding Platform Connection
               </label>
               <select
@@ -603,7 +603,7 @@ export default function AgentsPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label htmlFor="create-name" className="text-sm font-medium">
+              <label htmlFor="create-name" className="text-xs font-medium">
                 Name
               </label>
               <Input
@@ -616,7 +616,7 @@ export default function AgentsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="create-host" className="text-sm font-medium">
+              <label htmlFor="create-host" className="text-xs font-medium">
                 Host
               </label>
               <Input
@@ -629,7 +629,7 @@ export default function AgentsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="create-port" className="text-sm font-medium">
+              <label htmlFor="create-port" className="text-xs font-medium">
                 Port
               </label>
               <Input
@@ -645,7 +645,7 @@ export default function AgentsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="create-ip" className="text-sm font-medium">
+              <label htmlFor="create-ip" className="text-xs font-medium">
                 IP Address (optional)
               </label>
               <Input
@@ -660,7 +660,7 @@ export default function AgentsPage() {
             <div className="space-y-2">
               <label
                 htmlFor="create-vibe-connection"
-                className="text-sm font-medium"
+                className="text-xs font-medium"
               >
                 Vibe Coding Platform Connection (optional)
               </label>
