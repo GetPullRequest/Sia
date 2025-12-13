@@ -24,6 +24,11 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -89,6 +94,43 @@ const getActivityIdShort = (id: string) => {
   return parts.length > 0 ? parts[0] : id;
 };
 
+// UUID regex pattern
+const UUID_REGEX =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+
+/**
+ * Parses the activity summary and replaces user IDs with display names
+ * when the ID matches the current user
+ */
+const parseSummaryWithUserNames = (
+  summary: string,
+  currentUserId: string | null | undefined,
+  getDisplayName: () => string
+): string => {
+  if (!summary || !currentUserId) {
+    return summary;
+  }
+
+  // Find all UUIDs in the summary
+  const matches = summary.match(UUID_REGEX);
+  if (!matches || matches.length === 0) {
+    return summary;
+  }
+
+  let parsedSummary = summary;
+
+  // Replace each UUID that matches the current user's ID
+  matches.forEach(uuid => {
+    if (uuid.toLowerCase() === currentUserId.toLowerCase()) {
+      const displayName = getDisplayName();
+      // Replace the UUID with the display name
+      parsedSummary = parsedSummary.replace(uuid, displayName);
+    }
+  });
+
+  return parsedSummary;
+};
+
 export function ActivityDetail({ activity, onDelete }: ActivityDetailProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -152,7 +194,7 @@ export function ActivityDetail({ activity, onDelete }: ActivityDetailProps) {
   };
 
   const nameBadge = getActivityNameBadge(activity.name);
-  const relativeTime = formatTime(activity.created_at);
+  const relativeTime = formatTime(activity.updated_at);
   const activityIdShort = getActivityIdShort(activity.id);
   const activityIcon = getActivityIcon(activity.name);
 
@@ -214,7 +256,14 @@ export function ActivityDetail({ activity, onDelete }: ActivityDetailProps) {
                     <span className="text-muted-foreground/40">•</span>
                   </>
                 )}
-                <span>{relativeTime}</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-help">{relativeTime}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {formatDateTime(activity.updated_at)}
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -244,23 +293,6 @@ export function ActivityDetail({ activity, onDelete }: ActivityDetailProps) {
           <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
             {/* Left Column */}
             <div className="space-y-6">
-              {/* Summary Card */}
-              {activity.summary && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      Summary
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-foreground/90 leading-relaxed">
-                      {activity.summary}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Activity Card */}
               <Card>
                 <CardHeader>
@@ -282,12 +314,40 @@ export function ActivityDetail({ activity, onDelete }: ActivityDetailProps) {
                     {/* <p className="text-xs text-foreground/90">
                       {activity.name}
                     </p> */}
-                    <p className="text-xs text-muted-foreground/70">
-                      {relativeTime}
-                    </p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-xs text-muted-foreground/70 cursor-help">
+                          {relativeTime}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {formatDateTime(activity.updated_at)}
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Summary Card */}
+              {activity.summary && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      Description
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-foreground/90 leading-relaxed">
+                      {parseSummaryWithUserNames(
+                        activity.summary,
+                        user?.userId,
+                        getDisplayName
+                      )}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Right Column - Activity Metadata */}
@@ -299,7 +359,7 @@ export function ActivityDetail({ activity, onDelete }: ActivityDetailProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <dl className="space-y-3 text-sm">
+                <dl className="space-y-3 text-base">
                   <MetadataRow
                     label="Activity ID"
                     value={`evt-${activityIdShort}`}
@@ -343,11 +403,23 @@ export function ActivityDetail({ activity, onDelete }: ActivityDetailProps) {
                       )
                     }
                   />
-                  <MetadataRow
+                  {/* <MetadataRow
                     label="Created"
-                    value={formatDateTime(activity.created_at)}
+                    value={formatDateTime(activity.updated_at)}
+                  /> */}
+                  <MetadataRow
+                    label="Updated time"
+                    value={
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help">{relativeTime}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {formatDateTime(activity.updated_at)}
+                        </TooltipContent>
+                      </Tooltip>
+                    }
                   />
-                  <MetadataRow label="Relative Time" value={relativeTime} />
                 </dl>
               </CardContent>
             </Card>
