@@ -52,24 +52,68 @@ Want the nitty-gritty details? Check out [`.kiro/specs`](./.kiro/specs/) for arc
 
 ## Quick Start
 
-You'll need:
+### Prerequisites
 
-- Node.js (v18+)
-- npm
-- PostgreSQL
-- A GitHub account
+- Docker & Docker Compose
+- Node.js (v18+) - for local development only
+- npm - for dependency management
+
+### Setup with Docker Compose (Recommended)
 
 ```sh
-# Clone it
+# Clone the repository
 git clone https://github.com/your-org/sia.git
 cd sia
 
+# Copy environment configuration files from examples
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.local.example apps/web/.env.local
+
+# Update the .env files with your configuration
+# Edit apps/api/.env with your API credentials
+# Edit apps/web/.env.local with your frontend config
+nano apps/api/.env      # Update API secrets, auth, GitHub, Slack, OpenAI, etc.
+nano apps/web/.env.local # Update auth and API endpoint URLs
+
+# If you modify any dependencies in package.json files, update the lock file
+npm install
+
+# Start the dev environment
+docker-compose -f docker-compose.dev.yml up
+```
+
+This will start:
+
+- PostgreSQL database on port 5432
+- API server on port 3001
+- Web UI on port 3000
+
+Stop with:
+
+```sh
+docker-compose -f docker-compose.dev.yml down
+```
+
+Remove all data (clean slate):
+
+```sh
+docker-compose -f docker-compose.dev.yml down -v
+```
+
+### Local Development (Without Docker)
+
+If you prefer running services locally:
+
+```sh
 # Install dependencies
 npm install
 
-# Set up your .env file
-cp .env.sample .env
-# Edit .env with your config
+# Set up your environment files
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.local.example apps/web/.env.local
+
+# Update configuration files with your values
+# Make sure PostgreSQL is running locally
 
 # Run the dev servers (use two terminals)
 npx nx serve @sia/web    # Terminal 1 - Web UI at http://localhost:3000
@@ -80,6 +124,7 @@ npx nx serve @sia/api    # Terminal 2 - API at http://localhost:3001
 
 ## Docs
 
+- **[DOCKER_SETUP.md](./DOCKER_SETUP.md)** - Detailed Docker Compose setup guide
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** - How to contribute
 - **[CHANGELOG.md](./CHANGELOG.md)** - What's changed
 - **[AGENTS.md](./AGENTS.md)** - For AI agents working with this codebase
