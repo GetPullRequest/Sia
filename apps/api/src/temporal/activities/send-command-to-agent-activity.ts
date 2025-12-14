@@ -188,8 +188,12 @@ export async function sendCommandToAgent(params: {
 
         await logStorage.addLog(jobId, job.version, orgId, {
           level: 'info',
-          message: `[Activity] Invoking agent.executeJob via gRPC - repoId=${
-            payload.repoId || 'none'
+          message: `[Activity] Invoking agent.executeJob via gRPC - repos=${
+            payload.repos
+              ? payload.repos
+                  .map((r: { repoId: string }) => r.repoId)
+                  .join(', ')
+              : 'none'
           }, prompt length=${payload.prompt?.length || 0} chars`,
           timestamp: new Date().toISOString(),
           jobId,
@@ -200,7 +204,7 @@ export async function sendCommandToAgent(params: {
         await agentClient.executeJob({
           jobId,
           prompt: payload.prompt,
-          repoId: payload.repoId,
+          repos: payload.repos?.map((r: { repoId: string }) => r.repoId),
           jobDetails: {
             ...payload.gitCredentials,
             ...payload.vibeCoderCredentials,

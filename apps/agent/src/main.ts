@@ -72,7 +72,7 @@ async function main() {
   console.log(`Starting SIA Agent on port ${port}...`);
   console.log(`Connecting to backend at ${backendUrl}...`);
 
-  let executionManager: IExecutionManager;
+  let executionManager!: IExecutionManager;
 
   if (local) {
     console.log('Running in LOCAL mode (no Docker)');
@@ -87,7 +87,9 @@ async function main() {
 
     console.log('Ensuring local workspace is ready...');
     try {
-      await executionManager.ensureWorkspaceReady();
+      if (executionManager.ensureWorkspaceReady) {
+        await executionManager.ensureWorkspaceReady();
+      }
       console.log('Local workspace is ready');
     } catch (error) {
       console.error('Failed to setup local workspace:', error);
@@ -104,7 +106,9 @@ async function main() {
 
     console.log('Ensuring dev container is ready...');
     try {
-      await executionManager.ensureContainerRunning();
+      if (executionManager.ensureContainerRunning) {
+        await executionManager.ensureContainerRunning();
+      }
       console.log('Dev container is ready');
     } catch (error) {
       console.error('Failed to start dev container:', error);

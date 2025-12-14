@@ -31,7 +31,7 @@ interface CleanupResponse {
 export interface ExecuteJobOptions {
   jobId: string;
   prompt: string;
-  repoId?: string;
+  repos?: string[];
   jobDetails?: Record<string, string>;
   onLog?: (log: LogMessage) => void;
 }
@@ -54,11 +54,11 @@ export class AgentClient {
   }
 
   async executeJob(options: ExecuteJobOptions): Promise<void> {
-    const { jobId, prompt, repoId, jobDetails, onLog } = options;
+    const { jobId, prompt, repos, jobDetails, onLog } = options;
 
     console.log(
-      `[AgentClient] executeJob called for jobId=${jobId}, repoId=${
-        repoId || 'none'
+      `[AgentClient] executeJob called for jobId=${jobId}, repos=${
+        repos ? repos.join(', ') : 'none'
       }`
     );
 
@@ -66,7 +66,7 @@ export class AgentClient {
       const request: ExecuteJobRequest = {
         jobId,
         prompt,
-        repoId: repoId || '',
+        repoId: repos && repos.length > 0 ? repos[0] : '', // Use first repo for now (legacy gRPC field)
         jobDetails: jobDetails || {},
       };
 

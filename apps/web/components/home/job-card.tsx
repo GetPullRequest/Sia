@@ -289,14 +289,17 @@ export function JobCard({
         <span className="flex items-center gap-1.5">
           <LayoutGrid className="h-3 w-3 flex-shrink-0" />
           <Link
-            href={job.repo_url || 'https://github.com/getpullrequest/sia'}
+            href={
+              job.repositories?.[0]?.url ||
+              'https://github.com/getpullrequest/sia'
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="truncate text-primary hover:text-primary transition-colors "
             onClick={event => event.stopPropagation()}
             onPointerDown={event => event.stopPropagation()}
           >
-            {job.repo_name || '@getpullrequest/sia'}
+            {job.repositories?.[0]?.name || '@getpullrequest/sia'}
           </Link>
         </span>
       </div>

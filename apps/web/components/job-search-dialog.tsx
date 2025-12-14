@@ -50,7 +50,9 @@ export function JobSearchDialog({ open, onOpenChange }: JobSearchDialogProps) {
           ?.toLowerCase()
           .includes(query);
         const matchesStatus = job.status.toLowerCase().includes(query);
-        const matchesRepo = job.repo_name?.toLowerCase().includes(query);
+        const matchesRepo = job.repositories?.[0]?.name
+          ?.toLowerCase()
+          .includes(query);
 
         return (
           matchesId ||
@@ -161,10 +163,10 @@ export function JobSearchDialog({ open, onOpenChange }: JobSearchDialogProps) {
                             addSuffix: true,
                           })}
                         </div>
-                        {job.repo_name && (
+                        {job.repositories?.[0]?.name && (
                           <div className="flex items-center gap-1">
                             <Tag className="h-3 w-3" />
-                            {job.repo_name}
+                            {job.repositories[0].name}
                           </div>
                         )}
                       </div>

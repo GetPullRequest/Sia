@@ -21,6 +21,8 @@ import type {
   DeleteJobsByIdData,
   DeleteJobsByIdErrors,
   DeleteJobsByIdResponses,
+  DeleteReposByRepoIdConfigData,
+  DeleteReposByRepoIdConfigResponses,
   DeleteReposGithubProvidersByIdData,
   DeleteReposGithubProvidersByIdErrors,
   DeleteReposGithubProvidersByIdResponses,
@@ -75,6 +77,8 @@ import type {
   GetJobsResponses,
   GetQueuesByQueueTypeStatusData,
   GetQueuesByQueueTypeStatusResponses,
+  GetReposByRepoIdConfigData,
+  GetReposByRepoIdConfigResponses,
   GetReposData,
   GetReposErrors,
   GetReposGithubByIdData,
@@ -95,6 +99,8 @@ import type {
   GetReposGithubProvidersData,
   GetReposGithubProvidersErrors,
   GetReposGithubProvidersResponses,
+  GetReposOrgByOrgIdConfigsData,
+  GetReposOrgByOrgIdConfigsResponses,
   GetReposResponses,
   PatchReposByIdData,
   PatchReposByIdErrors,
@@ -131,6 +137,8 @@ import type {
   PostQueuesByQueueTypeResumeResponses,
   PostQueuesByQueueTypeStartData,
   PostQueuesByQueueTypeStartResponses,
+  PostReposByRepoIdConfigData,
+  PostReposByRepoIdConfigResponses,
   PostReposGithubConnectPatData,
   PostReposGithubConnectPatErrors,
   PostReposGithubConnectPatResponses,
@@ -563,6 +571,58 @@ export const patchReposById = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+};
+
+export const deleteReposByRepoIdConfig = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteReposByRepoIdConfigData, ThrowOnError>
+) => {
+  return (options.client ?? client).delete<
+    DeleteReposByRepoIdConfigResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/repos/{repoId}/config',
+    ...options,
+  });
+};
+
+export const getReposByRepoIdConfig = <ThrowOnError extends boolean = false>(
+  options: Options<GetReposByRepoIdConfigData, ThrowOnError>
+) => {
+  return (options.client ?? client).get<
+    GetReposByRepoIdConfigResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/repos/{repoId}/config',
+    ...options,
+  });
+};
+
+export const postReposByRepoIdConfig = <ThrowOnError extends boolean = false>(
+  options: Options<PostReposByRepoIdConfigData, ThrowOnError>
+) => {
+  return (options.client ?? client).post<
+    PostReposByRepoIdConfigResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/repos/{repoId}/config',
+    ...options,
+  });
+};
+
+export const getReposOrgByOrgIdConfigs = <ThrowOnError extends boolean = false>(
+  options: Options<GetReposOrgByOrgIdConfigsData, ThrowOnError>
+) => {
+  return (options.client ?? client).get<
+    GetReposOrgByOrgIdConfigsResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/repos/org/{orgId}/configs',
+    ...options,
   });
 };
 

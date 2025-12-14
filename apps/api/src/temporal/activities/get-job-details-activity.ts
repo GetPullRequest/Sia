@@ -6,14 +6,14 @@ export async function getJobDetails(params: {
   orgId: string;
 }): Promise<{
   prompt: string;
-  repoId?: string;
+  repos?: string[] | null;
   orderInQueue: number;
   queueType: 'rework' | 'backlog' | null;
 } | null> {
   const jobResult = await db
     .select({
       prompt: schema.jobs.userInput,
-      repoId: schema.jobs.repoId,
+      repos: schema.jobs.repos,
       orderInQueue: schema.jobs.orderInQueue,
       queueType: schema.jobs.queueType,
     })
@@ -31,7 +31,7 @@ export async function getJobDetails(params: {
   const job = jobResult[0];
   return {
     prompt: (job.prompt as any)?.prompt || '',
-    repoId: job.repoId || undefined,
+    repos: job.repos || undefined,
     orderInQueue: job.orderInQueue,
     queueType: job.queueType as 'rework' | 'backlog' | null,
   };

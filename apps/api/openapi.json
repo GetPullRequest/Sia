@@ -222,8 +222,11 @@
             },
             "required": ["source", "prompt"]
           },
-          "repo": {
-            "type": "string"
+          "repos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "created_by": {
             "type": "string"
@@ -386,8 +389,11 @@
             },
             "required": ["source", "prompt"]
           },
-          "repo": {
-            "type": "string"
+          "repos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "updated_by": {
             "type": "string"
@@ -638,8 +644,11 @@
             },
             "required": ["source", "prompt"]
           },
-          "repo_id": {
-            "type": "string"
+          "repos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "user_acceptance_status": {
             "anyOf": [
@@ -892,14 +901,51 @@
             },
             "required": ["source", "prompt"]
           },
-          "repo_id": {
-            "type": "string"
+          "repos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
-          "repo_url": {
-            "type": "string"
-          },
-          "repo_name": {
-            "type": "string"
+          "repositories": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "repo_provider_id": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "url",
+                "repo_provider_id",
+                "created_at",
+                "updated_at"
+              ]
+            }
           },
           "user_acceptance_status": {
             "anyOf": [
@@ -1639,14 +1685,51 @@
                 },
                 "required": ["source", "prompt"]
               },
-              "repo_id": {
-                "type": "string"
+              "repos": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               },
-              "repo_url": {
-                "type": "string"
-              },
-              "repo_name": {
-                "type": "string"
+              "repositories": {
+                "type": "array",
+                "items": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "repo_provider_id": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "url",
+                    "repo_provider_id",
+                    "created_at",
+                    "updated_at"
+                  ]
+                }
               },
               "user_acceptance_status": {
                 "anyOf": [
@@ -3357,6 +3440,78 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/repos/{repoId}/config": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "repoId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "post": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "repoId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "repoId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/repos/org/{orgId}/configs": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "orgId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
           }
         }
       }

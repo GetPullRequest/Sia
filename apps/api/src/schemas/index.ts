@@ -75,7 +75,7 @@ export const UserCommentSchema = Type.Object({
 export const CreateJobRequestSchema = Type.Object(
   {
     user_input: UserInputSchema,
-    repo: Type.Optional(Type.String()),
+    repos: Type.Optional(Type.Array(Type.String())),
     created_by: Type.String(),
   },
   { additionalProperties: false }
@@ -89,7 +89,7 @@ export const UpdateJobRequestSchema = Type.Object(
     priority: Type.Optional(JobPrioritySchema),
     order_in_queue: Type.Optional(Type.Number()),
     user_input: Type.Optional(UserInputSchema),
-    repo: Type.Optional(Type.String()),
+    repos: Type.Optional(Type.Array(Type.String())),
     updated_by: Type.String(),
     user_comments: Type.Optional(Type.Array(UserCommentSchema)),
     user_acceptance_status: Type.Optional(UserAcceptanceStatusSchema),
@@ -119,11 +119,24 @@ export const JobSchema = Type.Object(
     code_generation_logs: Type.Optional(Type.String()),
     code_verification_logs: Type.Optional(Type.String()),
     user_input: Type.Optional(UserInputSchema),
-    repo_id: Type.Optional(Type.String()),
+    repos: Type.Optional(Type.Array(Type.String())),
     user_acceptance_status: UserAcceptanceStatusSchema,
     user_comments: Type.Optional(Type.Array(UserCommentSchema)),
     confidence_score: Type.Optional(Type.String()),
     pr_link: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false }
+);
+
+export const RepoSchema = Type.Object(
+  {
+    id: Type.String(),
+    name: Type.String(),
+    description: Type.Optional(Type.String()),
+    url: Type.String(),
+    repo_provider_id: Type.String(),
+    created_at: Type.String({ format: 'date-time' }),
+    updated_at: Type.String({ format: 'date-time' }),
   },
   { additionalProperties: false }
 );
@@ -147,9 +160,8 @@ export const JobResponseSchema = Type.Object(
     code_generation_logs: Type.Optional(Type.String()),
     code_verification_logs: Type.Optional(Type.String()),
     user_input: Type.Optional(UserInputSchema),
-    repo_id: Type.Optional(Type.String()),
-    repo_url: Type.Optional(Type.String()),
-    repo_name: Type.Optional(Type.String()),
+    repos: Type.Optional(Type.Array(Type.String())),
+    repositories: Type.Optional(Type.Array(RepoSchema)),
     user_acceptance_status: UserAcceptanceStatusSchema,
     user_comments: Type.Optional(Type.Array(UserCommentSchema)),
     confidence_score: Type.Optional(Type.String()),
@@ -171,19 +183,6 @@ const RepoProviderAppNameSchema = Type.Union([
   Type.Literal('gitlab'),
   Type.Literal('bitbucket'),
 ]);
-
-export const RepoSchema = Type.Object(
-  {
-    id: Type.String(),
-    name: Type.String(),
-    description: Type.Optional(Type.String()),
-    url: Type.String(),
-    repo_provider_id: Type.String(),
-    created_at: Type.String({ format: 'date-time' }),
-    updated_at: Type.String({ format: 'date-time' }),
-  },
-  { additionalProperties: false }
-);
 
 export const RepoProviderSchema = Type.Object(
   {

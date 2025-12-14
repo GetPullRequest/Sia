@@ -39,16 +39,13 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
 
   const createJobMutation = useMutation({
     mutationFn: async (userPrompt: string) => {
-      // Use first selected repo for now (API only supports single repo)
-      const repoId =
-        selectedRepoIds.length > 0 ? selectedRepoIds[0] : undefined;
       return await api.createJob({
         user_input: {
           source: 'mobile',
           prompt: userPrompt,
           sourceMetadata: null,
         },
-        repo: repoId || undefined,
+        repos: selectedRepoIds.length > 0 ? selectedRepoIds : undefined,
         created_by: authInfo.user?.userId || 'unknown',
       });
     },

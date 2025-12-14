@@ -51,6 +51,8 @@ export type {
   NewJob,
   Repo,
   NewRepo,
+  RepoConfig,
+  NewRepoConfig,
   RepoProvider,
   NewRepoProvider,
   Integration,

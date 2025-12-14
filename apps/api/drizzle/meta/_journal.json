@@ -120,6 +120,20 @@
       "when": 1765279830854,
       "tag": "0016_added_vibe_connection_column_to_agents",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1765629194086,
+      "tag": "0017_add-repo-configs-and-multi-repo-support",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1765791416945,
+      "tag": "0018_add-repo-config-confirmation-tracking",
+      "breakpoints": true
     }
   ]
 }

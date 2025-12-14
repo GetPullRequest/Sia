@@ -53,7 +53,7 @@ export class JobExecutionService {
       await agentClient.executeJob({
         jobId,
         prompt,
-        repoId: job.repoId || undefined,
+        repos: job.repos || undefined,
         onLog: async (log: LogMessage) => {
           await logStorage.addLog(jobId, job.version, orgId, log);
 

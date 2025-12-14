@@ -76,8 +76,7 @@ export function JobDetail({
     generated_description: job?.generated_description || '',
     user_input_prompt: job?.user_input?.prompt || '',
     order_in_queue: job?.order_in_queue?.toString() || '',
-    repo_id: job?.repo_id || '',
-    repo_name: job?.repo_name || '',
+    repo_name: job?.repositories?.[0]?.name || '',
     priority: job?.priority || 'medium',
   });
   const [titleError, setTitleError] = useState<string>('');
@@ -88,8 +87,7 @@ export function JobDetail({
       generated_description: job?.generated_description || '',
       user_input_prompt: job?.user_input?.prompt || '',
       order_in_queue: job?.order_in_queue?.toString() || '',
-      repo_id: job?.repo_id || '',
-      repo_name: job?.repo_name || '',
+      repo_name: job?.repositories?.[0]?.name || '',
       priority: job?.priority || 'medium',
     });
   }, [
@@ -97,8 +95,7 @@ export function JobDetail({
     job?.generated_description,
     job?.user_input?.prompt,
     job?.order_in_queue,
-    job?.repo_id,
-    job?.repo_name,
+    job?.repositories?.[0]?.name,
     job?.priority,
   ]);
 
@@ -190,12 +187,8 @@ export function JobDetail({
 
   const handleRepoChangeWithTracking = (repoName: string) => {
     setEditForm(prev => ({ ...prev, repo_name: repoName }));
-    const updates: UpdateJobRequest = {
-      updated_by: currentUserName,
-      repo: repoName,
-    };
-    pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
-    debouncedInlineUpdate(updates);
+    // TODO: Implement proper repo update logic with availableRepos
+    // For now, just update the form state without API call
   };
 
   // Handle ESC key and other user actions

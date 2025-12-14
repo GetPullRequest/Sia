@@ -73,7 +73,7 @@ export interface UserComment {
 
 export interface CreateJobRequest {
   user_input: UserInput;
-  repo?: string;
+  repos?: string[];
   created_by: string;
 }
 
@@ -84,7 +84,7 @@ export interface UpdateJobRequest {
   priority?: JobPriority;
   order_in_queue?: number;
   user_input?: UserInput;
-  repo?: string;
+  repos?: string[];
   updated_by: string;
   user_comments?: UserComment[];
   user_acceptance_status?: UserAcceptanceStatus;

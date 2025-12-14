@@ -18,7 +18,7 @@ import { queueWorkflowService } from '../services/queue-workflow-service';
 import { getCurrentUser, type User } from '../auth';
 import { generateJobTitleAndDescription } from '../services/job-title-generator';
 
-const { jobs, repos, activities } = schema;
+const { jobs, repos: reposTable, activities } = schema;
 
 type QueueType = 'rework' | 'backlog';
 
@@ -125,35 +125,14 @@ async function createActivity(
   }
 }
 
-function transformJobResponse(
-  job: Job,
-  repoMap?: Map<string, { id: string; url: string; name: string }>
-) {
-  let repoInfo: { repo_id?: string; repo_url?: string; repo_name?: string } =
-    {};
-
-  if (job.repoId) {
-    if (repoMap && repoMap.has(job.repoId)) {
-      const repo = repoMap.get(job.repoId);
-      if (repo) {
-        repoInfo = {
-          repo_id: repo.id,
-          repo_url: repo.url,
-          repo_name: repo.name,
-        };
-      }
-    } else {
-      // If not found in map, treat repoId as the repo identifier (could be owner/repo format)
-      repoInfo = {
-        repo_id: job.repoId,
-        repo_url: job.repoId.startsWith('http')
-          ? job.repoId
-          : `https://github.com/${job.repoId}`,
-        repo_name: job.repoId.includes('/')
-          ? job.repoId.split('/').pop()
-          : job.repoId,
-      };
-    }
+async function transformJobResponse(job: Job) {
+  // Fetch repository details if repos array exists
+  let repositories = undefined;
+  if (job.repos && job.repos.length > 0) {
+    repositories = await db
+      .select()
+      .from(reposTable)
+      .where(inArray(reposTable.id, job.repos));
   }
 
   return {
@@ -172,9 +151,17 @@ function transformJobResponse(
     code_generation_logs: job.codeGenerationLogs ?? undefined,
     code_verification_logs: job.codeVerificationLogs ?? undefined,
     user_input: job.userInput ?? undefined,
-    repo_id: repoInfo.repo_id,
-    repo_url: repoInfo.repo_url,
-    repo_name: repoInfo.repo_name,
+    repos: job.repos ?? undefined,
+    repositories:
+      repositories?.map(repo => ({
+        id: repo.id,
+        name: repo.name,
+        description: repo.description ?? undefined,
+        url: repo.url,
+        repo_provider_id: repo.repo_provider_id,
+        created_at: repo.createdAt.toISOString(),
+        updated_at: repo.updatedAt.toISOString(),
+      })) ?? undefined,
     user_acceptance_status: job.userAcceptanceStatus,
     user_comments: job.userComments ?? undefined,
     confidence_score: job.confidenceScore ?? undefined,
@@ -247,7 +234,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
     ) => {
       try {
         const user = request.user!;
-        const { user_input, repo, created_by } = request.body;
+        const { user_input, repos: repoIds, created_by } = request.body;
 
         if (!user_input || !user_input.source || !user_input.prompt) {
           return reply.code(400).send({
@@ -278,7 +265,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
             prompt: user_input.prompt,
             sourceMetadata: user_input.sourceMetadata ?? null,
           },
-          repoId: repo || null,
+          repos: repoIds && repoIds.length > 0 ? repoIds : null,
           createdBy: created_by,
           updatedBy: created_by,
           status: 'queued',
@@ -293,27 +280,23 @@ async function jobsRoutes(fastify: FastifyInstance) {
           .returning();
         const createdJob = createdJobResult[0];
 
-        // Fetch repo if repoId exists
-        let repoMap:
-          | Map<string, { id: string; url: string; name: string }>
-          | undefined;
+        // Fetch repos if they exist
         let repoInfo = '';
-        if (createdJob.repoId) {
-          const repo = await db
+        if (createdJob.repos && createdJob.repos.length > 0) {
+          const repoRecords = await db
             .select()
-            .from(repos)
+            .from(reposTable)
             .where(
-              and(eq(repos.id, createdJob.repoId), eq(repos.orgId, user.orgId))
-            )
-            .limit(1);
-          if (repo.length > 0) {
-            repoMap = new Map([
-              [
-                repo[0].id,
-                { id: repo[0].id, url: repo[0].url, name: repo[0].name },
-              ],
-            ]);
-            repoInfo = ` in repository ${repo[0].name}`;
+              and(
+                eq(reposTable.orgId, user.orgId),
+                inArray(reposTable.id, createdJob.repos)
+              )
+            );
+          if (repoRecords.length > 0) {
+            const repoNames = repoRecords.map(r => r.name).join(', ');
+            repoInfo = ` in ${
+              repoRecords.length === 1 ? 'repository' : 'repositories'
+            } ${repoNames}`;
           }
         }
 
@@ -332,7 +315,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
           user.orgId
         );
 
-        return reply.code(201).send(transformJobResponse(createdJob, repoMap));
+        return reply.code(201).send(await transformJobResponse(createdJob));
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send({ error: 'Failed to create job' });
@@ -447,27 +430,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
           return reply.code(404).send({ error: 'Job not found' });
         }
 
-        // Fetch repo if repoId exists
-        let repoMap:
-          | Map<string, { id: string; url: string; name: string }>
-          | undefined;
-        if (job.repoId) {
-          const repo = await db
-            .select()
-            .from(repos)
-            .where(and(eq(repos.id, job.repoId), eq(repos.orgId, user.orgId)))
-            .limit(1);
-          if (repo.length > 0) {
-            repoMap = new Map([
-              [
-                repo[0].id,
-                { id: repo[0].id, url: repo[0].url, name: repo[0].name },
-              ],
-            ]);
-          }
-        }
-
-        return reply.send(transformJobResponse(job, repoMap));
+        return reply.send(await transformJobResponse(job));
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send({ error: 'Failed to fetch job' });
@@ -529,10 +492,10 @@ async function jobsRoutes(fastify: FastifyInstance) {
         // Get only the latest version of each job using DISTINCT ON
         // This PostgreSQL-specific feature efficiently gets the latest version per job id
         const allJobsResult = await db.execute(sql`
-          SELECT DISTINCT ON (id) 
+          SELECT DISTINCT ON (id)
             id, version, org_id, generated_name, generated_description, status, priority,
-            order_in_queue, queue_type, created_at, updated_at, created_by, updated_by,
-            code_generation_logs, code_verification_logs, code_generation_detail_logs, user_input, repo_id,
+            order_in_queue, queue_type, agent_id, created_at, updated_at, created_by, updated_by,
+            code_generation_logs, code_verification_logs, code_generation_detail_logs, user_input, repos,
             user_acceptance_status, user_comments, confidence_score, pr_link, updates
           FROM ${jobs}
           WHERE org_id = ${user.orgId}
@@ -594,7 +557,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
               return logs as Job['codeGenerationDetailLogs'];
             })(),
             userInput: row.user_input as Job['userInput'],
-            repoId: row.repo_id as string | null,
+            repos: row.repos as string[] | null,
             userAcceptanceStatus:
               row.user_acceptance_status as Job['userAcceptanceStatus'],
             userComments: row.user_comments as Job['userComments'],
@@ -607,34 +570,8 @@ async function jobsRoutes(fastify: FastifyInstance) {
         // Sort by createdAt descending
         allJobs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-        // Fetch all repos for jobs that have repoId
-        const repoIds = allJobs
-          .map(job => job.repoId)
-          .filter((id): id is string => id !== null);
-        const repoMap = new Map<
-          string,
-          { id: string; url: string; name: string }
-        >();
-
-        if (repoIds.length > 0) {
-          const allRepos = await db
-            .select()
-            .from(repos)
-            .where(
-              and(eq(repos.orgId, user.orgId), inArray(repos.id, repoIds))
-            );
-
-          allRepos.forEach(repo => {
-            repoMap.set(repo.id, {
-              id: repo.id,
-              url: repo.url,
-              name: repo.name,
-            });
-          });
-        }
-
         return reply.send(
-          allJobs.map(job => transformJobResponse(job, repoMap))
+          await Promise.all(allJobs.map(job => transformJobResponse(job)))
         );
       } catch (error) {
         fastify.log.error(error);
@@ -723,7 +660,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
           priority,
           order_in_queue,
           user_input,
-          repo,
+          repos,
           updated_by,
           user_comments,
           user_acceptance_status,
@@ -770,7 +707,8 @@ async function jobsRoutes(fastify: FastifyInstance) {
           (user_input &&
             JSON.stringify(user_input) !==
               JSON.stringify(currentJob.userInput)) ||
-          (repo !== undefined && repo !== currentJob.repoId) ||
+          (repos !== undefined &&
+            JSON.stringify(repos) !== JSON.stringify(currentJob.repos)) ||
           (user_acceptance_status === 'reviewed_and_asked_rework' &&
             currentJob.userAcceptanceStatus !== 'reviewed_and_asked_rework') ||
           isRetry;
@@ -981,7 +919,12 @@ async function jobsRoutes(fastify: FastifyInstance) {
                   sourceMetadata: user_input.sourceMetadata ?? null,
                 }
               : currentJob.userInput ?? null,
-            repoId: repo !== undefined ? repo : currentJob.repoId ?? null,
+            repos:
+              repos !== undefined
+                ? repos && repos.length > 0
+                  ? repos
+                  : null
+                : currentJob.repos ?? null,
             createdBy: currentJob.createdBy,
             updatedBy: updated_by,
             // Exclude code generation and verification logs when retrying
@@ -1005,30 +948,23 @@ async function jobsRoutes(fastify: FastifyInstance) {
             .returning();
           const updatedJob = createdJobResult[0];
 
-          // Fetch repo if repoId exists
-          let repoMap:
-            | Map<string, { id: string; url: string; name: string }>
-            | undefined;
+          // Fetch repos if they exist
           let repoInfo = '';
-          if (updatedJob.repoId) {
-            const repo = await db
+          if (updatedJob.repos && updatedJob.repos.length > 0) {
+            const repoRecords = await db
               .select()
-              .from(repos)
+              .from(reposTable)
               .where(
                 and(
-                  eq(repos.id, updatedJob.repoId),
-                  eq(repos.orgId, user.orgId)
+                  eq(reposTable.orgId, user.orgId),
+                  inArray(reposTable.id, updatedJob.repos)
                 )
-              )
-              .limit(1);
-            if (repo.length > 0) {
-              repoMap = new Map([
-                [
-                  repo[0].id,
-                  { id: repo[0].id, url: repo[0].url, name: repo[0].name },
-                ],
-              ]);
-              repoInfo = ` in repository ${repo[0].name}`;
+              );
+            if (repoRecords.length > 0) {
+              const repoNames = repoRecords.map(r => r.name).join(', ');
+              repoInfo = ` in ${
+                repoRecords.length === 1 ? 'repository' : 'repositories'
+              } ${repoNames}`;
             }
           }
 
@@ -1036,8 +972,11 @@ async function jobsRoutes(fastify: FastifyInstance) {
           const jobName = updatedJob.generatedName || 'Untitled Job';
           const changes: string[] = [];
           if (promptChanged) changes.push('user input prompt');
-          if (repo !== undefined && repo !== currentJob.repoId)
-            changes.push('repository');
+          if (
+            repos !== undefined &&
+            JSON.stringify(repos) !== JSON.stringify(currentJob.repos)
+          )
+            changes.push('repositories');
           if (user_acceptance_status === 'reviewed_and_asked_rework')
             changes.push('moved to rework queue');
           if (status !== undefined && status !== currentJob.status)
@@ -1066,7 +1005,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
             user.orgId
           );
 
-          return reply.send(transformJobResponse(updatedJob, repoMap));
+          return reply.send(await transformJobResponse(updatedJob));
         } else {
           const updateData: Partial<Job> = {
             updatedBy: updated_by,
@@ -1191,30 +1130,23 @@ async function jobsRoutes(fastify: FastifyInstance) {
             .returning();
           const updatedJob = updatedJobResult[0];
 
-          // Fetch repo if repoId exists
-          let repoMap:
-            | Map<string, { id: string; url: string; name: string }>
-            | undefined;
+          // Fetch repos if they exist
           let repoInfo = '';
-          if (updatedJob.repoId) {
-            const repo = await db
+          if (updatedJob.repos && updatedJob.repos.length > 0) {
+            const repoRecords = await db
               .select()
-              .from(repos)
+              .from(reposTable)
               .where(
                 and(
-                  eq(repos.id, updatedJob.repoId),
-                  eq(repos.orgId, user.orgId)
+                  eq(reposTable.orgId, user.orgId),
+                  inArray(reposTable.id, updatedJob.repos)
                 )
-              )
-              .limit(1);
-            if (repo.length > 0) {
-              repoMap = new Map([
-                [
-                  repo[0].id,
-                  { id: repo[0].id, url: repo[0].url, name: repo[0].name },
-                ],
-              ]);
-              repoInfo = ` in repository ${repo[0].name}`;
+              );
+            if (repoRecords.length > 0) {
+              const repoNames = repoRecords.map(r => r.name).join(', ');
+              repoInfo = ` in ${
+                repoRecords.length === 1 ? 'repository' : 'repositories'
+              } ${repoNames}`;
             }
           }
 
@@ -1265,12 +1197,11 @@ async function jobsRoutes(fastify: FastifyInstance) {
           ) {
             changes.push('user comments');
           }
-          if (repo !== undefined && repo !== currentJob.repoId) {
-            const oldRepoName = currentJob.repoId || 'none';
-            const newRepoName = repo || 'none';
-            changes.push(
-              `repository changed from ${oldRepoName} to ${newRepoName}`
-            );
+          if (
+            repos !== undefined &&
+            JSON.stringify(repos) !== JSON.stringify(currentJob.repos)
+          ) {
+            changes.push('repositories');
           }
 
           const changesText =
@@ -1288,7 +1219,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
             user.orgId
           );
 
-          return reply.send(transformJobResponse(updatedJob, repoMap));
+          return reply.send(await transformJobResponse(updatedJob));
         }
       } catch (error) {
         fastify.log.error(error);
@@ -1408,28 +1339,6 @@ async function jobsRoutes(fastify: FastifyInstance) {
           .returning();
         const deletedJob = updatedJobResult[0];
 
-        // Fetch repo if repoId exists
-        let repoMap:
-          | Map<string, { id: string; url: string; name: string }>
-          | undefined;
-        if (deletedJob.repoId) {
-          const repo = await db
-            .select()
-            .from(repos)
-            .where(
-              and(eq(repos.id, deletedJob.repoId), eq(repos.orgId, user.orgId))
-            )
-            .limit(1);
-          if (repo.length > 0) {
-            repoMap = new Map([
-              [
-                repo[0].id,
-                { id: repo[0].id, url: repo[0].url, name: repo[0].name },
-              ],
-            ]);
-          }
-        }
-
         // Create activity for job deletion
         const jobName = currentJob.generatedName || 'Untitled Job';
         const activitySummary = `Job "${jobName}" was archived (deleted) by ${user.id}.`;
@@ -1441,7 +1350,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
           user.orgId
         );
 
-        return reply.send(transformJobResponse(deletedJob, repoMap));
+        return reply.send(await transformJobResponse(deletedJob));
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send({ error: 'Failed to delete job' });
@@ -1711,29 +1620,9 @@ async function jobsRoutes(fastify: FastifyInstance) {
         const oldPosition = job.orderInQueue;
 
         if (newPosition === oldPosition) {
-          // Fetch repo if repoId exists
-          let repoMap:
-            | Map<string, { id: string; url: string; name: string }>
-            | undefined;
-          if (job.repoId) {
-            const repo = await db
-              .select()
-              .from(repos)
-              .where(and(eq(repos.id, job.repoId), eq(repos.orgId, user.orgId)))
-              .limit(1);
-            if (repo.length > 0) {
-              repoMap = new Map([
-                [
-                  repo[0].id,
-                  { id: repo[0].id, url: repo[0].url, name: repo[0].name },
-                ],
-              ]);
-            }
-          }
-
           return reply.send({
             message: 'Job is already at the requested position',
-            job: transformJobResponse(job, repoMap),
+            job: await transformJobResponse(job),
           });
         }
 
@@ -1815,28 +1704,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
           )
           .limit(1);
 
-        // Fetch repo if repoId exists
-        let repoMap:
-          | Map<string, { id: string; url: string; name: string }>
-          | undefined;
         const updatedJob = updatedJobResult[0];
-        if (updatedJob.repoId) {
-          const repo = await db
-            .select()
-            .from(repos)
-            .where(
-              and(eq(repos.id, updatedJob.repoId), eq(repos.orgId, user.orgId))
-            )
-            .limit(1);
-          if (repo.length > 0) {
-            repoMap = new Map([
-              [
-                repo[0].id,
-                { id: repo[0].id, url: repo[0].url, name: repo[0].name },
-              ],
-            ]);
-          }
-        }
 
         // Create activity for order change
         const jobName = updatedJob.generatedName || 'Untitled Job';
@@ -1855,7 +1723,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
 
         return reply.send({
           message: `Job reprioritized from position ${oldPosition} to ${newPosition}`,
-          job: transformJobResponse(updatedJob, repoMap),
+          job: await transformJobResponse(updatedJob),
         });
       } catch (error) {
         fastify.log.error(error);

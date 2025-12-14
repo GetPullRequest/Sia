@@ -62,7 +62,7 @@ export type CreateJobRequest = {
         }
       | null;
   };
-  repo?: string;
+  repos?: Array<string>;
   created_by: string;
 };
 
@@ -103,7 +103,7 @@ export type UpdateJobRequest = {
         }
       | null;
   };
-  repo?: string;
+  repos?: Array<string>;
   updated_by: string;
   user_comments?: Array<{
     file_name: string;
@@ -164,7 +164,7 @@ export type Job = {
         }
       | null;
   };
-  repo_id?: string;
+  repos?: Array<string>;
   user_acceptance_status:
     | 'not_reviewed'
     | 'reviewed_and_accepted'
@@ -225,9 +225,16 @@ export type JobResponse = {
         }
       | null;
   };
-  repo_id?: string;
-  repo_url?: string;
-  repo_name?: string;
+  repos?: Array<string>;
+  repositories?: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    url: string;
+    repo_provider_id: string;
+    created_at: string;
+    updated_at: string;
+  }>;
   user_acceptance_status:
     | 'not_reviewed'
     | 'reviewed_and_accepted'
@@ -425,9 +432,16 @@ export type ReprioritizeJobResponse = {
           }
         | null;
     };
-    repo_id?: string;
-    repo_url?: string;
-    repo_name?: string;
+    repos?: Array<string>;
+    repositories?: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      url: string;
+      repo_provider_id: string;
+      created_at: string;
+      updated_at: string;
+    }>;
     user_acceptance_status:
       | 'not_reviewed'
       | 'reviewed_and_accepted'
@@ -1310,6 +1324,70 @@ export type PatchReposByIdResponses = {
 
 export type PatchReposByIdResponse =
   PatchReposByIdResponses[keyof PatchReposByIdResponses];
+
+export type DeleteReposByRepoIdConfigData = {
+  body?: never;
+  path: {
+    repoId: string;
+  };
+  query?: never;
+  url: '/repos/{repoId}/config';
+};
+
+export type DeleteReposByRepoIdConfigResponses = {
+  /**
+   * Default Response
+   */
+  200: unknown;
+};
+
+export type GetReposByRepoIdConfigData = {
+  body?: never;
+  path: {
+    repoId: string;
+  };
+  query?: never;
+  url: '/repos/{repoId}/config';
+};
+
+export type GetReposByRepoIdConfigResponses = {
+  /**
+   * Default Response
+   */
+  200: unknown;
+};
+
+export type PostReposByRepoIdConfigData = {
+  body?: never;
+  path: {
+    repoId: string;
+  };
+  query?: never;
+  url: '/repos/{repoId}/config';
+};
+
+export type PostReposByRepoIdConfigResponses = {
+  /**
+   * Default Response
+   */
+  200: unknown;
+};
+
+export type GetReposOrgByOrgIdConfigsData = {
+  body?: never;
+  path: {
+    orgId: string;
+  };
+  query?: never;
+  url: '/repos/org/{orgId}/configs';
+};
+
+export type GetReposOrgByOrgIdConfigsResponses = {
+  /**
+   * Default Response
+   */
+  200: unknown;
+};
 
 export type GetIntegrationsSlackConnectData = {
   body?: never;

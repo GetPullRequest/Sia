@@ -53,12 +53,15 @@ export async function jobExecutionWorkflow(params: {
       stage: 'workflow',
     });
 
-    // Prepare repos array (backward compatible with single repoId)
-    const reposToUse: RepoConfig[] = repos
-      ? repos
-      : job.repoId
-      ? [{ repoId: job.repoId, name: job.repoId.split('/')[1] || 'repo' }]
-      : [];
+    // Prepare repos array from job.repos
+    const reposToUse: RepoConfig[] =
+      repos ||
+      (job.repos && job.repos.length > 0
+        ? job.repos.map(repoId => ({
+            repoId,
+            name: repoId.split('/')[1] || repoId,
+          }))
+        : []);
 
     await logToJobActivity({
       jobId,
@@ -79,15 +82,15 @@ export async function jobExecutionWorkflow(params: {
       jobId,
       orgId,
       level: 'info',
-      message: `Starting: Get git credentials for repoId=${
-        job.repoId || 'none'
+      message: `Starting: Get git credentials for ${
+        reposToUse.length > 0 ? `${reposToUse.length} repo(s)` : 'no repos'
       }`,
       stage: 'workflow',
     });
     const gitCredentials = await getGitCredentials({
       jobId,
       orgId,
-      repoId: job.repoId,
+      repoId: reposToUse[0]?.repoId, // Use first repo for credentials (assumes same creds for all repos in org)
     });
     await logToJobActivity({
       jobId,
@@ -104,7 +107,7 @@ export async function jobExecutionWorkflow(params: {
       jobId,
       orgId,
       level: 'info',
-      message: `Starting: Get vibe coder credentials for agentId=${
+      message: `Starting: Get vibe agent credentials for agentId=${
         agentId || 'default'
       }`,
       stage: 'workflow',
@@ -182,8 +185,7 @@ export async function jobExecutionWorkflow(params: {
         gitCredentials,
         vibeCoderCredentials,
         prompt: job.prompt,
-        repos: reposToUse, // NEW: Pass repos array instead of single repoId
-        repoId: job.repoId, // Keep for backward compatibility
+        repos: reposToUse, // Pass repos array
         agentId, // Pass agentId to activity
       },
     });

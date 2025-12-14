@@ -51,7 +51,7 @@ export function JobEditForm({
         prompt: string;
       };
       order_in_queue?: number;
-      repo?: string;
+      repos?: string[];
     }) => {
       const userId = authInfo.user?.userId || 'sia-system';
       const userName =
@@ -105,7 +105,7 @@ export function JobEditForm({
         prompt: string;
       };
       order_in_queue?: number;
-      repo?: string;
+      repos?: string[];
     } = {};
 
     if (editForm.generated_name !== job?.generated_name) {
@@ -130,16 +130,16 @@ export function JobEditForm({
         updates.order_in_queue = orderValue;
       }
     }
-    if (editForm.repo_name !== job?.repo_name) {
+    if (editForm.repo_name !== job?.repositories?.[0]?.name) {
       // Find the repo ID from the selected repo name
       const selectedRepo = availableRepos.find(
         repo => repo.name === editForm.repo_name
       );
       if (selectedRepo) {
-        updates.repo = selectedRepo.id;
+        updates.repos = [selectedRepo.id];
       } else if (!editForm.repo_name) {
         // If no repo selected, clear it
-        updates.repo = undefined;
+        updates.repos = undefined;
       }
     }
 

@@ -9,6 +9,7 @@ import {
   index,
   uuid,
   boolean,
+  text,
 } from 'drizzle-orm/pg-core';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
@@ -59,6 +60,13 @@ export const vibeAgentEnum = pgEnum('gpr_vibe_agent', [
   'cursor',
   'kiro-cli',
   'claude-code',
+]);
+
+export const executionStrategyEnum = pgEnum('gpr_execution_strategy', [
+  'auto',
+  'devcontainer',
+  'docker-compose',
+  'custom',
 ]);
 
 // Activity status enum is now only for read/unread tracking per user
@@ -146,7 +154,7 @@ export const jobs = pgTable(
       prompt: string;
       sourceMetadata: SourceMetadata;
     }>(),
-    repoId: varchar('repo_id', { length: 255 }),
+    repos: text('repos').array(),
     userAcceptanceStatus: userAcceptanceStatusEnum('user_acceptance_status')
       .notNull()
       .default('not_reviewed'),
@@ -192,6 +200,54 @@ export const repos = pgTable(
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (table: any) => [index('repos_org_id_idx').on(table.orgId)]
+);
+
+export const repoConfigs = pgTable(
+  'gpr_repo_configs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    repoId: varchar('repo_id', { length: 255 }).notNull(),
+    orgId: varchar('org_id', { length: 255 }).notNull(),
+    executionStrategy: executionStrategyEnum('execution_strategy'),
+    setupCommands: text('setup_commands').array(),
+    buildCommands: text('build_commands').array(),
+    testCommands: text('test_commands').array(),
+    validationStrategy: jsonb('validation_strategy')
+      .$type<{
+        runBuild: boolean;
+        runTests: boolean;
+        runLinter: boolean;
+      }>()
+      .default({
+        runBuild: true,
+        runTests: true,
+        runLinter: false,
+      }),
+    envVarsNeeded: text('env_vars_needed').array(),
+    detectedLanguage: varchar('detected_language', { length: 100 }),
+    detectedFrom: varchar('detected_from', { length: 255 }),
+    devcontainerConfig: jsonb('devcontainer_config').$type<{
+      image: string | null;
+      runArgs: string[];
+    }>(),
+    // Confirmation tracking
+    isConfirmed: boolean('is_confirmed').default(false).notNull(),
+    inferredAt: timestamp('inferred_at', { withTimezone: true }),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    inferenceSource: varchar('inference_source', { length: 100 }),
+    inferenceConfidence: varchar('inference_confidence', { length: 20 }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (table: any) => [
+    index('repo_configs_repo_id_idx').on(table.repoId),
+    index('repo_configs_org_id_idx').on(table.orgId),
+  ]
 );
 
 export const repoProviders = pgTable(
@@ -512,6 +568,8 @@ export type LogEntry = {
 };
 export type Repo = InferSelectModel<typeof repos>;
 export type NewRepo = InferInsertModel<typeof repos>;
+export type RepoConfig = InferSelectModel<typeof repoConfigs>;
+export type NewRepoConfig = InferInsertModel<typeof repoConfigs>;
 export type RepoProvider = InferSelectModel<typeof repoProviders>;
 export type NewRepoProvider = InferInsertModel<typeof repoProviders>;
 export type Integration = InferSelectModel<typeof integrations>;

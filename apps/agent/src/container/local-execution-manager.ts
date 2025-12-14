@@ -94,7 +94,6 @@ export class LocalExecutionManager {
   ): AsyncGenerator<LogMessage> {
     try {
       const cmd = Array.isArray(command) ? command.join(' ') : command;
-      const cwd = workDir || this.config.workspaceDir;
 
       yield {
         level: 'info',

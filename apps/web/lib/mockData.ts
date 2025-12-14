@@ -6,7 +6,7 @@ export const mockJobs: Job[] = [
     version: 1,
     generated_name: 'Fix authentication bug',
     generated_description: 'Fix authentication bug in OAuth callback',
-    repo_id: 'getpullrequest/web',
+    repos: ['getpullrequest/web'],
     user_input: {
       source: 'gh-issues',
       prompt: 'Fix authentication bug',
@@ -31,7 +31,7 @@ export const mockJobs: Job[] = [
     version: 1,
     generated_name: 'Add dark mode support',
     generated_description: 'Implement dark mode toggle and theme persistence',
-    repo_id: 'getpullrequest/web',
+    repos: ['getpullrequest/web'],
     user_input: {
       source: 'gh-issues',
       prompt: 'Add dark mode support',
@@ -55,7 +55,7 @@ export const mockJobs: Job[] = [
     version: 1,
     generated_name: 'Optimize database queries',
     generated_description: 'Dashboard loading time is too slow',
-    repo_id: 'getpullrequest/api',
+    repos: ['getpullrequest/api'],
     user_input: {
       source: 'slack',
       prompt: 'Optimize database queries',
@@ -79,7 +79,7 @@ export const mockJobs: Job[] = [
     version: 1,
     generated_name: 'Update dependencies',
     generated_description: 'Security updates for npm packages',
-    repo_id: 'getpullrequest/web',
+    repos: ['getpullrequest/web'],
     user_input: {
       source: 'gh-issues',
       prompt: 'Update dependencies',
@@ -103,7 +103,7 @@ export const mockJobs: Job[] = [
     version: 1,
     generated_name: 'Fix mobile responsive layout',
     generated_description: 'Navigation menu breaks on mobile devices',
-    repo_id: 'getpullrequest/web',
+    repos: ['getpullrequest/web'],
     user_input: {
       source: 'slack',
       prompt: 'Fix mobile responsive layout',
@@ -127,7 +127,7 @@ export const mockJobs: Job[] = [
     version: 1,
     generated_name: 'Add email notifications',
     generated_description: 'Send email when PR is ready for review',
-    repo_id: 'getpullrequest/api',
+    repos: ['getpullrequest/api'],
     user_input: {
       source: 'gh-issues',
       prompt: 'Add email notifications',
@@ -151,7 +151,7 @@ export const mockJobs: Job[] = [
     version: 1,
     generated_name: 'Fix type errors in components',
     generated_description: 'TypeScript compilation errors in dashboard',
-    repo_id: 'getpullrequest/web',
+    repos: ['getpullrequest/web'],
     user_input: {
       source: 'gh-issues',
       prompt: 'Fix type errors in components',
