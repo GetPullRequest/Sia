@@ -3,137 +3,163 @@
 <div align="center" style="margin-bottom: 2rem;">
   <img src="apps/landing-page/public/banner.png" alt="Sia - Wake Up To Ready Pull Requests" style="border-radius: 12px; aspect-ratio: 16/9; width: 100%; max-width: 1200px; object-fit: cover;" />
 </div>
+
+<div align="center" style="margin-bottom: 2rem;">
+  <img src="https://github.com/user-attachments/assets/812b319d-1157-4b62-901a-55be31d71ca9" alt="Sia Quick Walkthrough" style="border-radius: 12px; width: 100%; max-width: 1200px;" />
+</div>
 <br/>
 
-> ⚠️ **Pre-alpha** - Still in active development, not ready for production yet.
+<p align="center">
+  <strong>Wake up to ready pull requests</strong>
+</p>
 
-</div>
+<p align="center">
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#features">Features</a> •
+  <a href="#how-it-works">How It Works</a> •
+  <a href="./CONTRIBUTING.md">Contributing</a> •
+  <a href="https://getpullrequest.com">Website</a>
+</p>
 
-Sia is an AI coding assistant that handles small coding tasks while you sleep. Give it a task, and wake up to a pull request ready for review.
+<p align="center">
+  <img src="https://img.shields.io/badge/status-pre--alpha-orange" alt="Pre-alpha" />
+</p>
 
-## What does it do?
+---
 
-Sia works in Slack or Discord. Just mention `@sia` with what you need, and it'll queue the task, write the code, run tests, and open a PR. You can review and merge from your phone.
+## Overview
 
-It uses your favourite vibe coding platform under the hood to actually write the code. Think of it as having a coding buddy that never sleeps.
+**Sia is an AI coding assistant that handles small coding tasks while you sleep.** Give it a task before you log off, and wake up to a pull request ready for review.
+
+Queue tasks from Slack or Discord. Sia writes the code, runs tests, fixes issues, and opens a PR—all automatically. Review and merge from your phone.
+
+> ⚠️ **Pre-alpha**: Still in active development, not ready for production yet.
+
+## Why Sia?
+
+### Ship Code While You Sleep
+
+Traditional AI coding assistants require you to be at your computer, actively guiding them. Sia is different—it works asynchronously. Queue up small tasks before you clock out, and wake up to ready pull requests.
+
+### Works Where You Already Are
+
+No new tools to learn. Sia lives in Slack and Discord. Just `@mention` it with a task, and it handles the rest. Review and merge PRs from your phone during your morning commute.
+
+### Autonomous Task Execution
+
+Sia doesn't just write code—it runs tests, fixes failures, iterates on issues, and opens polished PRs. You get to review finished work, not babysit an AI through each step.
 
 ## Features
 
-**Chat integration** - Works in Slack and Discord. No need to leave your chat.
+| Feature                    | Description                                                                 |
+| -------------------------- | --------------------------------------------------------------------------- |
+| **Chat-Native Interface**  | Works directly in Slack and Discord—no context switching                    |
+| **Automatic PRs**          | Writes code, runs tests, fixes issues, and opens pull requests autonomously |
+| **24/7 Operation**         | Queue tasks anytime, get results when you're ready                          |
+| **Mobile-Friendly**        | Review and merge PRs from your phone—no laptop required                     |
+| **Smart Queue Management** | Prioritize, pause, or cancel tasks right from chat                          |
+| **Learning System**        | Adapts to your codebase patterns and preferences over time                  |
 
-**Automatic PRs** - Code gets written, tested, and opened as a PR automatically.
+## How It Works
 
-**Runs 24/7** - Queue up tasks before you log off, wake up to PRs.
+1. **Request a task** — Mention `@sia` in Slack or Discord with what you need
+2. **Task gets queued** — Sia acknowledges and adds it to the queue
+3. **AI agents execute** — Autonomous agents write code, run tests, and fix issues
+4. **PR created** — You receive a pull request ready for review
+5. **Review and merge** — Approve from your phone or desktop
 
-**Mobile friendly** - Review and merge PRs from your phone.
+### Architecture Overview
 
-**Smart queue** - Prioritize, pause, or cancel tasks right from chat.
+Sia uses a distributed architecture designed for autonomous operation:
 
-**Learns over time** - Gets better at understanding your preferences the more you use it.
+- **Chat Integrations** — Slack and Discord bots for task submission
+- **Web Dashboard** — Monitor queue, view logs, manage tasks
+- **Backend Server** — Orchestrates jobs and coordinates AI agents
+- **AI Agents** — Run on cloud dev machines, execute tasks autonomously
+- **gRPC Communication** — Real-time coordination between backend and agents
 
-## How it works
-
-1. Send a task to Sia via Slack, Discord (currently in progress), or the web UI
-2. Sia queues it up
-3. AI agents work on it (writing code, running tests, fixing issues)
-4. You get a PR ready for review
-5. Review and merge when you're ready
-
-## Architecture
-
-It's a distributed setup:
-
-- Web UI and chat integrations (Slack/Discord)
-- Backend server that manages jobs and coordinates agents
-- AI agents that run on cloud dev machines
-- gRPC for communication between backend and agents
-
-Want the nitty-gritty details? Check out [`.kiro/specs`](./.kiro/specs/) for architecture docs.
+For detailed architecture documentation, see [`.kiro/specs/`](./.kiro/specs/).
 
 ## Quick Start
 
-### Prerequisites
+### Using Docker Compose (Recommended)
 
-- Docker & Docker Compose
-- Node.js (v18+) - for local development only
-- npm - for dependency management
-
-### Setup with Docker Compose (Recommended)
+Get Sia running locally in minutes:
 
 ```sh
 # Clone the repository
 git clone https://github.com/your-org/sia.git
 cd sia
 
-# Copy environment configuration files from examples
+# Copy and configure environment files
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.local.example apps/web/.env.local
 
-# Update the .env files with your configuration
-# Edit apps/api/.env with your API credentials
-# Edit apps/web/.env.local with your frontend config
-nano apps/api/.env      # Update API secrets, auth, GitHub, Slack, OpenAI, etc.
-nano apps/web/.env.local # Update auth and API endpoint URLs
-
-# If you modify any dependencies in package.json files, update the lock file
-npm install
-
-# Start the dev environment
+# Edit the .env files with your API keys and configuration
+# Then start everything
 docker-compose -f docker-compose.dev.yml up
 ```
 
-This will start:
+This starts:
 
-- PostgreSQL database on port 5432
-- API server on port 3001
-- Web UI on port 3000
+- PostgreSQL database (port 5432)
+- API server (port 3001)
+- Web UI (port 3000)
 
-Stop with:
+**For detailed setup instructions**, including local development without Docker, configuration guides, and troubleshooting, see **[CONTRIBUTING.md](./CONTRIBUTING.md#development-setup)**.
 
-```sh
-docker-compose -f docker-compose.dev.yml down
-```
+## Documentation
 
-Remove all data (clean slate):
+| Document                                 | Description                                                      |
+| ---------------------------------------- | ---------------------------------------------------------------- |
+| **[CONTRIBUTING.md](./CONTRIBUTING.md)** | Development setup, contribution guidelines, and coding standards |
+| **[DOCKER_SETUP.md](./DOCKER_SETUP.md)** | Detailed Docker Compose setup and configuration guide            |
+| **[CHANGELOG.md](./CHANGELOG.md)**       | Version history and release notes                                |
+| **[AGENTS.md](./AGENTS.md)**             | Guide for AI agents working with this codebase                   |
+| **[`.kiro/specs/`](./.kiro/specs/)**     | Architecture specifications and design documentation             |
 
-```sh
-docker-compose -f docker-compose.dev.yml down -v
-```
+## Tech Stack
 
-### Local Development (Without Docker)
+Built with modern, proven technologies:
 
-If you prefer running services locally:
+| Layer         | Technology                                      |
+| ------------- | ----------------------------------------------- |
+| **Monorepo**  | Nx                                              |
+| **Frontend**  | Next.js, TailwindCSS, shadcn/ui, TanStack Query |
+| **Backend**   | Fastify (REST), WebSocket (logs), gRPC (agents) |
+| **Database**  | PostgreSQL + Drizzle ORM                        |
+| **Workflows** | Temporal                                        |
+| **Auth**      | PropelAuth                                      |
 
-```sh
-# Install dependencies
-npm install
+## Contributing
 
-# Set up your environment files
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.local.example apps/web/.env.local
+We welcome contributions! Whether it's:
 
-# Update configuration files with your values
-# Make sure PostgreSQL is running locally
+- 🐛 Bug reports and fixes
+- ✨ New features and enhancements
+- 📖 Documentation improvements
+- 💡 Ideas and suggestions
 
-# Run the dev servers (use two terminals)
-npx nx serve @sia/web    # Terminal 1 - Web UI at http://localhost:3000
-npx nx serve @sia/api    # Terminal 2 - API at http://localhost:3001
-```
+Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on:
 
-**Note:** If auth is set up, localhost might not work. Use ngrok for local dev in that case.
+- Development setup
+- Coding standards
+- Commit conventions
+- Pull request process
 
-## Docs
+## Community & Support
 
-- **[DOCKER_SETUP.md](./DOCKER_SETUP.md)** - Detailed Docker Compose setup guide
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - How to contribute
-- **[CHANGELOG.md](./CHANGELOG.md)** - What's changed
-- **[AGENTS.md](./AGENTS.md)** - For AI agents working with this codebase
-- **[`.kiro/specs/`](./.kiro/specs/)** - Architecture and design docs
+- **Discord:** Join our community on [Discord](https://discord.gg/U4kzxjBv) for discussions, support, and updates
+- **Website:** [getpullrequest.com](https://getpullrequest.com)
+- **Issues:** Report bugs or request features on [GitHub Issues](https://github.com/your-org/sia/issues)
+- **Discussions:** Join conversations on [GitHub Discussions](https://github.com/your-org/sia/discussions)
 
-## Links
+## License
 
-- Website: [getpullrequest.com](https://getpullrequest.com)
+MIT License - see [LICENSE](./LICENSE) for details
 
-## Status
+---
 
-This is pre-alpha, so things are still changing. Feel free to contribute or give feedback!
+<p align="center">
+  Built with ❤️ by the Sia team
+</p>
