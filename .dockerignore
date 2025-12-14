@@ -1,0 +1,68 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json.bak
+
+# Build outputs
+dist
+build
+.next
+out
+*.tsbuildinfo
+
+# Environment files (will be passed via docker-compose)
+.env
+.env.local
+.env.*.local
+apps/api/.env
+apps/api/.env.local
+apps/web/.env
+apps/web/.env.local
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage
+.nyc_output
+*.test.ts
+*.spec.ts
+**/__tests__
+**/__mocks__
+
+# Documentation
+README.md
+*.md
+docs
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs
+*.log
+
+# Misc
+.husky
+.kiro
+tmp
+temp
+*.tmp
