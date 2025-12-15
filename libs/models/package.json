@@ -20,10 +20,10 @@
       "default": "./dist/index.js"
     },
     "./proto": {
-      "@sia/source": "./src/generated/index.ts",
-      "types": "./dist/generated/index.d.ts",
-      "import": "./dist/generated/index.js",
-      "default": "./dist/generated/index.js"
+      "@sia/source": "./src/generated/agent.ts",
+      "types": "./dist/generated/agent.d.ts",
+      "import": "./dist/generated/agent.js",
+      "default": "./dist/generated/agent.js"
     },
     "./api-client": {
       "@sia/source": "./src/api-client.ts",
