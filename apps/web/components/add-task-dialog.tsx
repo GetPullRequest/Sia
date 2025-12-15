@@ -227,9 +227,9 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col ">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col ">
         <DialogHeader>
-          <DialogTitle>Add New Task</DialogTitle>
+          <DialogTitle className="text-lg">Add New Task</DialogTitle>
           <DialogDescription>
             Enter a prompt for the Sia agent to execute
           </DialogDescription>
@@ -247,11 +247,11 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
               className="min-h-[100px]"
             />
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {/* <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <div className="h-px flex-1 bg-border" />
             <span className="font-medium">OR</span>
             <div className="h-px flex-1 bg-border" />
-          </div>
+          </div> */}
           {/* <div className="space-y-2">
             <label className="text-sm font-medium">Attachments</label>
             <div
