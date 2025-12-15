@@ -2,7 +2,7 @@ import { db } from '../../db/index.js';
 import * as schema from '../../db/schema.js';
 import { eq, and, or, lt, asc } from 'drizzle-orm';
 import { agentStreamManager } from '../../services/agent-stream-manager.js';
-import { BackendStreamMessageType } from '@sia/models';
+import { BackendStreamMessageType } from '@sia/models/proto';
 import { AgentClient } from '../../services/agent-client.js';
 import { queueWorkflowService } from '../../services/queue-workflow-service.js';
 

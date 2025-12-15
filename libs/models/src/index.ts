@@ -8,5 +8,6 @@
 // - Proto files → generated/agent.ts (gRPC types)
 // - OpenAPI spec → generated/api-client/ (REST API types and client)
 
-// Export generated code (proto and API client)
-export * from './generated/index.js';
+// Export generated code (proto types and API client) without relying on generated index
+export * from './generated/agent.js';
+export * from './api-client.js';
