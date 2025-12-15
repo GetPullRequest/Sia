@@ -23,15 +23,16 @@ RUN npx nx build @sia/api
 
 FROM base AS runtime
 
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 
 COPY package.json ./
 COPY package-lock.json* ./
 COPY apps/api/package.json ./apps/api/
 COPY libs/models/package.json ./libs/models/
 
-RUN npm ci --workspace=apps/api --workspace=libs/models --ignore-scripts && \
-    rm -rf /tmp/*
+# Install only production dependencies
+RUN npm ci --workspace=apps/api --workspace=libs/models --omit=dev && \
+    rm -rf /tmp/* /root/.npm
 
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/drizzle ./apps/api/drizzle
@@ -43,5 +44,4 @@ COPY --from=build /app/tsconfig.base.json ./tsconfig.base.json
 
 WORKDIR /app/apps/api
 
-CMD ["sh", "-c", "npx tsx scripts/migrate.ts && npx tsx scripts/seed.ts && npx tsx dist/main.js"]
-
+CMD ["sh", "-c", "npx tsx scripts/migrate.ts && npx tsx scripts/seed.ts && node dist/main.js"]

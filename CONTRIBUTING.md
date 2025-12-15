@@ -1,30 +1,61 @@
 # Contributing to Sia
 
-Thank you for your interest in contributing to Sia! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to Sia! We appreciate contributions of all kinds—from bug reports and documentation improvements to new features and code optimizations.
+
+This guide will help you get started with developing Sia locally, understanding the codebase, and submitting your contributions.
 
 ## Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
+- [Ways to Contribute](#ways-to-contribute)
+- [Before You Start](#before-you-start)
 - [Development Setup](#development-setup)
+- [Architecture Overview](#architecture-overview)
 - [Project Structure](#project-structure)
+- [Development Workflow](#development-workflow)
 - [Coding Standards](#coding-standards)
-- [Commit Guidelines](#commit-guidelines)
 - [Testing](#testing)
+- [Commit Guidelines](#commit-guidelines)
 - [Submitting Changes](#submitting-changes)
+- [Additional Resources](#additional-resources)
 
-## Code of Conduct
+## Ways to Contribute
 
-This project adheres to a code of conduct that all contributors are expected to follow. Please be respectful and constructive in all interactions.
+There are many ways to contribute to Sia:
 
-## Getting Started
+- **Report bugs:** Found an issue? Open a bug report with detailed reproduction steps
+- **Suggest features:** Have an idea? Start a discussion or open a feature request
+- **Improve documentation:** Help make our docs clearer and more comprehensive
+- **Write code:** Pick up an issue or propose a new feature
+- **Review PRs:** Help review pull requests from other contributors
+- **Share feedback:** Tell us about your experience using Sia
+
+## Before You Start
+
+### Open an Issue First
+
+For significant changes, please **open an issue first** to discuss your proposed changes. This helps ensure:
+
+- Your contribution aligns with the project's goals and roadmap
+- You don't duplicate work that's already in progress
+- You get early feedback on your approach
+
+For small changes like typo fixes or minor improvements, feel free to submit a PR directly.
+
+### Code of Conduct
+
+This project adheres to a code of conduct that all contributors are expected to follow. Please be respectful, constructive, and inclusive in all interactions.
+
+## Development Setup
 
 ### Prerequisites
 
-- Node.js (v18+ recommended)
-- npm
-- PostgreSQL (for backend development)
-- Git
+Before you begin, ensure you have the following installed:
+
+- **Node.js** (v18+ recommended)
+- **npm** (comes with Node.js)
+- **Docker & Docker Compose** (recommended for easiest setup)
+- **PostgreSQL** (if running without Docker)
+- **Git**
 
 ### Fork and Clone
 
@@ -39,74 +70,250 @@ This project adheres to a code of conduct that all contributors are expected to 
    git remote add upstream https://github.com/getpullrequest/sia.git
    ```
 
-## Development Setup
+### Option 1: Docker Compose Setup (Recommended)
 
-### Install Dependencies
+The easiest way to get started is using Docker Compose, which handles all dependencies automatically.
+
+#### 1. Install Dependencies
 
 ```sh
 npm install
 ```
 
-### Environment Configuration
+#### 2. Configure Environment Files
 
-1. Copy the example environment file:
+Copy the example environment files:
 
-   ```sh
-   cp .env.example .env
-   ```
+```sh
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.local.example apps/web/.env.local
+```
 
-2. Edit `.env` with your local configuration:
-   - Database connection strings
-   - API keys for integrations
-   - Authentication settings
+#### 3. Update Configuration
 
-### Running Applications
+Edit the environment files with your configuration:
 
-#### Web Application (Frontend)
+**`apps/api/.env`:**
+
+- Database connection strings
+- API keys (GitHub, Slack, OpenAI, etc.)
+- Authentication settings (PropelAuth)
+- gRPC settings
+
+**`apps/web/.env.local`:**
+
+- Authentication configuration
+- API endpoint URLs
+
+#### 4. Choose Your Database Setup
+
+Sia supports two database configurations. Choose based on your needs:
+
+**Option 1: Embedded PostgreSQL (Recommended for new contributors)**
+
+Best for getting started quickly without managing a separate database.
+
+```sh
+# Start with embedded PostgreSQL
+docker-compose -f docker-compose.dev.yml --profile embedded-db up
+```
+
+In `apps/api/.env`, set:
+
+```env
+DATABASE_URL=postgresql://sia_user:sia_password@postgres:5432/sia_db
+```
+
+**Option 2: Existing PostgreSQL (For teams with existing databases)**
+
+Connect to your own PostgreSQL instance. This approach:
+
+- Avoids git conflicts from commenting/uncommenting services
+- Lets you use your existing local or remote database
+- Keeps your data separate from the Docker environment
+
+```sh
+# Start without embedded PostgreSQL
+docker-compose -f docker-compose.dev.yml up
+```
+
+In `apps/api/.env`, set one of:
+
+```env
+# For local database on your host machine (Mac/Windows)
+DATABASE_URL=postgresql://your_user:your_password@host.docker.internal:5432/your_database
+
+# For remote database
+DATABASE_URL=postgresql://user:pass@your-db-host.com:5432/dbname
+
+# For local database on Linux
+DATABASE_URL=postgresql://your_user:your_password@172.17.0.1:5432/your_database
+```
+
+**Important:**
+
+- On Mac/Windows Docker Desktop, use `host.docker.internal` to access databases on your host machine
+- On Linux, you may need to use your host's IP address (e.g., `172.17.0.1`) or configure Docker differently
+
+This will start:
+
+- **PostgreSQL database** on port 5432 (only if using `--profile embedded-db`)
+- **API server** on port 3001
+- **Web UI** on port 3000
+
+See [DOCKER_SETUP.md](./DOCKER_SETUP.md) for detailed configuration, troubleshooting, and advanced options.
+
+#### 5. Verify Everything is Running
+
+Check that all services are healthy:
+
+```sh
+# View all logs
+docker-compose -f docker-compose.dev.yml logs -f
+
+# Check specific service
+docker-compose -f docker-compose.dev.yml logs api
+```
+
+Access the services:
+
+- Web UI: http://localhost:3000
+- API: http://localhost:3001
+- PostgreSQL: localhost:5432 (if using embedded database)
+
+#### 6. Stop the Environment
+
+```sh
+docker-compose -f docker-compose.dev.yml down
+
+# If using embedded database profile
+docker-compose -f docker-compose.dev.yml --profile embedded-db down
+```
+
+To remove all data and start fresh:
+
+```sh
+docker-compose -f docker-compose.dev.yml down -v
+
+# If using embedded database profile
+docker-compose -f docker-compose.dev.yml --profile embedded-db down -v
+```
+
+### Option 2: Local Development (Without Docker)
+
+If you prefer running services locally without Docker:
+
+#### 1. Install Dependencies
+
+```sh
+npm install
+```
+
+#### 2. Set Up PostgreSQL
+
+Ensure PostgreSQL is running locally and create a database for Sia.
+
+#### 3. Configure Environment Files
+
+```sh
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.local.example apps/web/.env.local
+```
+
+Update the `.env` files with your local PostgreSQL connection string and other configuration.
+
+#### 4. Run Database Migrations
+
+```sh
+npm run db:migrate -w @sia/api
+```
+
+#### 5. Start Development Servers
+
+You'll need two terminal windows:
+
+**Terminal 1 - Web UI:**
 
 ```sh
 npx nx serve @sia/web
+# Runs at http://localhost:3000
 ```
 
-or
-
-```sh
-npx nx dev @sia/web
-```
-
-The web app will be available at [http://localhost:3000](http://localhost:3000)
-
-> **Note:** After authentication is added, auth may not work on localhost endpoints. Use ngrok for development in that case.
-
-#### API Server (Backend)
+**Terminal 2 - API Server:**
 
 ```sh
 npx nx serve @sia/api
+# Runs at http://localhost:3001
 ```
 
-The API server will be available at [http://localhost:3001](http://localhost:3001)
+**Note:** If authentication is configured, localhost endpoints may not work properly. Consider using ngrok for local development with auth enabled.
 
-#### Run Both Applications Simultaneously
+## Architecture Overview
 
-**Option 1: Separate Terminals**
+Understanding Sia's architecture will help you contribute more effectively.
 
-Terminal 1:
+### System Architecture
 
-```sh
-npx nx serve @sia/web
+Sia is built as a distributed system with the following components:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         User Interfaces                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │ Slack Bot    │  │ Discord Bot  │  │ Web Dashboard│          │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘          │
+│         │                  │                  │                   │
+│         └──────────────────┴──────────────────┘                   │
+│                            │                                      │
+└────────────────────────────┼──────────────────────────────────────┘
+                             │
+                             ▼
+                ┌────────────────────────┐
+                │    Backend Server      │
+                │  - REST API (Fastify)  │
+                │  - WebSocket (logs)    │
+                │  - gRPC Server         │
+                │  - Temporal Workflows  │
+                └────┬──────────────┬────┘
+                     │              │
+         ┌───────────┴──┐      ┌────┴──────────┐
+         │              │      │                │
+         ▼              ▼      ▼                ▼
+    ┌────────┐    ┌──────────┐           ┌─────────┐
+    │PostGres│    │ Temporal │           │ gRPC    │
+    │   DB   │    │  Queue   │           │ Clients │
+    └────────┘    └──────────┘           └────┬────┘
+                                              │
+                                              ▼
+                                     ┌─────────────────┐
+                                     │   AI Agents     │
+                                     │ (Cloud VMs)     │
+                                     │ - Code writing  │
+                                     │ - Test running  │
+                                     │ - PR creation   │
+                                     └─────────────────┘
 ```
 
-Terminal 2:
+### Component Responsibilities
 
-```sh
-npx nx serve @sia/api
-```
+| Component          | Purpose                                              | Technology               |
+| ------------------ | ---------------------------------------------------- | ------------------------ |
+| **Chat Bots**      | Task submission interface for Slack/Discord          | Bot APIs                 |
+| **Web Dashboard**  | Monitor queue, view logs, manage tasks               | Next.js, TailwindCSS     |
+| **Backend Server** | Orchestrates jobs, manages state, coordinates agents | Fastify, gRPC            |
+| **Database**       | Stores jobs, users, configurations, logs             | PostgreSQL + Drizzle ORM |
+| **Temporal**       | Manages long-running workflows and task queue        | Temporal workflows       |
+| **AI Agents**      | Executes coding tasks on isolated cloud VMs          | Claude Code, gRPC client |
 
-**Option 2: Using concurrently**
+### Data Flow
 
-```sh
-npx concurrently "nx serve @sia/web" "nx serve @sia/api"
-```
+1. **Task Submission:** User submits task via Slack, Discord, or Web UI
+2. **Job Creation:** Backend creates a job record in PostgreSQL
+3. **Queue Management:** Temporal workflow queues the job
+4. **Agent Assignment:** Available agent picks up the job via gRPC
+5. **Execution:** Agent writes code, runs tests, fixes issues autonomously
+6. **PR Creation:** Agent creates pull request on GitHub
+7. **Notification:** User receives notification with PR link
 
 ## Project Structure
 
@@ -133,18 +340,31 @@ sia/
 - **`apps/cli`** - Command line interface
 - **`libs/models`** - Shared types, protobuf, OpenAPI client
 
-### Architecture Specifications
+### Tech Stack
 
-Detailed architecture documentation, design specifications, and requirements for all components are available in [`.kiro/specs/`](../.kiro/specs/):
+| Layer         | Technology                                      |
+| ------------- | ----------------------------------------------- |
+| **Monorepo**  | Nx                                              |
+| **Frontend**  | Next.js, TailwindCSS, shadcn/ui, TanStack Query |
+| **Backend**   | Fastify (REST), WebSocket (logs), gRPC (agents) |
+| **Database**  | PostgreSQL + Drizzle ORM                        |
+| **Workflows** | Temporal                                        |
+| **Auth**      | PropelAuth                                      |
 
-- **`sia-platform/`** - Platform architecture, requirements, and high-level design
-- **`api-server/`** - Backend API server design and implementation details
-- **`web-frontend/`** - Web frontend specifications and requirements
-- **`sia-agent/`** - SIA agent architecture and implementation
-- **`cli-app/`** - CLI application design and requirements
-- **`chat-platform-integration/`** - Slack/Discord integration specifications
-- **`temporal-task-queue/`** - Temporal workflow system design
-- **`shared-models/`** - Shared data models and type definitions
+### Detailed Architecture Documentation
+
+Comprehensive architecture documentation, design specifications, and requirements for all components are available in [`.kiro/specs/`](../.kiro/specs/):
+
+| Directory                        | Description                                                |
+| -------------------------------- | ---------------------------------------------------------- |
+| **`sia-platform/`**              | Platform architecture, requirements, and high-level design |
+| **`api-server/`**                | Backend API server design and implementation details       |
+| **`web-frontend/`**              | Web frontend specifications and requirements               |
+| **`sia-agent/`**                 | SIA agent architecture and implementation                  |
+| **`cli-app/`**                   | CLI application design and requirements                    |
+| **`chat-platform-integration/`** | Slack/Discord integration specifications                   |
+| **`temporal-task-queue/`**       | Temporal workflow system design                            |
+| **`shared-models/`**             | Shared data models and type definitions                    |
 
 Each component directory contains:
 
@@ -152,16 +372,86 @@ Each component directory contains:
 - `requirements.md` - Functional and non-functional requirements
 - `tasks.md` - Implementation tasks and checklists
 
-## Tech Stack
+## Development Workflow
 
-| Layer     | Tech                                            |
-| --------- | ----------------------------------------------- |
-| Monorepo  | Nx                                              |
-| Frontend  | Next.js, TailwindCSS, shadcn/ui, TanStack Query |
-| Backend   | Fastify (REST), WebSocket (logs), gRPC (agents) |
-| Database  | PostgreSQL + Drizzle ORM                        |
-| Workflows | Temporal                                        |
-| Auth      | PropelAuth                                      |
+### Common Development Tasks
+
+#### Running Individual Applications
+
+**Web UI:**
+
+```sh
+npx nx serve @sia/web
+# or
+npx nx dev @sia/web
+```
+
+**API Server:**
+
+```sh
+npx nx serve @sia/api
+```
+
+#### Building for Production
+
+**Build specific project:**
+
+```sh
+npx nx build @sia/web
+npx nx build @sia/api
+```
+
+**Build all projects:**
+
+```sh
+npx nx run-many --target=build --all
+```
+
+#### Database Operations
+
+**Generate a new migration:**
+
+```sh
+npm run db:generate -w @sia/api -- --name={migration_name}
+```
+
+**Run migrations:**
+
+```sh
+npm run db:migrate -w @sia/api
+```
+
+#### Nx Workspace Commands
+
+| Command                               | Description                              |
+| ------------------------------------- | ---------------------------------------- |
+| `npx nx graph`                        | Visualize project dependencies           |
+| `npx nx show project <name>`          | Show all available targets for a project |
+| `npx nx run-many --target=lint --all` | Lint all projects                        |
+| `npx nx run-many --target=test --all` | Test all projects                        |
+
+#### Type Checking
+
+**Check types for API:**
+
+```sh
+npx nx typecheck @sia/api
+```
+
+#### Testing
+
+**Run tests for specific project:**
+
+```sh
+npx nx test @sia/web
+npx nx test @sia/api
+```
+
+**Run all tests:**
+
+```sh
+npx nx run-many --target=test --all
+```
 
 ## Coding Standards
 
@@ -297,79 +587,6 @@ npm install <package-name> -D -w .
 | Project-specific dev     | `apps/<project>/package.json` | `npm install <pkg> -D -w apps/<project>` |
 | Shared runtime           | Root `package.json`           | `npm install <pkg> -w .`                 |
 | Shared dev tools         | Root `package.json`           | `npm install <pkg> -D -w .`              |
-
-## Available Commands
-
-### Web Application (`@sia/web`)
-
-| Command                 | Description                                    |
-| ----------------------- | ---------------------------------------------- |
-| `npx nx serve @sia/web` | Start development server                       |
-| `npx nx dev @sia/web`   | Start development server (alias)               |
-| `npx nx build @sia/web` | Build for production                           |
-| `npx nx start @sia/web` | Start production server (requires build first) |
-| `npx nx lint @sia/web`  | Run ESLint                                     |
-| `npx nx test @sia/web`  | Run tests                                      |
-
-### API Server (`@sia/api`)
-
-| Command                     | Description                  |
-| --------------------------- | ---------------------------- |
-| `npx nx serve @sia/api`     | Start development server     |
-| `npx nx build @sia/api`     | Build for production         |
-| `npx nx lint @sia/api`      | Run ESLint                   |
-| `npx nx typecheck @sia/api` | Run TypeScript type checking |
-
-### General Commands
-
-| Command                                | Description                              |
-| -------------------------------------- | ---------------------------------------- |
-| `npx nx graph`                         | Visualize project dependencies           |
-| `npx nx show project <project-name>`   | Show all available targets for a project |
-| `npx nx run-many --target=build --all` | Build all projects                       |
-| `npx nx run-many --target=lint --all`  | Lint all projects                        |
-| `npx nx run-many --target=test --all`  | Test all projects                        |
-
-### Database Migration Commands
-
-```sh
-npm run db:generate -w @sia/api -- --name={name of migration}
-npm run db:migrate -w @sia/api
-```
-
-## Building for Production
-
-### Build Web Application
-
-```sh
-npx nx build @sia/web
-```
-
-### Build API Server
-
-```sh
-npx nx build @sia/api
-```
-
-### Build All Projects
-
-```sh
-npx nx run-many --target=build --all
-```
-
-## Development
-
-### Type Checking
-
-```sh
-npx nx typecheck @sia/api
-```
-
-### Testing
-
-```sh
-npx nx test @sia/web
-```
 
 ## Commit Guidelines
 
@@ -545,8 +762,9 @@ The changelog is automatically organized by commit type:
 
 If you have questions or need help, please:
 
-1. Check the existing documentation
-2. Search existing issues and discussions
-3. Open a new issue with your question
+1. Join our [Discord community](https://discord.gg/U4kzxjBv) for real-time discussions and support
+2. Check the existing documentation
+3. Search existing issues and discussions
+4. Open a new issue with your question
 
 Thank you for contributing to Sia! 🚀

@@ -1,0 +1,120 @@
+# Development Docker Compose Configuration
+#
+# Database Options:
+#   1. Embedded PostgreSQL:  docker-compose -f docker-compose.dev.yml --profile embedded-db up
+#   2. External PostgreSQL:  docker-compose -f docker-compose.dev.yml up
+#      (Configure DATABASE_URL in .env to point to your existing database)
+#
+# See DOCKER_SETUP.md for detailed configuration instructions
+
+services:
+  # PostgreSQL Database (Embedded - Optional)
+  # Only starts when --profile embedded-db is specified
+  #
+  # With embedded DB:  docker-compose -f docker-compose.dev.yml --profile embedded-db up
+  # With external DB:  docker-compose -f docker-compose.dev.yml up
+  #                    (Set DATABASE_URL in .env to your existing database)
+  postgres:
+    image: postgres:16-alpine
+    container_name: sia-postgres-dev
+    restart: unless-stopped
+    profiles:
+      - embedded-db
+    environment:
+      POSTGRES_USER: sia_user
+      POSTGRES_PASSWORD: sia_password
+      POSTGRES_DB: sia_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sia_user -d sia_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sia-network
+
+  # Shared dependency installer (runs once)
+  dependencies:
+    image: node:20-slim
+    container_name: sia-dependencies
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - node_modules:/app/node_modules
+    command: sh -c "npm ci --ignore-scripts && echo 'Dependencies installed'"
+    networks:
+      - sia-network
+
+  # API Server
+  api:
+    image: node:20-slim
+    container_name: sia-api-dev
+    restart: unless-stopped
+    working_dir: /app
+    env_file:
+      - .env
+      - apps/api/.env
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      # Database: Set DATABASE_URL in .env for external DB
+      # For embedded DB: DATABASE_URL=postgresql://sia_user:sia_password@postgres:5432/sia_db
+      # For external DB: DATABASE_URL=postgresql://user:pass@host.docker.internal:5432/dbname
+      - PORT=3001
+      - GRPC_SERVER_PORT=50052
+    ports:
+      - '3001:3001'
+      - '50052:50052'
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false # Optional: works with or without postgres service
+      dependencies:
+        condition: service_completed_successfully
+    volumes:
+      - ./:/app
+      - node_modules:/app/node_modules
+    command: sh -c "cd apps/api && npx tsx scripts/migrate.ts && cd ../.. && npx nx serve @sia/api"
+    networks:
+      - sia-network
+    extra_hosts:
+      - 'host.docker.internal:host-gateway' # Enables connection to host DB
+
+  # Web Frontend
+  web:
+    image: node:20-slim
+    container_name: sia-web-dev
+    restart: unless-stopped
+    working_dir: /app
+    env_file:
+      - apps/web/.env.local
+    environment:
+      # Runtime Environment
+      - NODE_ENV=development
+      - PORT=3000
+      - CHOKIDAR_USEPOLLING=true # For cross-OS file watching
+      - WATCHPACK_POLLING=true # For Next.js hot reload
+    ports:
+      - '3000:3000'
+    depends_on:
+      - api
+      - dependencies
+    volumes:
+      - ./:/app
+      - node_modules:/app/node_modules
+    command: npx nx serve @sia/web
+    networks:
+      - sia-network
+
+networks:
+  sia-network:
+    driver: bridge
+
+volumes:
+  postgres_data_dev:
+    driver: local
+  node_modules:
+    driver: local
