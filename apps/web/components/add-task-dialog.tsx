@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Plus, Loader2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Loader2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthInfo } from '@propelauth/react';
-import { useDropzone } from 'react-dropzone';
+// import { useDropzone } from 'react-dropzone';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,12 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { MultiSelect } from './ui/multi-select';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from './ui/accordion';
 import { api, type Repo } from '@/lib/api';
 
 interface AddTaskDialogProps {
@@ -31,12 +37,21 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
   const authInfo = useAuthInfo();
 
   const [prompt, setPrompt] = useState('');
-  const [userInstructions, setUserInstructions] = useState('');
-  const [buildCommands, setBuildCommands] = useState('');
-  const [verificationCommands, setVerificationCommands] = useState('');
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
   const [availableRepos, setAvailableRepos] = useState<Repo[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  // const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [repoBuildCommands, setRepoBuildCommands] = useState<
+    Record<string, string>
+  >({});
+  const [repoVerificationCommands, setRepoVerificationCommands] = useState<
+    Record<string, string>
+  >({});
+  const [repoSavedBuildCommands, setRepoSavedBuildCommands] = useState<
+    Record<string, string>
+  >({});
+  const [repoSavedVerificationCommands, setRepoSavedVerificationCommands] =
+    useState<Record<string, string>>({});
+  const [dirtyRepos, setDirtyRepos] = useState<Set<string>>(new Set());
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
 
   const createJobMutation = useMutation({
@@ -58,11 +73,13 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
         description: 'Your task has been submitted to the Sia agent',
       });
       setPrompt('');
-      setUserInstructions('');
-      setBuildCommands('');
-      setVerificationCommands('');
       setSelectedRepoIds([]);
-      setUploadedFiles([]);
+      // setUploadedFiles([]);
+      setRepoBuildCommands({});
+      setRepoVerificationCommands({});
+      setRepoSavedBuildCommands({});
+      setRepoSavedVerificationCommands({});
+      setDirtyRepos(new Set());
       onOpenChange(false);
     },
     onError: error => {
@@ -103,56 +120,104 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
 
   const handleCancel = () => {
     setPrompt('');
-    setUserInstructions('');
-    setBuildCommands('');
-    setVerificationCommands('');
     setSelectedRepoIds([]);
-    setUploadedFiles([]);
+    // setUploadedFiles([]);
+    setRepoBuildCommands({});
+    setRepoVerificationCommands({});
+    setRepoSavedBuildCommands({});
+    setRepoSavedVerificationCommands({});
+    setDirtyRepos(new Set());
     onOpenChange(false);
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.min(
-      Math.floor(Math.log(bytes) / Math.log(1024)),
-      sizes.length - 1
-    );
-    const value = bytes / Math.pow(1024, i);
-    return `${value.toFixed(1)} ${sizes[i]}`;
-  };
-
-  const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      setUploadedFiles(prev => {
-        const remainingSlots = Math.max(0, 3 - prev.length);
-        const nextFiles = acceptedFiles.slice(0, remainingSlots);
-
-        if (acceptedFiles.length > remainingSlots) {
-          toast({
-            title: 'Upload limit reached',
-            description: 'You can upload a maximum of 3 files.',
-            variant: 'destructive',
-          });
+  useEffect(() => {
+    // Remove repo-specific data when repos are deselected
+    setRepoBuildCommands(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => {
+        if (!selectedRepoIds.includes(id)) {
+          delete next[id];
         }
-
-        return [...prev, ...nextFiles];
       });
-    },
-    [toast]
-  );
+      return next;
+    });
+    setRepoVerificationCommands(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => {
+        if (!selectedRepoIds.includes(id)) {
+          delete next[id];
+        }
+      });
+      return next;
+    });
+    setRepoSavedBuildCommands(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => {
+        if (!selectedRepoIds.includes(id)) {
+          delete next[id];
+        }
+      });
+      return next;
+    });
+    setRepoSavedVerificationCommands(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => {
+        if (!selectedRepoIds.includes(id)) {
+          delete next[id];
+        }
+      });
+      return next;
+    });
+    setDirtyRepos(prev => {
+      const next = new Set(
+        [...prev].filter(id => selectedRepoIds.includes(id))
+      );
+      return next;
+    });
+  }, [selectedRepoIds]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    multiple: true,
-    maxFiles: 3,
-    disabled: uploadedFiles.length >= 3,
-    accept: {
-      'image/png': [],
-      'image/svg+xml': [],
-      'application/pdf': [],
-    },
-  });
+  // const formatFileSize = (bytes: number) => {
+  //   if (bytes === 0) return '0 B';
+  //   const sizes = ['B', 'KB', 'MB', 'GB'];
+  //   const i = Math.min(
+  //     Math.floor(Math.log(bytes) / Math.log(1024)),
+  //     sizes.length - 1
+  //   );
+  //   const value = bytes / Math.pow(1024, i);
+  //   return `${value.toFixed(1)} ${sizes[i]}`;
+  // };
+
+  // const onDrop = useCallback(
+  //   (acceptedFiles: File[]) => {
+  //     setUploadedFiles(prev => {
+  //       const remainingSlots = Math.max(0, 3 - prev.length);
+  //       const nextFiles = acceptedFiles.slice(0, remainingSlots);
+
+  //       if (acceptedFiles.length > remainingSlots) {
+  //         toast({
+  //           title: 'Upload limit reached',
+  //           description: 'You can upload a maximum of 3 files.',
+  //           variant: 'destructive',
+  //         });
+  //       }
+
+  //       return [...prev, ...nextFiles];
+  //     });
+  //   },
+  //   [toast]
+  // );
+
+  // const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  //   onDrop,
+  //   multiple: true,
+  //   maxFiles: 3,
+  //   disabled: uploadedFiles.length >= 3,
+  //   accept: {
+  //     'image/png': [],
+  //     'image/svg+xml': [],
+  //     'application/pdf': [],
+  //   },
+  // });
 
   // Convert repos to MultiSelect options
   const repoOptions = availableRepos.map(repo => ({
@@ -182,7 +247,12 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
               className="min-h-[100px]"
             />
           </div>
-          <div className="space-y-2">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            <span className="font-medium">OR</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          {/* <div className="space-y-2">
             <label className="text-sm font-medium">Attachments</label>
             <div
               {...getRootProps()}
@@ -242,8 +312,8 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
                 ))}
               </div>
             )}
-          </div>
-          <div className="space-y-2">
+          </div> */}
+          {/* <div className="space-y-2">
             <label
               htmlFor="user-instructions-input"
               className="text-sm font-medium"
@@ -257,7 +327,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
               onChange={e => setUserInstructions(e.target.value)}
               className="min-h-[100px]"
             />
-          </div>
+          </div> */}
           <div className="space-y-2">
             <label htmlFor="repo-select" className="text-sm font-medium">
               Repository (Optional)
@@ -283,38 +353,143 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
               </p>
             )}
           </div>
-          <div className="space-y-2">
-            <label
-              htmlFor="build-commands-input"
-              className="text-sm font-medium"
-            >
-              Build Commands{' '}
-              <span className="text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              id="build-commands-input"
-              placeholder="Enter build commands (e.g., npm run build)"
-              value={buildCommands}
-              onChange={e => setBuildCommands(e.target.value)}
-              className="px-4 py-3 h-14"
-            />
-          </div>
-          <div className="space-y-2">
-            <label
-              htmlFor="verification-commands-input"
-              className="text-sm font-medium"
-            >
-              Verification Commands{' '}
-              <span className="text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              id="verification-commands-input"
-              placeholder="Enter verification commands (e.g., npm test)"
-              value={verificationCommands}
-              onChange={e => setVerificationCommands(e.target.value)}
-              className="px-4 py-4 h-14"
-            />
-          </div>
+          {selectedRepoIds.length > 0 && (
+            <Accordion type="multiple" className="space-y-3">
+              {availableRepos
+                .filter(repo => selectedRepoIds.includes(repo.id))
+                .map(repo => (
+                  <AccordionItem
+                    key={repo.id}
+                    value={repo.id}
+                    className="rounded-lg border border-border bg-card/50 px-4 py-2 shadow-sm"
+                  >
+                    <AccordionTrigger className="text-sm font-semibold hover:no-underline">
+                      {repo.name}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3 pt-2 pb-2">
+                        <div className="space-y-2">
+                          <label
+                            htmlFor={`build-${repo.id}`}
+                            className="text-sm font-medium"
+                          >
+                            Build Commands{' '}
+                            <span className="text-muted-foreground">
+                              (optional)
+                            </span>
+                          </label>
+                          <Input
+                            id={`build-${repo.id}`}
+                            placeholder="Enter build commands (e.g., npm run build)"
+                            value={repoBuildCommands[repo.id] || ''}
+                            onChange={e =>
+                              setRepoBuildCommands(prev => {
+                                const next = {
+                                  ...prev,
+                                  [repo.id]: e.target.value,
+                                };
+                                setDirtyRepos(dirty => {
+                                  const updated = new Set(dirty);
+                                  updated.add(repo.id);
+                                  return updated;
+                                });
+                                return next;
+                              })
+                            }
+                            className="px-4 py-3 h-12"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label
+                            htmlFor={`verify-${repo.id}`}
+                            className="text-sm font-medium"
+                          >
+                            Verification Commands{' '}
+                            <span className="text-muted-foreground">
+                              (optional)
+                            </span>
+                          </label>
+                          <Input
+                            id={`verify-${repo.id}`}
+                            placeholder="Enter verification commands (e.g., npm test)"
+                            value={repoVerificationCommands[repo.id] || ''}
+                            onChange={e =>
+                              setRepoVerificationCommands(prev => {
+                                const next = {
+                                  ...prev,
+                                  [repo.id]: e.target.value,
+                                };
+                                setDirtyRepos(dirty => {
+                                  const updated = new Set(dirty);
+                                  updated.add(repo.id);
+                                  return updated;
+                                });
+                                return next;
+                              })
+                            }
+                            className="px-4 py-3 h-12"
+                          />
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!dirtyRepos.has(repo.id)}
+                            onClick={() => {
+                              setRepoBuildCommands(prev => ({
+                                ...prev,
+                                [repo.id]:
+                                  repoSavedBuildCommands[repo.id] || '',
+                              }));
+                              setRepoVerificationCommands(prev => ({
+                                ...prev,
+                                [repo.id]:
+                                  repoSavedVerificationCommands[repo.id] || '',
+                              }));
+                              setDirtyRepos(prev => {
+                                const next = new Set(prev);
+                                next.delete(repo.id);
+                                return next;
+                              });
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={
+                              !dirtyRepos.has(repo.id) ||
+                              !(
+                                (repoBuildCommands[repo.id] || '').trim() ||
+                                (repoVerificationCommands[repo.id] || '').trim()
+                              )
+                            }
+                            onClick={() => {
+                              setRepoSavedBuildCommands(prev => ({
+                                ...prev,
+                                [repo.id]: repoBuildCommands[repo.id] || '',
+                              }));
+                              setRepoSavedVerificationCommands(prev => ({
+                                ...prev,
+                                [repo.id]:
+                                  repoVerificationCommands[repo.id] || '',
+                              }));
+                              setDirtyRepos(prev => {
+                                const next = new Set(prev);
+                                next.delete(repo.id);
+                                return next;
+                              });
+                            }}
+                          >
+                            Save
+                          </Button>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+            </Accordion>
+          )}
         </div>
         <DialogFooter>
           <Button
