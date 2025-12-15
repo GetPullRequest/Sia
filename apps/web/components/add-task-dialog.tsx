@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Plus, Loader2, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthInfo } from '@propelauth/react';
+import { useDropzone } from 'react-dropzone';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
   const [verificationCommands, setVerificationCommands] = useState('');
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
   const [availableRepos, setAvailableRepos] = useState<Repo[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
 
   const createJobMutation = useMutation({
@@ -60,6 +62,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
       setBuildCommands('');
       setVerificationCommands('');
       setSelectedRepoIds([]);
+      setUploadedFiles([]);
       onOpenChange(false);
     },
     onError: error => {
@@ -104,8 +107,52 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
     setBuildCommands('');
     setVerificationCommands('');
     setSelectedRepoIds([]);
+    setUploadedFiles([]);
     onOpenChange(false);
   };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.min(
+      Math.floor(Math.log(bytes) / Math.log(1024)),
+      sizes.length - 1
+    );
+    const value = bytes / Math.pow(1024, i);
+    return `${value.toFixed(1)} ${sizes[i]}`;
+  };
+
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      setUploadedFiles(prev => {
+        const remainingSlots = Math.max(0, 3 - prev.length);
+        const nextFiles = acceptedFiles.slice(0, remainingSlots);
+
+        if (acceptedFiles.length > remainingSlots) {
+          toast({
+            title: 'Upload limit reached',
+            description: 'You can upload a maximum of 3 files.',
+            variant: 'destructive',
+          });
+        }
+
+        return [...prev, ...nextFiles];
+      });
+    },
+    [toast]
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    multiple: true,
+    maxFiles: 3,
+    disabled: uploadedFiles.length >= 3,
+    accept: {
+      'image/png': [],
+      'image/svg+xml': [],
+      'application/pdf': [],
+    },
+  });
 
   // Convert repos to MultiSelect options
   const repoOptions = availableRepos.map(repo => ({
@@ -115,14 +162,14 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col ">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
           <DialogDescription>
             Enter a prompt for the Sia agent to execute
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="flex-1 overflow-y-auto space-y-4 py-4 px-2">
           <div className="space-y-2">
             <label htmlFor="prompt-input" className="text-sm font-medium">
               Prompt
@@ -134,6 +181,67 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
               onChange={e => setPrompt(e.target.value)}
               className="min-h-[100px]"
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Attachments</label>
+            <div
+              {...getRootProps()}
+              className={`flex flex-col items-center justify-center rounded-md border border-dashed px-4 py-6 text-center transition ${
+                isDragActive
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted-foreground/30 bg-muted/30'
+              } ${
+                uploadedFiles.length >= 3
+                  ? 'cursor-not-allowed opacity-70'
+                  : 'cursor-pointer'
+              }`}
+            >
+              <input {...getInputProps()} />
+              <p className="text-sm font-medium">
+                {isDragActive
+                  ? 'Drop the files here...'
+                  : 'Drag & drop files here, or click to select'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Max 3 files. Uploaded: {uploadedFiles.length}/3
+              </p>
+            </div>
+            {uploadedFiles.length > 0 && (
+              <div className="space-y-2">
+                {uploadedFiles.map(file => (
+                  <div
+                    key={`${file.name}-${file.size}-${file.lastModified}`}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border shadow-small px-3 py-2 text-sm"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                      <span className="font-medium">{file.name}</span>
+                      <span className="text-muted-foreground">
+                        {formatFileSize(file.size)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setUploadedFiles(prev =>
+                          prev.filter(
+                            f =>
+                              !(
+                                f.name === file.name &&
+                                f.size === file.size &&
+                                f.lastModified === file.lastModified
+                              )
+                          )
+                        )
+                      }
+                      className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
+                      aria-label={`Remove ${file.name}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <label
