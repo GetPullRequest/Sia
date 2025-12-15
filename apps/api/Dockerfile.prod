@@ -31,6 +31,7 @@ COPY apps/api/package.json ./apps/api/
 COPY libs/models/package.json ./libs/models/
 
 # Install only production dependencies
+ENV HUSKY=0
 RUN npm ci --workspace=apps/api --workspace=libs/models --omit=dev && \
     rm -rf /tmp/* /root/.npm
 
