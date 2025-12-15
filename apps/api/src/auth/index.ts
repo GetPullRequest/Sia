@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { db, schema } from '../db/index';
+import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 import * as crypto from 'crypto';
 

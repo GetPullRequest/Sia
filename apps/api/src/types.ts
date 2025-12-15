@@ -1,4 +1,4 @@
-import type { SourceMetadata } from './db/schema';
+import type { SourceMetadata } from './db/schema.js';
 
 export type JobStatus =
   | 'queued'

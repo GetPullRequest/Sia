@@ -2,8 +2,8 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import {
   repoConfigService,
   type CreateRepoConfigDto,
-} from '../services/repo-config.service';
-import { getCurrentUser, type User } from '../auth';
+} from '../services/repo-config.service.js';
+import { getCurrentUser, type User } from '../auth/index.js';
 
 declare module 'fastify' {
   interface FastifyRequest {

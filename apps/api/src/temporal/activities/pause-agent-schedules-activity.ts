@@ -1,4 +1,4 @@
-import { createTemporalClient } from '../client';
+import { createTemporalClient } from '../client.js';
 
 export async function pauseAgentSchedules(params: {
   agentId: string;

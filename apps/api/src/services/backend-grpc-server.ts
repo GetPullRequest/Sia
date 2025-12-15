@@ -10,13 +10,13 @@ import {
   type AgentStreamMessage,
   AgentStreamMessageType,
 } from '@sia/models/proto';
-import { registerAgent } from './agent-registration-service';
-import { agentStreamManager } from './agent-stream-manager';
-import { db, schema } from '../db/index';
+import { registerAgent } from './agent-registration-service.js';
+import { agentStreamManager } from './agent-stream-manager.js';
+import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
-import { logStorage } from './log-storage';
-import { websocketManager } from './websocket-manager';
-import { queueWorkflowService } from './queue-workflow-service';
+import { logStorage } from './log-storage.js';
+import { websocketManager } from './websocket-manager.js';
+import { queueWorkflowService } from './queue-workflow-service.js';
 
 export class BackendGrpcServer {
   private server: grpc.Server;

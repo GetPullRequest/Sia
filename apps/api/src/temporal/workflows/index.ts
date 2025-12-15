@@ -1,2 +1,2 @@
-export { jobExecutionWorkflow } from './job-execution-workflow';
-export { queueMonitorWorkflow } from './queue-monitor-workflow';
+export { jobExecutionWorkflow } from './job-execution-workflow.js';
+export { queueMonitorWorkflow } from './queue-monitor-workflow.js';

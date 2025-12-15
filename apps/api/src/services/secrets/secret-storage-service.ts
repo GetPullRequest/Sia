@@ -1,6 +1,6 @@
-import { EncryptedSecret } from './encrypted-secret';
-import { GCPSecretManager } from './gcp-secret-manager';
-import type { SecretManager } from './secret-manager';
+import { EncryptedSecret } from './encrypted-secret.js';
+import { GCPSecretManager } from './gcp-secret-manager.js';
+import type { SecretManager } from './secret-manager.js';
 
 export type SecretStorageType = 'gcp' | 'encrypted_local';
 

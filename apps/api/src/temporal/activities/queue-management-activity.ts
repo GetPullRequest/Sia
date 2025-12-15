@@ -1,4 +1,4 @@
-import { db, schema } from '../../db/index';
+import { db, schema } from '../../db/index.js';
 import { eq, and, sql } from 'drizzle-orm';
 
 export async function removeJobFromQueue(params: {

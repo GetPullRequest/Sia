@@ -1,10 +1,10 @@
 import 'dotenv/config';
 import Fastify, { FastifyRequest, FastifyReply } from 'fastify';
-import { setupFastify } from './utils/setup-fastify';
+import { setupFastify } from './utils/setup-fastify.js';
 import { resolve } from 'path';
-import { startTemporalWorker } from './temporal/worker';
-import { initializeQueueWorkflows } from './services/queue-initialization';
-import { BackendGrpcServer } from './services/backend-grpc-server';
+import { startTemporalWorker } from './temporal/worker.js';
+import { initializeQueueWorkflows } from './services/queue-initialization.js';
+import { BackendGrpcServer } from './services/backend-grpc-server.js';
 
 const fastify = Fastify({
   logger: {

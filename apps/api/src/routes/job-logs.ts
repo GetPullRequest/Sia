@@ -1,9 +1,9 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { WebSocket } from 'ws';
-import { db, schema } from '../db/index';
+import { db, schema } from '../db/index.js';
 import { eq, and, desc } from 'drizzle-orm';
-import { websocketManager } from '../services/websocket-manager';
-import { getCurrentUser, type User } from '../auth';
+import { websocketManager } from '../services/websocket-manager.js';
+import { getCurrentUser, type User } from '../auth/index.js';
 import * as crypto from 'crypto';
 
 // Helper function to authenticate user for WebSocket (doesn't send HTTP responses)

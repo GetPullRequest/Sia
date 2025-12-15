@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool, PoolConfig } from 'pg';
-import * as schema from './schema';
+import * as schema from './schema.js';
 
 const getPoolConfig = (): PoolConfig => {
   // If DATABASE_URL is set, use it directly
@@ -66,4 +66,4 @@ export type {
   ApiKey,
   NewApiKey,
   LogEntry,
-} from './schema';
+} from './schema.js';

@@ -1,4 +1,4 @@
-import { db, schema } from '../../db/index';
+import { db, schema } from '../../db/index.js';
 import { eq, and, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 

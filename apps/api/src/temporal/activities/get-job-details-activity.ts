@@ -1,4 +1,4 @@
-import { db, schema } from '../../db/index';
+import { db, schema } from '../../db/index.js';
 import { eq, and, desc } from 'drizzle-orm';
 
 export async function getJobDetails(params: {

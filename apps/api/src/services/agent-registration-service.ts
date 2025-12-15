@@ -1,9 +1,9 @@
-import { db, schema } from '../db/index';
+import { db, schema } from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
-import type { NewAgent } from '../db/index';
-import { queueWorkflowService } from './queue-workflow-service';
+import type { NewAgent } from '../db/index.js';
+import { queueWorkflowService } from './queue-workflow-service.js';
 
 function hashApiKey(apiKey: string): string {
   return crypto.createHash('sha256').update(apiKey).digest('hex');

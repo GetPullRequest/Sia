@@ -1,7 +1,7 @@
-import { db, schema } from '../../db/index';
+import { db, schema } from '../../db/index.js';
 import { eq, and } from 'drizzle-orm';
-import { SecretStorageService } from '../../services/secrets/secret-storage-service';
-import { getInstallationToken } from '../../routes/github';
+import { SecretStorageService } from '../../services/secrets/secret-storage-service.js';
+import { getInstallationToken } from '../../routes/github.js';
 
 export interface GitCredentials {
   token?: string;

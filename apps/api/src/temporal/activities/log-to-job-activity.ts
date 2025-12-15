@@ -1,7 +1,7 @@
-import { db, schema } from '../../db/index';
+import { db, schema } from '../../db/index.js';
 import { eq, and, desc } from 'drizzle-orm';
-import { logStorage } from '../../services/log-storage';
-import { websocketManager } from '../../services/websocket-manager';
+import { logStorage } from '../../services/log-storage.js';
+import { websocketManager } from '../../services/websocket-manager.js';
 import type { LogMessage } from '@sia/models/proto';
 
 export async function logToJobActivity(params: {

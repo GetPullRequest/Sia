@@ -1,6 +1,6 @@
-import { db, schema } from '../../db/index';
+import { db, schema } from '../../db/index.js';
 import { eq } from 'drizzle-orm';
-import { AgentClient } from '../../services/agent-client';
+import { AgentClient } from '../../services/agent-client.js';
 
 export async function pingAgentViaStream(params: {
   agentId: string;

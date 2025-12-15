@@ -1,6 +1,6 @@
-import type { IncomingMessage } from './messaging-types';
-import type { MessagingAdapter } from './messaging-adapter';
-import { conversationManager } from './conversation-manager';
+import type { IncomingMessage } from './messaging-types.js';
+import type { MessagingAdapter } from './messaging-adapter.js';
+import { conversationManager } from './conversation-manager.js';
 
 /**
  * Queued message with priority

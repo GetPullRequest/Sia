@@ -2,13 +2,13 @@ import type {
   IncomingMessage,
   OutgoingMessage,
   ConversationMessage,
-} from './messaging-types';
-import type { MessagingAdapter } from './messaging-adapter';
-import { db, schema } from '../../db/index';
+} from './messaging-types.js';
+import type { MessagingAdapter } from './messaging-adapter.js';
+import { db, schema } from '../../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { ConversationalHandler } from './conversational-handler';
-import { channelSettingsManager } from './channel-settings-manager';
+import { ConversationalHandler } from './conversational-handler.js';
+import { channelSettingsManager } from './channel-settings-manager.js';
 
 /**
  * Manages conversations using unified conversational handler with function calling

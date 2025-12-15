@@ -57,10 +57,12 @@ export async function jobExecutionWorkflow(params: {
     const reposToUse: RepoConfig[] =
       repos ||
       (job.repos && job.repos.length > 0
-        ? job.repos.map(repoId => ({
-            repoId,
-            name: repoId.split('/')[1] || repoId,
-          }))
+        ? job.repos.map(
+            (repoId: string): RepoConfig => ({
+              repoId,
+              name: repoId.split('/')[1] || repoId,
+            })
+          )
         : []);
 
     await logToJobActivity({

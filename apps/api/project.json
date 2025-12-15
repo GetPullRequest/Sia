@@ -44,8 +44,8 @@
       "dependsOn": ["^build"],
       "options": {
         "commands": [
-          "npx nx run @sia/api:generate-openapi",
-          "tsc --build tsconfig.json"
+          "tsc --build tsconfig.json",
+          "npx nx run @sia/api:generate-openapi"
         ],
         "parallel": false,
         "cwd": "apps/api"

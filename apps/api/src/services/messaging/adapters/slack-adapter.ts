@@ -1,10 +1,10 @@
-import { MessagingAdapter } from '../messaging-adapter';
+import { MessagingAdapter } from '../messaging-adapter.js';
 import type {
   IncomingMessage,
   OutgoingMessage,
   MessageAttachment,
   MessageBlock,
-} from '../messaging-types';
+} from '../messaging-types.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';

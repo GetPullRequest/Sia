@@ -4,7 +4,7 @@ import type {
   AgentStreamMessage,
   BackendStreamMessageType,
 } from '@sia/models/proto';
-import { db, schema } from '../db/index';
+import { db, schema } from '../db/index.js';
 import { eq, and, gte, isNotNull } from 'drizzle-orm';
 
 interface AgentStreamConnection {

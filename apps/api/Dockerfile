@@ -43,5 +43,5 @@ COPY --from=build /app/tsconfig.base.json ./tsconfig.base.json
 
 WORKDIR /app/apps/api
 
-CMD ["sh", "-c", "npx tsx scripts/migrate.ts && npx tsx scripts/seed.ts && npx tsx dist/main.js"]
+CMD ["sh", "-c", "npx tsx scripts/migrate.ts && npx tsx scripts/seed.ts && node dist/main.js"]
 

@@ -1,7 +1,7 @@
-import { db, schema } from '../../db/index';
+import { db, schema } from '../../db/index.js';
 import { eq, and, sql } from 'drizzle-orm';
-import { createTemporalClient } from '../client';
-import { logStorage } from '../../services/log-storage';
+import { createTemporalClient } from '../client.js';
+import { logStorage } from '../../services/log-storage.js';
 
 /**
  * Check if a Temporal workflow is currently running

@@ -1,4 +1,9 @@
-import { db, schema, type RepoConfig, type NewRepoConfig } from '../db/index';
+import {
+  db,
+  schema,
+  type RepoConfig,
+  type NewRepoConfig,
+} from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
 export interface CreateRepoConfigDto {

@@ -1,8 +1,8 @@
-import { db, schema } from '../db/index';
+import { db, schema } from '../db/index.js';
 import { eq, and, desc } from 'drizzle-orm';
 import type { LogMessage } from '@sia/models/proto';
-import { websocketManager } from './websocket-manager';
-import type { LogEntry } from '../db/schema';
+import { websocketManager } from './websocket-manager.js';
+import type { LogEntry } from '../db/schema.js';
 
 interface BufferedLog {
   jobId: string;

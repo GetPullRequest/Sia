@@ -1,6 +1,6 @@
-import { createTemporalClient } from '../temporal/client';
-import { queueMonitorWorkflow } from '../temporal/workflows/queue-monitor-workflow';
-import { setQueuePaused } from '../temporal/activities/queue-status-activity';
+import { createTemporalClient } from '../temporal/client.js';
+import { queueMonitorWorkflow } from '../temporal/workflows/queue-monitor-workflow.js';
+import { setQueuePaused } from '../temporal/activities/queue-status-activity.js';
 
 export class QueueWorkflowService {
   /**

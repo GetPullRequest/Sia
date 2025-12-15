@@ -1,7 +1,7 @@
-import { AgentClient } from '../../services/agent-client';
-import { logStorage } from '../../services/log-storage';
-import { websocketManager } from '../../services/websocket-manager';
-import { db, schema } from '../../db/index';
+import { AgentClient } from '../../services/agent-client.js';
+import { logStorage } from '../../services/log-storage.js';
+import { websocketManager } from '../../services/websocket-manager.js';
+import { db, schema } from '../../db/index.js';
 import { eq, and, desc } from 'drizzle-orm';
 import type { LogMessage } from '@sia/models/proto';
 

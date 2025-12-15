@@ -4,16 +4,16 @@ import swaggerUi from '@fastify/swagger-ui';
 import websocket from '@fastify/websocket';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
-import jobsRoutes from '../routes/jobs';
-import jobLogsRoutes from '../routes/job-logs';
-import githubRoutes from '../routes/github';
-import repoConfigRoutes from '../routes/repos';
-import slackRoutes from '../routes/slack';
-import activitiesRoutes from '../routes/activities';
-import agentsRoutes from '../routes/agents';
-import integrationSecretsRoutes from '../routes/integration-secrets';
-import apiKeysRoutes from '../routes/api-keys';
-import { registerSchemas } from './register-schemas';
+import jobsRoutes from '../routes/jobs.js';
+import jobLogsRoutes from '../routes/job-logs.js';
+import githubRoutes from '../routes/github.js';
+import repoConfigRoutes from '../routes/repos.js';
+import slackRoutes from '../routes/slack.js';
+import activitiesRoutes from '../routes/activities.js';
+import agentsRoutes from '../routes/agents.js';
+import integrationSecretsRoutes from '../routes/integration-secrets.js';
+import apiKeysRoutes from '../routes/api-keys.js';
+import { registerSchemas } from './register-schemas.js';
 
 export interface SetupFastifyOptions {
   logger?: boolean;

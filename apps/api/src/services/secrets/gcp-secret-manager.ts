@@ -1,5 +1,5 @@
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-import type { SecretManager } from './secret-manager';
+import type { SecretManager } from './secret-manager.js';
 
 export class GCPSecretManager implements SecretManager {
   private client: SecretManagerServiceClient;

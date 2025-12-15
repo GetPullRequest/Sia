@@ -3,7 +3,7 @@ import type {
   OutgoingMessage,
   MessageAttachment,
   MessageBlock,
-} from './messaging-types';
+} from './messaging-types.js';
 
 /**
  * Abstract base class for platform-specific messaging adapters

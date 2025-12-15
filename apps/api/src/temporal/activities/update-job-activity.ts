@@ -1,4 +1,4 @@
-import { db, schema, type NewActivity } from '../../db/index';
+import { db, schema, type NewActivity } from '../../db/index.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 

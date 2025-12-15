@@ -1,5 +1,5 @@
-import { db, schema } from '../db/index';
-import { queueWorkflowService } from './queue-workflow-service';
+import { db, schema } from '../db/index.js';
+import { queueWorkflowService } from './queue-workflow-service.js';
 import { eq } from 'drizzle-orm';
 
 /**

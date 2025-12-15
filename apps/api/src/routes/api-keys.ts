@@ -1,15 +1,15 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { db, schema, type NewApiKey } from '../db/index';
+import { db, schema, type NewApiKey } from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
-import { getCurrentUser, type User } from '../auth';
-import { SecretStorageService } from '../services/secrets/secret-storage-service';
+import { getCurrentUser, type User } from '../auth/index.js';
+import { SecretStorageService } from '../services/secrets/secret-storage-service.js';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
 import type {
   CreateApiKeyRequestType,
   CreateApiKeyResponseType,
   GetApiKeysResponseType,
-} from '../schemas/index';
+} from '../schemas/index.js';
 
 const { apiKeys } = schema;
 

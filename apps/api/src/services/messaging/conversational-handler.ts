@@ -5,8 +5,8 @@ import type {
   IncomingMessage,
   OutgoingMessage,
   ConversationMessage,
-} from './messaging-types';
-import { db, schema } from '../../db/index';
+} from './messaging-types.js';
+import { db, schema } from '../../db/index.js';
 import {
   eq,
   and,
@@ -21,9 +21,9 @@ import {
   ilike,
 } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { gcsStorage } from '../storage/gcs-storage';
-import { jobExecutionService } from '../job-execution';
-import { generateJobTitleAndDescription } from '../job-title-generator';
+import { gcsStorage } from '../storage/gcs-storage.js';
+import { jobExecutionService } from '../job-execution.js';
+import { generateJobTitleAndDescription } from '../job-title-generator.js';
 import * as fs from 'fs';
 
 const MAX_FILE_SIZE_MB = parseInt(process.env.MAX_FILE_SIZE_MB || '10', 10);

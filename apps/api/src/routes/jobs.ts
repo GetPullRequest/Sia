@@ -5,18 +5,18 @@ import {
   type Job,
   type NewJob,
   type NewActivity,
-} from '../db/index';
+} from '../db/index.js';
 import { eq, and, desc, asc, sql, inArray, gt } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   CreateJobRequest,
   UpdateJobRequest,
   ReprioritizeJobRequest,
-} from '../types';
-import { jobExecutionService } from '../services/job-execution';
-import { queueWorkflowService } from '../services/queue-workflow-service';
-import { getCurrentUser, type User } from '../auth';
-import { generateJobTitleAndDescription } from '../services/job-title-generator';
+} from '../types.js';
+import { jobExecutionService } from '../services/job-execution.js';
+import { queueWorkflowService } from '../services/queue-workflow-service.js';
+import { getCurrentUser, type User } from '../auth/index.js';
+import { generateJobTitleAndDescription } from '../services/job-title-generator.js';
 
 const { jobs, repos: reposTable, activities } = schema;
 
@@ -1909,7 +1909,7 @@ async function jobsRoutes(fastify: FastifyInstance) {
 
         // Only get database pause state
         const { isQueuePaused } = await import(
-          '../temporal/activities/queue-status-activity'
+          '../temporal/activities/queue-status-activity.js'
         );
         const isPaused = await isQueuePaused({ orgId: user.orgId, queueType });
 

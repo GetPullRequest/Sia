@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import { extractCommandsFromReadme } from './readme-command-extractor';
+import { extractCommandsFromReadme } from './readme-command-extractor.js';
 import { generateText } from 'ai';
 
 // Mock the AI SDK

@@ -1,7 +1,12 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { db, schema, type Integration, type NewIntegration } from '../db/index';
+import {
+  db,
+  schema,
+  type Integration,
+  type NewIntegration,
+} from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
-import { getCurrentUser, type User } from '../auth';
+import { getCurrentUser, type User } from '../auth/index.js';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -1386,16 +1391,16 @@ async function slackRoutes(fastify: FastifyInstance) {
 
             // Use conversation manager and queue manager for natural language processing
             const { SlackAdapter } = await import(
-              '../services/messaging/adapters/slack-adapter'
+              '../services/messaging/adapters/slack-adapter.js'
             );
             const { conversationManager } = await import(
-              '../services/messaging/conversation-manager'
+              '../services/messaging/conversation-manager.js'
             );
             const { messageQueueManager } = await import(
-              '../services/messaging/message-queue-manager'
+              '../services/messaging/message-queue-manager.js'
             );
             const { ConversationalHandler } = await import(
-              '../services/messaging/conversational-handler'
+              '../services/messaging/conversational-handler.js'
             );
 
             try {

@@ -1,10 +1,10 @@
-import { db } from '../../db';
-import * as schema from '../../db/schema';
+import { db } from '../../db/index.js';
+import * as schema from '../../db/schema.js';
 import { eq, and, or, lt, asc } from 'drizzle-orm';
-import { agentStreamManager } from '../../services/agent-stream-manager';
+import { agentStreamManager } from '../../services/agent-stream-manager.js';
 import { BackendStreamMessageType } from '@sia/models';
-import { AgentClient } from '../../services/agent-client';
-import { queueWorkflowService } from '../../services/queue-workflow-service';
+import { AgentClient } from '../../services/agent-client.js';
+import { queueWorkflowService } from '../../services/queue-workflow-service.js';
 
 export async function preprocessActivity(params: { agentId: string }): Promise<{
   jobId: string | null;

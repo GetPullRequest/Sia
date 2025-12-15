@@ -34,7 +34,7 @@ import {
   CreateApiKeyResponseSchema,
   ApiKeySchema,
   GetApiKeysResponseSchema,
-} from '../schemas/index';
+} from '../schemas/index.js';
 
 export function registerSchemas(fastify: FastifyInstance) {
   // Register base schemas first (dependencies)

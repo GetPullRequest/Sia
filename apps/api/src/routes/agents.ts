@@ -1,11 +1,11 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { db, schema, type Agent, type NewAgent } from '../db/index';
+import { db, schema, type Agent, type NewAgent } from '../db/index.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import type { CreateAgentRequest, UpdateAgentRequest } from '../types';
-import { getCurrentUser, type User } from '../auth';
-import { queueWorkflowService } from '../services/queue-workflow-service';
-import { initializeScheduleForAgent } from '../services/queue-initialization';
+import type { CreateAgentRequest, UpdateAgentRequest } from '../types.js';
+import { getCurrentUser, type User } from '../auth/index.js';
+import { queueWorkflowService } from '../services/queue-workflow-service.js';
+import { initializeScheduleForAgent } from '../services/queue-initialization.js';
 
 const { agents, integrations } = schema;
 
@@ -658,7 +658,7 @@ async function agentsRoutes(fastify: FastifyInstance) {
 
         // Import the ping activity
         const { pingAgentViaStream } = await import(
-          '../temporal/activities/ping-agent-via-stream-activity'
+          '../temporal/activities/ping-agent-via-stream-activity.js'
         );
 
         // Attempt to ping the agent

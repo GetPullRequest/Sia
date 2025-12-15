@@ -1,6 +1,6 @@
 import { proxyActivities, executeChild } from '@temporalio/workflow';
 import type * as activities from '../activities';
-import { jobExecutionWorkflow } from './job-execution-workflow';
+import { jobExecutionWorkflow } from './job-execution-workflow.js';
 
 const { preprocessActivity } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
