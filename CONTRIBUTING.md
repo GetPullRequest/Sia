@@ -105,28 +105,98 @@ Edit the environment files with your configuration:
 - Authentication configuration
 - API endpoint URLs
 
-#### 4. Start the Development Environment
+#### 4. Choose Your Database Setup
+
+Sia supports two database configurations. Choose based on your needs:
+
+**Option 1: Embedded PostgreSQL (Recommended for new contributors)**
+
+Best for getting started quickly without managing a separate database.
 
 ```sh
+# Start with embedded PostgreSQL
+docker-compose -f docker-compose.dev.yml --profile embedded-db up
+```
+
+In `apps/api/.env`, set:
+
+```env
+DATABASE_URL=postgresql://sia_user:sia_password@postgres:5432/sia_db
+```
+
+**Option 2: Existing PostgreSQL (For teams with existing databases)**
+
+Connect to your own PostgreSQL instance. This approach:
+
+- Avoids git conflicts from commenting/uncommenting services
+- Lets you use your existing local or remote database
+- Keeps your data separate from the Docker environment
+
+```sh
+# Start without embedded PostgreSQL
 docker-compose -f docker-compose.dev.yml up
 ```
 
+In `apps/api/.env`, set one of:
+
+```env
+# For local database on your host machine (Mac/Windows)
+DATABASE_URL=postgresql://your_user:your_password@host.docker.internal:5432/your_database
+
+# For remote database
+DATABASE_URL=postgresql://user:pass@your-db-host.com:5432/dbname
+
+# For local database on Linux
+DATABASE_URL=postgresql://your_user:your_password@172.17.0.1:5432/your_database
+```
+
+**Important:**
+
+- On Mac/Windows Docker Desktop, use `host.docker.internal` to access databases on your host machine
+- On Linux, you may need to use your host's IP address (e.g., `172.17.0.1`) or configure Docker differently
+
 This will start:
 
-- **PostgreSQL database** on port 5432
+- **PostgreSQL database** on port 5432 (only if using `--profile embedded-db`)
 - **API server** on port 3001
 - **Web UI** on port 3000
 
-#### 5. Stop the Environment
+See [DOCKER_SETUP.md](./DOCKER_SETUP.md) for detailed configuration, troubleshooting, and advanced options.
+
+#### 5. Verify Everything is Running
+
+Check that all services are healthy:
+
+```sh
+# View all logs
+docker-compose -f docker-compose.dev.yml logs -f
+
+# Check specific service
+docker-compose -f docker-compose.dev.yml logs api
+```
+
+Access the services:
+
+- Web UI: http://localhost:3000
+- API: http://localhost:3001
+- PostgreSQL: localhost:5432 (if using embedded database)
+
+#### 6. Stop the Environment
 
 ```sh
 docker-compose -f docker-compose.dev.yml down
+
+# If using embedded database profile
+docker-compose -f docker-compose.dev.yml --profile embedded-db down
 ```
 
 To remove all data and start fresh:
 
 ```sh
 docker-compose -f docker-compose.dev.yml down -v
+
+# If using embedded database profile
+docker-compose -f docker-compose.dev.yml --profile embedded-db down -v
 ```
 
 ### Option 2: Local Development (Without Docker)

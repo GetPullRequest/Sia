@@ -1,8 +1,8 @@
 # <a alt="Sia logo" href="https://getpullrequest.com" target="_blank" rel="noreferrer"><img src="apps/landing-page/public/favicon.svg" width="40"></a> Sia
 
-<div align="center" style="margin-bottom: 2rem;">
+<!-- <div align="center" style="margin-bottom: 2rem;">
   <img src="apps/landing-page/public/banner.png" alt="Sia - Wake Up To Ready Pull Requests" style="border-radius: 12px; aspect-ratio: 16/9; width: 100%; max-width: 1200px; object-fit: cover;" />
-</div>
+</div> -->
 
 <div align="center" style="margin-bottom: 2rem;">
   <img src="https://github.com/user-attachments/assets/812b319d-1157-4b62-901a-55be31d71ca9" alt="Sia Quick Walkthrough" style="border-radius: 12px; width: 100%; max-width: 1200px;" />
@@ -96,17 +96,42 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.local.example apps/web/.env.local
 
 # Edit the .env files with your API keys and configuration
-# Then start everything
+# Then start everything (choose one option):
+
+# Option 1: With embedded PostgreSQL (for local development)
+docker-compose -f docker-compose.dev.yml --profile embedded-db up
+
+# Option 2: Connect to existing PostgreSQL (set DATABASE_URL in .env)
 docker-compose -f docker-compose.dev.yml up
 ```
 
+#### Database Configuration
+
+Sia supports two database setup options:
+
+**Option 1: Embedded PostgreSQL** (Recommended for new users)
+
+- Automatically starts a PostgreSQL container
+- No external database setup required
+- Set in `apps/api/.env`: `DATABASE_URL=postgresql://sia_user:sia_password@postgres:5432/sia_db`
+- Use: `docker-compose -f docker-compose.dev.yml --profile embedded-db up`
+
+**Option 2: Existing PostgreSQL** (For teams with existing databases)
+
+- Connect to your own PostgreSQL instance (local or remote)
+- No git conflicts from commenting/uncommenting services
+- Set in `apps/api/.env`: `DATABASE_URL=postgresql://user:pass@host.docker.internal:5432/your_db`
+- Use: `docker-compose -f docker-compose.dev.yml up`
+
+**Note:** When connecting to a local database on your host machine, use `host.docker.internal` as the hostname.
+
 This starts:
 
-- PostgreSQL database (port 5432)
+- PostgreSQL database (port 5432) - only if using `--profile embedded-db`
 - API server (port 3001)
 - Web UI (port 3000)
 
-**For detailed setup instructions**, including local development without Docker, configuration guides, and troubleshooting, see **[CONTRIBUTING.md](./CONTRIBUTING.md#development-setup)**.
+**For detailed setup instructions**, including local development without Docker, configuration guides, and troubleshooting, see **[CONTRIBUTING.md](./CONTRIBUTING.md#development-setup)** and **[DOCKER_SETUP.md](./DOCKER_SETUP.md)**.
 
 ## Documentation
 
@@ -161,5 +186,6 @@ MIT License - see [LICENSE](./LICENSE) for details
 ---
 
 <p align="center">
-  Built with ❤️ by the Sia team
+  Built with ❤️ by the GetPullRequest team and 
+  <a href="https://github.com/getpullrequest/sia/graphs/contributors">our contributors</a>
 </p>
