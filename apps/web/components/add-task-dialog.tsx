@@ -77,7 +77,6 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
       setRepoSavedBuildCommands({});
       setRepoSavedVerificationCommands({});
       setDirtyRepos(new Set());
-      setConfiguringRepoId(null);
       onOpenChange(false);
     },
     onError: error => {
@@ -125,7 +124,6 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
     setRepoSavedBuildCommands({});
     setRepoSavedVerificationCommands({});
     setDirtyRepos(new Set());
-    setConfiguringRepoId(null);
     onOpenChange(false);
   };
 
@@ -203,7 +201,6 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
               className="min-h-[100px]"
             />
           </div>
-
           <div className="space-y-2">
             <label htmlFor="repo-select" className="text-sm font-medium">
               Repository (Optional)
