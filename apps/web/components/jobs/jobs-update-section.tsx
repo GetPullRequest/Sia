@@ -12,11 +12,18 @@ import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuthInfo } from '@propelauth/react';
 
+// Update type definition
+type Update = {
+  message: string;
+  timestamp: string;
+  status: string;
+};
+
 export function JobsUpdateSection({
   updates,
   currentUserName,
 }: {
-  updates: string;
+  updates: Update[] | string | null | undefined;
   currentUserName?: string;
 }) {
   const { user } = useAuthInfo();
@@ -50,9 +57,63 @@ export function JobsUpdateSection({
     return currentUserName || 'You';
   };
 
-  const parseUpdate = (line: string, index: number) => {
-    const trimmed = line.trim();
-    const lower = trimmed.toLowerCase();
+  // Normalize updates to array format (handle both old string and new array formats)
+  const normalizeUpdates = (): Update[] => {
+    if (!updates) return [];
+
+    // If it's already an array, use it directly
+    if (Array.isArray(updates)) {
+      return updates;
+    }
+
+    // If it's a string (old format), parse it
+    if (typeof updates === 'string') {
+      const lines = updates.split('\n').filter(line => line.trim());
+      // Try to parse as JSON first (in case it's a stringified array)
+      try {
+        const parsed = JSON.parse(updates);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch {
+        // Not JSON, continue with string parsing
+      }
+
+      // Convert old string format to new array format
+      return lines.map((line, index) => {
+        const trimmed = line.trim();
+        // Extract status from message (fallback to current job status if not found)
+        const lower = trimmed.toLowerCase();
+        let status = 'queued'; // default
+        if (lower.includes('failed') || lower.includes('error')) {
+          status = 'failed';
+        } else if (lower.includes('completed')) {
+          status = 'completed';
+        } else if (lower.includes('in-progress') || lower.includes('started')) {
+          status = 'in-progress';
+        } else if (lower.includes('review')) {
+          status = 'in-review';
+        } else if (lower.includes('queued')) {
+          status = 'queued';
+        }
+
+        // Use approximate timestamp (spaced by index)
+        const timestamp = new Date(Date.now() - index * 60000).toISOString();
+
+        return {
+          message: trimmed,
+          timestamp,
+          status,
+        };
+      });
+    }
+
+    return [];
+  };
+
+  const parseUpdate = (update: Update, index: number) => {
+    const message = update.message.trim();
+    const lower = message.toLowerCase();
     const isFailed = lower.includes('failed') || lower.includes('error');
     const isCompleted = lower.includes('completed');
     const isInProgress =
@@ -70,27 +131,30 @@ export function JobsUpdateSection({
       | 'accent'
       | 'destructive' = 'primary';
 
-    if (isFailed) {
+    // Use the status from the update object if available, otherwise infer from message
+    const updateStatus = update.status?.toLowerCase() || '';
+
+    if (updateStatus === 'failed' || isFailed) {
       icon = AlertCircle;
       title = 'Job Failed';
       status = 'completed';
       iconColor = 'destructive';
-    } else if (isCompleted) {
+    } else if (updateStatus === 'completed' || isCompleted) {
       icon = CheckCircle2;
       title = 'Job Completed';
       status = 'completed';
       iconColor = 'primary';
-    } else if (isInReview) {
+    } else if (updateStatus === 'in-review' || isInReview) {
       icon = FileCheck;
       title = 'In Review';
       status = 'in-progress';
       iconColor = 'accent';
-    } else if (isInProgress) {
+    } else if (updateStatus === 'in-progress' || isInProgress) {
       icon = RotateCw;
       title = 'Execution Started';
       status = 'in-progress';
       iconColor = 'primary';
-    } else if (isQueued) {
+    } else if (updateStatus === 'queued' || isQueued) {
       icon = Clock;
       title = 'Job Queued';
       status = 'pending';
@@ -101,13 +165,12 @@ export function JobsUpdateSection({
       iconColor = 'primary';
     }
 
-    // Create a date for the timeline item (using relative time from now)
-    // Since we don't have exact timestamps, we'll use a relative date
-    const date = new Date(Date.now() - index * 60000); // Space updates by 1 minute intervals
-    const dateString = date.toISOString();
+    // Use the timestamp from the update object
+    const dateString =
+      update.timestamp || new Date(Date.now() - index * 60000).toISOString();
 
     return {
-      text: trimmed,
+      text: message,
       icon,
       title,
       status,
@@ -116,8 +179,10 @@ export function JobsUpdateSection({
     };
   };
 
-  const lines = updates.split('\n').filter(line => line.trim());
-  const parsedUpdates = lines.map((line, index) => parseUpdate(line, index));
+  const normalizedUpdates = normalizeUpdates();
+  const parsedUpdates = normalizedUpdates.map((update, index) =>
+    parseUpdate(update, index)
+  );
   // Updates are already in newest-first order from backend, so we reverse to show oldest first in timeline
   const orderedUpdates = [...parsedUpdates].reverse();
   const visibleUpdates = isExpanded ? orderedUpdates : orderedUpdates.slice(-2); // Show last 2 (most recent)
@@ -166,7 +231,7 @@ export function JobsUpdateSection({
           <ChevronDown className="h-3 w-3 ml-1" />
         </Button>
       )}
-      {isExpanded && parsedUpdates.length > 2 && (
+      {isExpanded && normalizedUpdates.length > 2 && (
         <Button
           variant="ghost"
           size="sm"

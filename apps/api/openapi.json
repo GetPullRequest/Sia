@@ -116,9 +116,12 @@
           },
           "prompt": {
             "type": "string"
+          },
+          "created_at": {
+            "type": "string"
           }
         },
-        "required": ["file_name", "line_no", "prompt"]
+        "required": ["file_name", "line_no", "prompt", "created_at"]
       },
       "CreateJobRequest": {
         "additionalProperties": false,
@@ -411,9 +414,12 @@
                 },
                 "prompt": {
                   "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
                 }
               },
-              "required": ["file_name", "line_no", "prompt"]
+              "required": ["file_name", "line_no", "prompt", "created_at"]
             }
           },
           "user_acceptance_status": {
@@ -683,9 +689,12 @@
                 },
                 "prompt": {
                   "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
                 }
               },
-              "required": ["file_name", "line_no", "prompt"]
+              "required": ["file_name", "line_no", "prompt", "created_at"]
             }
           },
           "confidence_score": {
@@ -980,9 +989,12 @@
                 },
                 "prompt": {
                   "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
                 }
               },
-              "required": ["file_name", "line_no", "prompt"]
+              "required": ["file_name", "line_no", "prompt", "created_at"]
             }
           },
           "confidence_score": {
@@ -992,7 +1004,22 @@
             "type": "string"
           },
           "updates": {
-            "type": "string"
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "timestamp": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              },
+              "required": ["message", "timestamp", "status"]
+            }
           }
         },
         "required": [
@@ -2371,9 +2398,12 @@
                     },
                     "prompt": {
                       "type": "string"
+                    },
+                    "created_at": {
+                      "type": "string"
                     }
                   },
-                  "required": ["file_name", "line_no", "prompt"]
+                  "required": ["file_name", "line_no", "prompt", "created_at"]
                 }
               },
               "confidence_score": {
@@ -2383,7 +2413,22 @@
                 "type": "string"
               },
               "updates": {
-                "type": "string"
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["message", "timestamp", "status"]
+                }
               }
             },
             "required": [

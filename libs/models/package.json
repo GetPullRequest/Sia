@@ -7,8 +7,8 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "generate-proto": "./scripts/generate-proto.sh",
-    "generate-api-client": "./scripts/generate-api-client.sh",
+    "generate-proto": "node scripts/generate-proto.js",
+    "generate-api-client": "node scripts/generate-api-client.js",
     "generate": "npm run generate-proto && npm run generate-api-client"
   },
   "exports": {

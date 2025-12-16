@@ -46,6 +46,8 @@ export function MultiSelect({
     } else {
       onChange([...selected, value]);
     }
+    // Close the popover after selection, similar to Select behavior
+    setOpen(false);
   };
 
   const selectedOptions = options.filter(option =>
@@ -63,7 +65,6 @@ export function MultiSelect({
             selected.length > 0 ? 'h-auto py-2' : 'h-10',
             className
           )}
-          onClick={() => !disabled && setOpen(!open)}
         >
           <div className="flex flex-wrap gap-1 flex-1 min-w-0">
             {selected.length === 0 ? (
@@ -106,6 +107,10 @@ export function MultiSelect({
         className="w-[var(--radix-popover-trigger-width)] p-1 min-w-[200px]"
         align="start"
         side="bottom"
+        onInteractOutside={e => {
+          // Allow normal closing behavior - don't prevent closing when clicking outside
+          // This overrides the base popover's behavior that prevents closing inside dialogs
+        }}
       >
         <div className="max-h-[300px] overflow-y-auto">
           {options.length === 0 ? (

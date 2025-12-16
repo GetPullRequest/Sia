@@ -70,6 +70,13 @@ export const UserCommentSchema = Type.Object({
   file_name: Type.String(),
   line_no: Type.Number(),
   prompt: Type.String(),
+  created_at: Type.String(),
+});
+
+export const UpdateSchema = Type.Object({
+  message: Type.String(),
+  timestamp: Type.String(),
+  status: Type.String(),
 });
 
 export const CreateJobRequestSchema = Type.Object(
@@ -248,7 +255,7 @@ export const JobResponseSchema = Type.Object(
     user_comments: Type.Optional(Type.Array(UserCommentSchema)),
     confidence_score: Type.Optional(Type.String()),
     pr_link: Type.Optional(Type.String()),
-    updates: Type.Optional(Type.String()),
+    updates: Type.Optional(Type.Array(UpdateSchema)),
   },
   { additionalProperties: false }
 );

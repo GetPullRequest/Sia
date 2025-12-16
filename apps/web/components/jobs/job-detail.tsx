@@ -29,6 +29,7 @@ import {
 import { ScrollArea } from '../ui/scroll-area';
 import { useDebouncedCallback } from 'use-debounce';
 import { useAuthInfo } from '@propelauth/react';
+// import { AdditionalFieldsSection } from './additional-fields-section';
 
 interface JobDetailProps {
   job: JobResponse;
@@ -71,6 +72,12 @@ export function JobDetail({
     generation: false,
     verification: false,
   });
+  // const [additionalFieldsOpen, setAdditionalFieldsOpen] = useState(true);
+  // const [additionalFields, setAdditionalFields] = useState({
+  //   userInstructions: job?.user_input?.prompt || '',
+  //   runCommand: '',
+  //   buildCommand: '',
+  // });
   const [editForm, setEditForm] = useState({
     generated_name: job?.generated_name || '',
     generated_description: job?.generated_description || '',
@@ -98,6 +105,14 @@ export function JobDetail({
     job?.repositories?.[0]?.name,
     job?.priority,
   ]);
+
+  // useEffect(() => {
+  //   setAdditionalFields({
+  //     userInstructions: job?.user_input?.prompt || '',
+  //     runCommand: '',
+  //     buildCommand: '',
+  //   });
+  // }, [job?.id, job?.user_input?.prompt]);
 
   const inlineUpdateMutation = useMutation({
     mutationFn: async (updates: UpdateJobRequest) => {
@@ -362,6 +377,17 @@ export function JobDetail({
               }
             />
           </div>
+
+          {/* <div className="px-7 pb-4">
+            <AdditionalFieldsSection
+              values={additionalFields}
+              onChange={(field, value) =>
+                setAdditionalFields(prev => ({ ...prev, [field]: value }))
+              }
+              open={additionalFieldsOpen}
+              onOpenChange={setAdditionalFieldsOpen}
+            />
+          </div> */}
         </Card>
 
         <Card className="space-y-2 border border-border shadow-none p-0 h-[50vh] overflow-hidden">
@@ -370,7 +396,7 @@ export function JobDetail({
               jobId={job.id}
               comments={comments}
               currentUserName={currentUserName}
-              updates={job.updates || ''}
+              updates={job.updates || []}
             />
           </div>
         </Card>

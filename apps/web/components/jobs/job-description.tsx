@@ -40,7 +40,7 @@ export function JobDescription({
               e.stopPropagation();
             }
           }}
-          className="text-sm min-h-[180px] max-h-full  resize-none rounded-lg bg-card border-none px-3 py-2 outline-none"
+          className="text-sm min-h-[80px] max-h-full  resize-none rounded-lg bg-card border-none px-3 py-2 outline-none"
           placeholder="No description available"
         />
         {/* <div className="rounded-2xl border border-dashed border-muted p-4">

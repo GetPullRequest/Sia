@@ -69,6 +69,19 @@ export interface UserComment {
   file_name: string;
   line_no: number;
   prompt: string;
+  created_at: string;
+}
+
+export interface Update {
+  message: string;
+  timestamp: string;
+  status: string;
+}
+
+export interface envUpdate {
+  message: string;
+  timestamp: string;
+  status: string;
 }
 
 export interface CreateJobRequest {
