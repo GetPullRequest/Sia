@@ -115,6 +115,18 @@ export default function Integrations() {
         } successfully`,
       });
     },
+    onError: error => {
+      setConnectingId(null);
+      setProgress(0);
+      toast({
+        title: 'Error',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to toggle integration',
+        variant: 'destructive',
+      });
+    },
   });
 
   const disconnectGitHubMutation = useMutation({

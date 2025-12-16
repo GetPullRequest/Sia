@@ -78,6 +78,7 @@ import type {
   GetQueuesByQueueTypeStatusData,
   GetQueuesByQueueTypeStatusResponses,
   GetReposByRepoIdConfigData,
+  GetReposByRepoIdConfigErrors,
   GetReposByRepoIdConfigResponses,
   GetReposData,
   GetReposErrors,
@@ -137,7 +138,13 @@ import type {
   PostQueuesByQueueTypeResumeResponses,
   PostQueuesByQueueTypeStartData,
   PostQueuesByQueueTypeStartResponses,
+  PostReposByRepoIdConfigConfirmData,
+  PostReposByRepoIdConfigConfirmErrors,
+  PostReposByRepoIdConfigConfirmResponses,
   PostReposByRepoIdConfigData,
+  PostReposByRepoIdConfigReInferData,
+  PostReposByRepoIdConfigReInferErrors,
+  PostReposByRepoIdConfigReInferResponses,
   PostReposByRepoIdConfigResponses,
   PostReposGithubConnectPatData,
   PostReposGithubConnectPatErrors,
@@ -538,42 +545,6 @@ export const getReposGithubProvidersByIdToken = <
   });
 };
 
-/**
- * Get all repos for the current organization
- */
-export const getRepos = <ThrowOnError extends boolean = false>(
-  options?: Options<GetReposData, ThrowOnError>
-) => {
-  return (options?.client ?? client).get<
-    GetReposResponses,
-    GetReposErrors,
-    ThrowOnError
-  >({
-    url: '/repos',
-    ...options,
-  });
-};
-
-/**
- * Update a repo description
- */
-export const patchReposById = <ThrowOnError extends boolean = false>(
-  options: Options<PatchReposByIdData, ThrowOnError>
-) => {
-  return (options.client ?? client).patch<
-    PatchReposByIdResponses,
-    PatchReposByIdErrors,
-    ThrowOnError
-  >({
-    url: '/repos/{id}',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-};
-
 export const deleteReposByRepoIdConfig = <ThrowOnError extends boolean = false>(
   options: Options<DeleteReposByRepoIdConfigData, ThrowOnError>
 ) => {
@@ -587,12 +558,15 @@ export const deleteReposByRepoIdConfig = <ThrowOnError extends boolean = false>(
   });
 };
 
+/**
+ * Get repository configuration
+ */
 export const getReposByRepoIdConfig = <ThrowOnError extends boolean = false>(
   options: Options<GetReposByRepoIdConfigData, ThrowOnError>
 ) => {
   return (options.client ?? client).get<
     GetReposByRepoIdConfigResponses,
-    unknown,
+    GetReposByRepoIdConfigErrors,
     ThrowOnError
   >({
     url: '/repos/{repoId}/config',
@@ -623,6 +597,82 @@ export const getReposOrgByOrgIdConfigs = <ThrowOnError extends boolean = false>(
   >({
     url: '/repos/org/{orgId}/configs',
     ...options,
+  });
+};
+
+/**
+ * Confirm repository configuration
+ */
+export const postReposByRepoIdConfigConfirm = <
+  ThrowOnError extends boolean = false
+>(
+  options: Options<PostReposByRepoIdConfigConfirmData, ThrowOnError>
+) => {
+  return (options.client ?? client).post<
+    PostReposByRepoIdConfigConfirmResponses,
+    PostReposByRepoIdConfigConfirmErrors,
+    ThrowOnError
+  >({
+    url: '/repos/{repoId}/config/confirm',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Re-infer repository configuration
+ */
+export const postReposByRepoIdConfigReInfer = <
+  ThrowOnError extends boolean = false
+>(
+  options: Options<PostReposByRepoIdConfigReInferData, ThrowOnError>
+) => {
+  return (options.client ?? client).post<
+    PostReposByRepoIdConfigReInferResponses,
+    PostReposByRepoIdConfigReInferErrors,
+    ThrowOnError
+  >({
+    url: '/repos/{repoId}/config/re-infer',
+    ...options,
+  });
+};
+
+/**
+ * Get all repositories with configurations
+ */
+export const getRepos = <ThrowOnError extends boolean = false>(
+  options?: Options<GetReposData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    GetReposResponses,
+    GetReposErrors,
+    ThrowOnError
+  >({
+    url: '/repos/',
+    ...options,
+  });
+};
+
+/**
+ * Update repository description
+ */
+export const patchReposById = <ThrowOnError extends boolean = false>(
+  options: Options<PatchReposByIdData, ThrowOnError>
+) => {
+  return (options.client ?? client).patch<
+    PatchReposByIdResponses,
+    PatchReposByIdErrors,
+    ThrowOnError
+  >({
+    url: '/repos/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 };
 

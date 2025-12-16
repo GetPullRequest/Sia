@@ -55,7 +55,6 @@ services:
     restart: unless-stopped
     working_dir: /app
     env_file:
-      - .env
       - apps/api/.env
     environment:
       - NODE_ENV=development

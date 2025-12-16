@@ -11,3 +11,4 @@ export * from './update-agent-status-activity';
 export * from './pause-agent-schedules-activity';
 export * from './log-to-job-activity';
 export * from './preprocess-activity';
+export * from './get-repo-configs-activity';

@@ -264,6 +264,132 @@ export type Repo = {
   updated_at: string;
 };
 
+export type ValidationStrategy = {
+  runBuild: boolean;
+  runTests: boolean;
+  runLinter: boolean;
+};
+
+export type DevcontainerConfig = {
+  image: string | null;
+  runArgs: Array<string>;
+};
+
+export type RepoConfig = {
+  id: string;
+  repoId: string;
+  orgId: string;
+  executionStrategy?: 'auto' | 'devcontainer' | 'docker-compose' | 'custom';
+  setupCommands?: Array<string>;
+  buildCommands?: Array<string>;
+  testCommands?: Array<string>;
+  validationStrategy?: {
+    runBuild: boolean;
+    runTests: boolean;
+    runLinter: boolean;
+  };
+  envVarsNeeded?: Array<string>;
+  detectedLanguage?: string;
+  detectedFrom?: string;
+  devcontainerConfig?: {
+    image: string | null;
+    runArgs: Array<string>;
+  };
+  isConfirmed: boolean;
+  inferredAt?: string;
+  confirmedAt?: string;
+  inferenceSource?: string;
+  inferenceConfidence?: 'high' | 'medium' | 'low';
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RepoWithConfig = {
+  id: string;
+  name: string;
+  description?: string;
+  url: string;
+  repo_provider_id: string;
+  created_at: string;
+  updated_at: string;
+  config: {
+    id: string;
+    repoId: string;
+    orgId: string;
+    executionStrategy?: 'auto' | 'devcontainer' | 'docker-compose' | 'custom';
+    setupCommands?: Array<string>;
+    buildCommands?: Array<string>;
+    testCommands?: Array<string>;
+    validationStrategy?: {
+      runBuild: boolean;
+      runTests: boolean;
+      runLinter: boolean;
+    };
+    envVarsNeeded?: Array<string>;
+    detectedLanguage?: string;
+    detectedFrom?: string;
+    devcontainerConfig?: {
+      image: string | null;
+      runArgs: Array<string>;
+    };
+    isConfirmed: boolean;
+    inferredAt?: string;
+    confirmedAt?: string;
+    inferenceSource?: string;
+    inferenceConfidence?: 'high' | 'medium' | 'low';
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type GetReposWithConfigsResponse = Array<{
+  id: string;
+  name: string;
+  description?: string;
+  url: string;
+  repo_provider_id: string;
+  created_at: string;
+  updated_at: string;
+  config: {
+    id: string;
+    repoId: string;
+    orgId: string;
+    executionStrategy?: 'auto' | 'devcontainer' | 'docker-compose' | 'custom';
+    setupCommands?: Array<string>;
+    buildCommands?: Array<string>;
+    testCommands?: Array<string>;
+    validationStrategy?: {
+      runBuild: boolean;
+      runTests: boolean;
+      runLinter: boolean;
+    };
+    envVarsNeeded?: Array<string>;
+    detectedLanguage?: string;
+    detectedFrom?: string;
+    devcontainerConfig?: {
+      image: string | null;
+      runArgs: Array<string>;
+    };
+    isConfirmed: boolean;
+    inferredAt?: string;
+    confirmedAt?: string;
+    inferenceSource?: string;
+    inferenceConfidence?: 'high' | 'medium' | 'low';
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+}>;
+
+export type UpdateRepoDescriptionRequest = {
+  description?: string;
+};
+
+export type ConfirmRepoConfigRequest = {
+  setupCommands?: Array<string>;
+  buildCommands?: Array<string>;
+  testCommands?: Array<string>;
+};
+
 export type RepoProvider = {
   id: string;
   name: string;
@@ -1257,74 +1383,6 @@ export type GetReposGithubProvidersByIdTokenResponses = {
 export type GetReposGithubProvidersByIdTokenResponse =
   GetReposGithubProvidersByIdTokenResponses[keyof GetReposGithubProvidersByIdTokenResponses];
 
-export type GetReposData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/repos';
-};
-
-export type GetReposErrors = {
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type GetReposError = GetReposErrors[keyof GetReposErrors];
-
-export type GetReposResponses = {
-  /**
-   * List of repos
-   */
-  200: Array<Repo>;
-};
-
-export type GetReposResponse2 = GetReposResponses[keyof GetReposResponses];
-
-export type PatchReposByIdData = {
-  body?: {
-    description?: string;
-  };
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/repos/{id}';
-};
-
-export type PatchReposByIdErrors = {
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Repo not found
-   */
-  404: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PatchReposByIdError =
-  PatchReposByIdErrors[keyof PatchReposByIdErrors];
-
-export type PatchReposByIdResponses = {
-  /**
-   * Repo updated successfully
-   */
-  200: Repo;
-};
-
-export type PatchReposByIdResponse =
-  PatchReposByIdResponses[keyof PatchReposByIdResponses];
-
 export type DeleteReposByRepoIdConfigData = {
   body?: never;
   path: {
@@ -1350,12 +1408,29 @@ export type GetReposByRepoIdConfigData = {
   url: '/repos/{repoId}/config';
 };
 
-export type GetReposByRepoIdConfigResponses = {
+export type GetReposByRepoIdConfigErrors = {
   /**
    * Default Response
    */
-  200: unknown;
+  401: ErrorResponse;
+  /**
+   * Default Response
+   */
+  500: ErrorResponse;
 };
+
+export type GetReposByRepoIdConfigError =
+  GetReposByRepoIdConfigErrors[keyof GetReposByRepoIdConfigErrors];
+
+export type GetReposByRepoIdConfigResponses = {
+  /**
+   * Repository configuration
+   */
+  200: RepoConfig;
+};
+
+export type GetReposByRepoIdConfigResponse =
+  GetReposByRepoIdConfigResponses[keyof GetReposByRepoIdConfigResponses];
 
 export type PostReposByRepoIdConfigData = {
   body?: never;
@@ -1388,6 +1463,142 @@ export type GetReposOrgByOrgIdConfigsResponses = {
    */
   200: unknown;
 };
+
+export type PostReposByRepoIdConfigConfirmData = {
+  body?: ConfirmRepoConfigRequest;
+  path: {
+    repoId: string;
+  };
+  query?: never;
+  url: '/repos/{repoId}/config/confirm';
+};
+
+export type PostReposByRepoIdConfigConfirmErrors = {
+  /**
+   * Default Response
+   */
+  401: ErrorResponse;
+  /**
+   * Default Response
+   */
+  404: ErrorResponse;
+  /**
+   * Default Response
+   */
+  500: ErrorResponse;
+};
+
+export type PostReposByRepoIdConfigConfirmError =
+  PostReposByRepoIdConfigConfirmErrors[keyof PostReposByRepoIdConfigConfirmErrors];
+
+export type PostReposByRepoIdConfigConfirmResponses = {
+  /**
+   * Configuration confirmed
+   */
+  200: RepoConfig;
+};
+
+export type PostReposByRepoIdConfigConfirmResponse =
+  PostReposByRepoIdConfigConfirmResponses[keyof PostReposByRepoIdConfigConfirmResponses];
+
+export type PostReposByRepoIdConfigReInferData = {
+  body?: never;
+  path: {
+    repoId: string;
+  };
+  query?: never;
+  url: '/repos/{repoId}/config/re-infer';
+};
+
+export type PostReposByRepoIdConfigReInferErrors = {
+  /**
+   * Default Response
+   */
+  401: ErrorResponse;
+  /**
+   * Default Response
+   */
+  500: ErrorResponse;
+};
+
+export type PostReposByRepoIdConfigReInferError =
+  PostReposByRepoIdConfigReInferErrors[keyof PostReposByRepoIdConfigReInferErrors];
+
+export type PostReposByRepoIdConfigReInferResponses = {
+  /**
+   * Configuration re-inferred
+   */
+  200: RepoConfig;
+};
+
+export type PostReposByRepoIdConfigReInferResponse =
+  PostReposByRepoIdConfigReInferResponses[keyof PostReposByRepoIdConfigReInferResponses];
+
+export type GetReposData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/repos/';
+};
+
+export type GetReposErrors = {
+  /**
+   * Default Response
+   */
+  401: ErrorResponse;
+  /**
+   * Default Response
+   */
+  500: ErrorResponse;
+};
+
+export type GetReposError = GetReposErrors[keyof GetReposErrors];
+
+export type GetReposResponses = {
+  /**
+   * List of repositories with configurations
+   */
+  200: GetReposWithConfigsResponse;
+};
+
+export type GetReposResponse2 = GetReposResponses[keyof GetReposResponses];
+
+export type PatchReposByIdData = {
+  body?: UpdateRepoDescriptionRequest;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/repos/{id}';
+};
+
+export type PatchReposByIdErrors = {
+  /**
+   * Default Response
+   */
+  401: ErrorResponse;
+  /**
+   * Default Response
+   */
+  404: ErrorResponse;
+  /**
+   * Default Response
+   */
+  500: ErrorResponse;
+};
+
+export type PatchReposByIdError =
+  PatchReposByIdErrors[keyof PatchReposByIdErrors];
+
+export type PatchReposByIdResponses = {
+  /**
+   * Repository updated
+   */
+  200: RepoWithConfig;
+};
+
+export type PatchReposByIdResponse =
+  PatchReposByIdResponses[keyof PatchReposByIdResponses];
 
 export type GetIntegrationsSlackConnectData = {
   body?: never;

@@ -76,6 +76,13 @@ export default function AgentsPage() {
         description: 'The agent status has been changed',
       });
     },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update agent status',
+        variant: 'destructive',
+      });
+    },
   });
 
   const reconnectMutation = useMutation({

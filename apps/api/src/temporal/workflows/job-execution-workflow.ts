@@ -8,6 +8,7 @@ const {
   updateJobStatus,
   getJobDetails,
   logToJobActivity,
+  getRepoConfigs,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: '30 minutes',
   heartbeatTimeout: '5 minutes', // Detect if agent becomes unresponsive
@@ -21,7 +22,14 @@ const {
 export interface RepoConfig {
   repoId: string;
   name: string;
+  url?: string;
   branch?: string;
+  // Optional: configuration from database
+  setupCommands?: string[];
+  buildCommands?: string[];
+  testCommands?: string[];
+  isConfirmed?: boolean;
+  detectedFrom?: string;
 }
 
 export async function jobExecutionWorkflow(params: {
@@ -29,9 +37,28 @@ export async function jobExecutionWorkflow(params: {
   orgId: string;
   queueType: 'rework' | 'backlog';
   agentId?: string;
-  repos?: RepoConfig[]; // NEW: Support multi-repo
+  repos?: RepoConfig[];
 }): Promise<{ prLink?: string; status: string }> {
   const { jobId, orgId, agentId, repos } = params;
+
+  // Helper function for logging - only requires level and message
+  const log = async (
+    level: 'info' | 'error' | 'warn' | 'debug',
+    message: string
+  ) => {
+    await logToJobActivity({
+      jobId,
+      orgId,
+      level,
+      message,
+      stage: 'workflow',
+    });
+  };
+
+  let finalStatus: 'completed' | 'failed' = 'completed';
+  let finalError: string | undefined;
+  const prLinks: string[] = [];
+  const verificationErrors: string[] = [];
 
   try {
     // Get job details
@@ -45,331 +72,400 @@ export async function jobExecutionWorkflow(params: {
     // by the claimNextJobFromQueue activity in queueMonitorWorkflow
     // This ensures atomicity and prevents race conditions
 
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Workflow execution started for job ${jobId} in org ${orgId}`,
-      stage: 'workflow',
-    });
+    await log(
+      'info',
+      `Workflow execution started for job ${jobId} in org ${orgId}`
+    );
 
     // Prepare repos array from job.repos
-    const reposToUse: RepoConfig[] =
-      repos ||
-      (job.repos && job.repos.length > 0
-        ? job.repos.map(
-            (repoId: string): RepoConfig => ({
-              repoId,
-              name: repoId.split('/')[1] || repoId,
-            })
-          )
-        : []);
+    // If only one repo exists, use it automatically
+    let reposToUse: RepoConfig[] = [];
+    if (repos && repos.length > 0) {
+      reposToUse = repos;
+    } else if (job.repos && job.repos.length > 0) {
+      if (job.repos.length === 1) {
+        // Single repo - use it automatically
+        reposToUse = [
+          {
+            repoId: job.repos[0],
+            name: job.repos[0].split('/')[1] || job.repos[0],
+          },
+        ];
+      } else {
+        // Multiple repos - map them
+        reposToUse = job.repos.map(
+          (repoId: string): RepoConfig => ({
+            repoId,
+            name: repoId.split('/')[1] || repoId,
+          })
+        );
+      }
+    }
 
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Job details: prompt="${job.prompt?.substring(0, 100)}${
+    // Fetch repository configurations if repos exist
+    let enrichedRepos: RepoConfig[] = reposToUse;
+    if (reposToUse.length > 0) {
+      await log(
+        'info',
+        `Fetching configurations for ${reposToUse.length} repository(ies)`
+      );
+
+      const repoIds = reposToUse.map(r => r.repoId);
+      const configsMap = await getRepoConfigs({ repoIds, orgId });
+
+      // Merge configs with repos and log status
+      enrichedRepos = [];
+      for (const repo of reposToUse) {
+        const config = configsMap.get(repo.repoId);
+        if (config) {
+          await log(
+            'info',
+            `${
+              config.isConfirmed ? '✓ Confirmed' : '⚠ Unconfirmed'
+            } config for ${repo.repoId}${
+              config.detectedFrom ? ` (from ${config.detectedFrom})` : ''
+            }`
+          );
+
+          enrichedRepos.push({
+            ...repo,
+            url: config.url || repo.url,
+            setupCommands: config.setupCommands,
+            buildCommands: config.buildCommands,
+            testCommands: config.testCommands,
+            isConfirmed: config.isConfirmed,
+            detectedFrom: config.detectedFrom,
+          });
+        } else {
+          await log(
+            'warn',
+            `No configuration found for ${repo.repoId} - will attempt runtime detection`
+          );
+          enrichedRepos.push(repo);
+        }
+      }
+    }
+
+    await log(
+      'info',
+      `Job details: prompt="${job.prompt?.substring(0, 100)}${
         job.prompt && job.prompt.length > 100 ? '...' : ''
       }", repos=${
-        reposToUse.length > 0
-          ? reposToUse.map(r => r.repoId).join(', ')
+        enrichedRepos.length > 0
+          ? enrichedRepos.map(r => r.repoId).join(', ')
           : 'none'
-      }, agentId=${agentId || 'default'}`,
-      stage: 'workflow',
-    });
+      }, agentId=${agentId || 'default'}`
+    );
 
     // Step 1: Get git credentials from API (Backend)
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Starting: Get git credentials for ${
-        reposToUse.length > 0 ? `${reposToUse.length} repo(s)` : 'no repos'
-      }`,
-      stage: 'workflow',
-    });
+    await log(
+      'info',
+      `Starting: Get git credentials for ${
+        enrichedRepos.length > 0
+          ? `${enrichedRepos.length} repo(s)`
+          : 'no repos'
+      }`
+    );
     const gitCredentials = await getGitCredentials({
       jobId,
       orgId,
-      repoId: reposToUse[0]?.repoId, // Use first repo for credentials (assumes same creds for all repos in org)
+      repoId: enrichedRepos[0]?.repoId, // Use first repo for credentials (assumes same creds for all repos in org)
     });
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Completed: Get git credentials - token obtained: ${
+    await log(
+      'info',
+      `Completed: Get git credentials - token obtained: ${
         gitCredentials?.token ? 'yes' : 'no'
-      }, username: ${gitCredentials?.username || 'none'}`,
-      stage: 'workflow',
-    });
+      }, username: ${gitCredentials?.username || 'none'}`
+    );
 
     // Step 2: Get vibe coder credentials (Backend) - pass agentId to read from agent record
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Starting: Get vibe agent credentials for agentId=${
-        agentId || 'default'
-      }`,
-      stage: 'workflow',
-    });
+    await log(
+      'info',
+      `Starting: Get vibe agent credentials for agentId=${agentId || 'default'}`
+    );
     let vibeCoderCredentials;
     try {
       vibeCoderCredentials = await getVibeCoderCredentials({ orgId, agentId });
-      await logToJobActivity({
-        jobId,
-        orgId,
-        level: 'info',
-        message: `Completed: Get vibe coder credentials - credentials obtained: ${
+      await log(
+        'info',
+        `Completed: Get vibe coder credentials - credentials obtained: ${
           vibeCoderCredentials ? 'yes' : 'no'
-        }`,
-        stage: 'workflow',
-      });
+        }`
+      );
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      await logToJobActivity({
-        jobId,
-        orgId,
-        level: 'error',
-        message: `Failed: Get vibe coder credentials - ${errorMsg}`,
-        stage: 'workflow',
-      });
-      await logToJobActivity({
-        jobId,
-        orgId,
-        level: 'error',
-        message: `Workflow aborting due to credentials failure. Please check agent configuration for agentId=${
+      await log('error', `Failed: Get vibe coder credentials - ${errorMsg}`);
+      await log(
+        'error',
+        `Workflow aborting due to credentials failure. Please check agent configuration for agentId=${
           agentId || 'default'
-        }`,
-        stage: 'workflow',
-      });
-      // Update job status to failed with credentials error
-      await updateJobStatus({
-        jobId,
-        orgId,
-        status: 'failed',
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to get vibe-agent credentials',
-      });
+        }`
+      );
+      finalStatus = 'failed';
+      finalError =
+        error instanceof Error
+          ? error.message
+          : 'Failed to get vibe-agent credentials';
       throw error;
     }
 
-    // Step 3-5: Send command to agent to start execution
-    // Agent will: clone repos, start cursor, execute task
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Starting: Code generation execution - connecting to agent (agentId=${
-        agentId || 'default'
-      })`,
-      stage: 'workflow',
-    });
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Sending startExecution command to agent with repos: ${
-        reposToUse.length > 0
-          ? reposToUse.map(r => r.repoId).join(', ')
-          : 'none'
-      }`,
-      stage: 'workflow',
-    });
-    await sendCommandToAgent({
-      jobId,
-      orgId,
-      command: 'startExecution',
-      payload: {
-        gitCredentials,
-        vibeCoderCredentials,
-        prompt: job.prompt,
-        repos: reposToUse, // Pass repos array
-        agentId, // Pass agentId to activity
-      },
-    });
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message:
-        'Completed: Code generation execution - agent finished processing',
-      stage: 'workflow',
-    });
-
-    // Step 6: Code generation streams via gRPC (handled in activity)
-    // Step 7: Execution completes (handled in startExecution)
-
-    // Step 7.a: Automatically run verification
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Starting: Run verification - sending runVerification command to agent`,
-      stage: 'workflow',
-    });
-    const verificationResult = await sendCommandToAgent({
-      jobId,
-      orgId,
-      command: 'runVerification',
-      payload: { agentId }, // Pass agentId to activity
-    });
-
-    if (!verificationResult.success) {
-      await logToJobActivity({
+    // Step 3: Checkout - Clone repositories
+    await log(
+      'info',
+      `Starting: Checkout - cloning ${enrichedRepos.length} repository(ies)`
+    );
+    try {
+      await sendCommandToAgent({
         jobId,
         orgId,
-        level: 'error',
-        message: `Failed: Run verification - ${verificationResult.message}`,
-        stage: 'workflow',
+        command: 'checkout',
+        payload: {
+          gitCredentials,
+          vibeCoderCredentials,
+          prompt: job.prompt,
+          repos: enrichedRepos, // Pass repos array with configs including URLs
+          agentId,
+        },
       });
-      await logToJobActivity({
-        jobId,
-        orgId,
-        level: 'error',
-        message: `Verification errors: ${
-          verificationResult.errors?.join(', ') || 'none provided'
-        }`,
-        stage: 'workflow',
-      });
-      throw new Error(`Verification failed: ${verificationResult.message}`);
+      await log('info', 'Completed: Checkout - repositories cloned');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await log('error', `Failed: Checkout - ${errorMsg}`);
+      throw error; // Checkout failure should stop the workflow
     }
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Completed: Run verification - all checks passed`,
-      stage: 'workflow',
-    });
 
-    // Step 8-9: Automatically create PRs (if repos exist)
-    let prResult = null;
-    const prLinks: string[] = [];
-
-    if (reposToUse.length > 0) {
-      await logToJobActivity({
+    // Step 4: Setup - Run setup commands
+    await log('info', 'Starting: Setup - running setup commands');
+    let setupSuccess = true;
+    try {
+      await sendCommandToAgent({
         jobId,
         orgId,
-        level: 'info',
-        message: `Starting: Create pull requests for ${reposToUse.length} repo(s)`,
-        stage: 'workflow',
+        command: 'setup',
+        payload: {
+          gitCredentials,
+          vibeCoderCredentials,
+          prompt: job.prompt,
+          repos: enrichedRepos,
+          agentId,
+        },
+      });
+      await log('info', 'Completed: Setup - setup commands executed');
+    } catch (error) {
+      setupSuccess = false;
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await log('error', `Failed: Setup - ${errorMsg}`);
+      verificationErrors.push(`Setup failed: ${errorMsg}`);
+    }
+
+    // Step 5: Execute - Run code generation
+    await log('info', 'Starting: Execute - running code generation');
+    try {
+      await sendCommandToAgent({
+        jobId,
+        orgId,
+        command: 'execute',
+        payload: {
+          gitCredentials,
+          vibeCoderCredentials,
+          prompt: job.prompt,
+          repos: enrichedRepos,
+          agentId,
+        },
+      });
+      await log('info', 'Completed: Execute - code generation finished');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await log('error', `Failed: Execute - ${errorMsg}`);
+      verificationErrors.push(`Execute failed: ${errorMsg}`);
+    }
+
+    // Step 6: Build - Run build commands
+    await log('info', 'Starting: Build - running build commands');
+    let buildSuccess = true;
+    try {
+      await sendCommandToAgent({
+        jobId,
+        orgId,
+        command: 'build',
+        payload: {
+          gitCredentials,
+          vibeCoderCredentials,
+          prompt: job.prompt,
+          repos: enrichedRepos,
+          agentId,
+        },
+      });
+      await log('info', 'Completed: Build - build commands executed');
+    } catch (error) {
+      buildSuccess = false;
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await log('error', `Failed: Build - ${errorMsg}`);
+      verificationErrors.push(`Build failed: ${errorMsg}`);
+    }
+
+    // Step 7: Verify - Run verification (tests, lint, etc.)
+    await log('info', 'Starting: Verify - running verification');
+    let verifySuccess = true;
+    try {
+      const verificationResult = await sendCommandToAgent({
+        jobId,
+        orgId,
+        command: 'runVerification',
+        payload: { agentId },
       });
 
-      // Create PR for each repo
-      for (const repo of reposToUse) {
-        await logToJobActivity({
-          jobId,
-          orgId,
-          level: 'info',
-          message: `Creating PR for ${repo.repoId}, branch=${jobId}-${repo.name}`,
-          stage: 'workflow',
-        });
-
-        const repoPrResult = await sendCommandToAgent({
-          jobId,
-          orgId,
-          command: 'createPR',
-          payload: {
-            repoId: repo.repoId,
-            branchName: `${jobId}-${repo.name}`, // Unique branch per repo
-            agentId,
-          },
-        });
-
-        if (repoPrResult.prLink) {
-          prLinks.push(repoPrResult.prLink);
-          await logToJobActivity({
-            jobId,
-            orgId,
-            level: 'info',
-            message: `Completed: PR created for ${repo.repoId} - ${repoPrResult.prLink}`,
-            stage: 'workflow',
-          });
+      if (!verificationResult.success) {
+        verifySuccess = false;
+        await log('error', `Failed: Verify - ${verificationResult.message}`);
+        if (verificationResult.errors && verificationResult.errors.length > 0) {
+          verificationErrors.push(...verificationResult.errors);
+          await log(
+            'error',
+            `Verification errors: ${verificationResult.errors.join(', ')}`
+          );
+        } else {
+          verificationErrors.push(
+            verificationResult.message || 'Verification failed'
+          );
         }
+      } else {
+        await log('info', 'Completed: Verify - all checks passed');
+      }
+    } catch (error) {
+      verifySuccess = false;
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await log('error', `Failed: Verify - ${errorMsg}`);
+      verificationErrors.push(`Verification failed: ${errorMsg}`);
+    }
+
+    // Step 8: Create PRs (even if Build/Verify failed) - include failure content in PR
+    if (enrichedRepos.length > 0) {
+      await log(
+        'info',
+        `Starting: Create pull requests for ${enrichedRepos.length} repo(s)`
+      );
+
+      // Prepare PR body with failure information if any
+      const failureSummary: string[] = [];
+      if (!setupSuccess) {
+        failureSummary.push('⚠️ Setup step failed');
+      }
+      if (!buildSuccess) {
+        failureSummary.push('⚠️ Build step failed');
+      }
+      if (!verifySuccess) {
+        failureSummary.push('⚠️ Verify step failed');
       }
 
-      // Use first PR link for backward compatibility
-      prResult = { prLink: prLinks[0] };
+      const prBody =
+        failureSummary.length > 0
+          ? `This PR was automatically generated by Sia for job ${jobId}.\n\n**Note:** Some steps failed:\n${failureSummary
+              .map(f => `- ${f}`)
+              .join('\n')}\n\n${
+              verificationErrors.length > 0
+                ? `\n**Errors:**\n${verificationErrors
+                    .map(e => `- ${e}`)
+                    .join('\n')}`
+                : ''
+            }`
+          : `This PR was automatically generated by Sia for job ${jobId}.`;
 
-      // Step 12: Backend updates PR in job and marks as in-review
-      await logToJobActivity({
-        jobId,
-        orgId,
-        level: 'info',
-        message: `Starting: Update job status to in-review with ${prLinks.length} PR link(s)`,
-        stage: 'workflow',
-      });
-      await updateJobStatus({
-        jobId,
-        orgId,
-        status: 'in-review',
-        prLink: prLinks[0], // Store first PR link (can extend to support multiple in future)
-      });
-      await logToJobActivity({
-        jobId,
-        orgId,
-        level: 'info',
-        message: `Completed: Update job status to in-review`,
-        stage: 'workflow',
-      });
+      // Create PR for each repo
+      for (const repo of enrichedRepos) {
+        await log(
+          'info',
+          `Creating PR for ${repo.repoId}, branch=${jobId}-${repo.name}`
+        );
+
+        try {
+          const repoPrResult = await sendCommandToAgent({
+            jobId,
+            orgId,
+            command: 'createPR',
+            payload: {
+              repoId: repo.repoId,
+              branchName: `${jobId}-${repo.name}`,
+              title: `Auto-generated PR for job ${jobId}`,
+              body: prBody,
+              agentId,
+            },
+          });
+
+          if (repoPrResult.prLink) {
+            prLinks.push(repoPrResult.prLink);
+            await log(
+              'info',
+              `Completed: PR created for ${repo.repoId} - ${repoPrResult.prLink}`
+            );
+          }
+        } catch (error) {
+          const errorMsg =
+            error instanceof Error ? error.message : 'Unknown error';
+          await log(
+            'error',
+            `Failed to create PR for ${repo.repoId}: ${errorMsg}`
+          );
+        }
+      }
     } else {
-      await logToJobActivity({
-        jobId,
-        orgId,
-        level: 'info',
-        message: `Skipping PR creation - no repos configured for this job`,
-        stage: 'workflow',
-      });
+      await log(
+        'info',
+        'Skipping PR creation - no repos configured for this job'
+      );
     }
 
-    // Step 10-11: Automatically cleanup
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Starting: Cleanup workspace on agent`,
-      stage: 'workflow',
-    });
-    await sendCommandToAgent({
-      jobId,
-      orgId,
-      command: 'cleanup',
-      payload: { agentId }, // Pass agentId to activity
-    });
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Completed: Cleanup workspace - agent resources released`,
-      stage: 'workflow',
-    });
+    // Step 9: Cleanup
+    await log('info', 'Starting: Cleanup workspace on agent');
+    try {
+      await sendCommandToAgent({
+        jobId,
+        orgId,
+        command: 'cleanup',
+        payload: { agentId },
+      });
+      await log(
+        'info',
+        'Completed: Cleanup workspace - agent resources released'
+      );
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await log('warn', `Cleanup warning: ${errorMsg}`);
+    }
 
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Workflow execution completed successfully for job ${jobId}`,
-      stage: 'workflow',
-    });
+    // Determine final status
+    if (!setupSuccess || !buildSuccess || !verifySuccess) {
+      finalStatus = 'failed';
+      finalError = `Some steps failed: ${[
+        !setupSuccess && 'Setup',
+        !buildSuccess && 'Build',
+        !verifySuccess && 'Verify',
+      ]
+        .filter(Boolean)
+        .join(', ')}`;
+    }
 
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'info',
-      message: `Final status: ${
+    await log(
+      'info',
+      `Workflow execution ${
+        finalStatus === 'completed'
+          ? 'completed successfully'
+          : 'completed with errors'
+      } for job ${jobId}`
+    );
+
+    await log(
+      'info',
+      `Final status: ${
         prLinks.length > 0
           ? `${prLinks.length} PR(s) created: ${prLinks.join(', ')}`
           : 'No PRs created (no repos configured)'
-      }`,
-      stage: 'workflow',
-    });
+      }`
+    );
 
     return {
-      prLink: prResult?.prLink,
-      status: 'completed',
+      prLink: prLinks.length > 0 ? prLinks[0] : undefined,
+      status: finalStatus,
     };
   } catch (error) {
     // Extract meaningful error message from Temporal errors
@@ -438,34 +534,16 @@ export async function jobExecutionWorkflow(params: {
     }
 
     // Log error details to generation logs for developer visibility
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'error',
-      message: `Workflow execution failed: ${errorMessage}`,
-      stage: 'workflow',
-    });
+    await log('error', `Workflow execution failed: ${errorMessage}`);
 
     // Log the full error message if different from the extracted one
     if (error instanceof Error && error.message !== errorMessage) {
-      await logToJobActivity({
-        jobId,
-        orgId,
-        level: 'error',
-        message: `Original error message: ${error.message}`,
-        stage: 'workflow',
-      });
+      await log('error', `Original error message: ${error.message}`);
     }
 
     // Log error cause if available
     if (errorCause) {
-      await logToJobActivity({
-        jobId,
-        orgId,
-        level: 'error',
-        message: `Error cause: ${errorCause}`,
-        stage: 'workflow',
-      });
+      await log('error', `Error cause: ${errorCause}`);
     }
 
     // Log stack trace (truncated to avoid overwhelming logs, but keep first 20 lines)
@@ -482,65 +560,59 @@ export async function jobExecutionWorkflow(params: {
         .join('\n');
 
       if (relevantStack) {
-        await logToJobActivity({
-          jobId,
-          orgId,
-          level: 'error',
-          message: `Stack trace:\n${relevantStack}`,
-          stage: 'workflow',
-        });
+        await log('error', `Stack trace:\n${relevantStack}`);
       }
     }
 
     // Log error type for additional context
     const errorType =
       error instanceof Error ? error.constructor.name : typeof error;
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'error',
-      message: `Error type: ${errorType}`,
-      stage: 'workflow',
-    });
+    await log('error', `Error type: ${errorType}`);
 
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'error',
-      message: `Job status will be updated to 'failed'. Please review the error details above.`,
-      stage: 'workflow',
-    });
-
-    await updateJobStatus({
-      jobId,
-      orgId,
-      status: 'failed',
-      error: errorMessage,
-    });
-
-    await logToJobActivity({
-      jobId,
-      orgId,
-      level: 'error',
-      message: `[Workflow] Workflow execution terminated with error. Job marked as failed.`,
-      stage: 'workflow',
-    });
+    // Set final status for finally block to handle
+    finalStatus = 'failed';
+    finalError = errorMessage;
 
     throw error;
   } finally {
-    // Log workflow completion/termination
-    // This will run whether the workflow succeeds or fails
+    // Update job status at the end (both success and failure cases)
     try {
-      await logToJobActivity({
+      const status = finalStatus === 'completed' ? 'completed' : 'failed';
+      const prLink = prLinks.length > 0 ? prLinks[0] : undefined;
+
+      await updateJobStatus({
         jobId,
         orgId,
-        level: 'info',
-        message: `[Workflow] Workflow execution completed/terminated.`,
-        stage: 'workflow',
+        status,
+        prLink,
+        error: finalError,
       });
+
+      await log(
+        'info',
+        `Job status updated to '${status}'${
+          finalError ? ` with error: ${finalError}` : ''
+        }${prLink ? ` - PR: ${prLink}` : ''}`
+      );
+    } catch (updateError) {
+      // Log update failure but don't throw - workflow is ending
+      try {
+        await log(
+          'error',
+          `Failed to update job status: ${
+            updateError instanceof Error ? updateError.message : 'Unknown error'
+          }`
+        );
+      } catch {
+        // If logging fails, we can't do much - workflow is ending anyway
+      }
+    }
+
+    // Log workflow completion/termination
+    try {
+      await log('info', 'Workflow execution completed/terminated');
     } catch {
       // If logging fails, we can't do much - workflow is ending anyway
-      // This is a best-effort log
     }
   }
 }

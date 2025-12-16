@@ -7,6 +7,7 @@ export interface ExtractedCommands {
   setupCommands: string[];
   buildCommands: string[];
   testCommands: string[];
+  description?: string;
   confidence: 'high' | 'medium' | 'low';
 }
 
@@ -23,40 +24,36 @@ export async function extractCommandsFromReadme(
       ? `# README.md\n\n${readmeContent}\n\n# CONTRIBUTING.md\n\n${contributingContent}`
       : readmeContent;
 
-    // Truncate if too long (keep first 8000 chars to stay within token limits)
+    // Truncate if too long (keep first 16000 chars to stay within token limits)
     const truncatedContent =
-      combinedContent.length > 8000
-        ? combinedContent.substring(0, 8000) + '\n\n[... content truncated ...]'
+      combinedContent.length > 16000
+        ? combinedContent.substring(0, 16000) +
+          '\n\n[... content truncated ...]'
         : combinedContent;
 
     const result = await generateText({
       model,
-      system: `You are a technical assistant that extracts setup, build, and test commands from repository documentation.
+      system: `Extract setup, build, test commands and repository description from README/CONTRIBUTING documentation.
 
-Your task is to read README and CONTRIBUTING files and identify:
-1. **Setup commands**: Commands needed to install dependencies (npm install, pip install, etc.)
-2. **Build commands**: Commands to build/compile the project (npm run build, make, etc.)
-3. **Test commands**: Commands to run tests (npm test, pytest, cargo test, etc.)
+Setup commands: Only runtime/version installation commands (nvm, pyenv, sdk). Exclude git clone and dependency installation.
+Build commands: Return dependency installation and build commands as separate strings in execution order. Do not chain with &&.
+Test commands: Extract 1-2 primary test commands.
+Description: Extract or synthesize a 1-3 sentence repository description from README/CONTRIBUTING.
 
-Rules:
-- Extract actual shell commands, not descriptions
-- Remove shell prompt indicators like $ or >
-- Keep commands concise and executable
-- If multiple commands serve the same purpose, choose the most common/standard one
-- If no commands are found for a category, return an empty array
-- Do not include comments or explanations in commands`,
+Return only executable shell commands without prompts ($, >) or comments. Use empty arrays if no commands found.`,
       messages: [
         {
           role: 'user',
-          content: `Extract the setup, build, and test commands from this repository documentation:
+          content: `Extract the setup, build, and test commands, plus repository description from this documentation:
 
 ${truncatedContent}
 
 Return your response in this exact JSON format:
 {
-  "setupCommands": ["command1", "command2"],
-  "buildCommands": ["command1"],
-  "testCommands": ["command1", "command2"]
+  "setupCommands": [],
+  "buildCommands": [],
+  "testCommands": [],
+  "description": ""
 }
 
 Important: Return ONLY the JSON, no markdown formatting or additional text.`,
@@ -70,6 +67,7 @@ Important: Return ONLY the JSON, no markdown formatting or additional text.`,
       setupCommands: string[];
       buildCommands: string[];
       testCommands: string[];
+      description?: string;
     };
 
     // Extract JSON from markdown code blocks if present
@@ -85,20 +83,38 @@ Important: Return ONLY the JSON, no markdown formatting or additional text.`,
     }
 
     // Validate and clean commands
-    const setupCommands = cleanCommands(parsed.setupCommands || []);
-    const buildCommands = cleanCommands(parsed.buildCommands || []);
+    const setupCommands = cleanCommands(parsed.setupCommands || []).filter(
+      cmd => !cmd.includes('git clone') && !cmd.includes('clone')
+    );
+    // Split any chained build commands (safety check in case LLM doesn't follow instructions)
+    const buildCommands = cleanCommands(parsed.buildCommands || []).flatMap(
+      cmd =>
+        cmd
+          .split(/\s+&&\s+/)
+          .map(c => c.trim())
+          .filter(Boolean)
+    );
     const testCommands = cleanCommands(parsed.testCommands || []);
+
+    // Clean and validate description
+    const description = parsed.description
+      ? parsed.description.trim().replace(/\n+/g, ' ').substring(0, 500)
+      : undefined;
+
+    // Limit test commands to 1-2
+    const limitedTestCommands = testCommands.slice(0, 2);
 
     // Determine confidence based on number of commands found
     const totalCommands =
-      setupCommands.length + buildCommands.length + testCommands.length;
+      setupCommands.length + buildCommands.length + limitedTestCommands.length;
     const confidence: 'high' | 'medium' | 'low' =
-      totalCommands >= 3 ? 'medium' : totalCommands >= 1 ? 'medium' : 'low';
+      totalCommands >= 3 ? 'high' : totalCommands >= 1 ? 'medium' : 'low';
 
     return {
       setupCommands,
       buildCommands,
-      testCommands,
+      testCommands: limitedTestCommands,
+      description,
       confidence,
     };
   } catch (error) {
@@ -108,6 +124,7 @@ Important: Return ONLY the JSON, no markdown formatting or additional text.`,
       setupCommands: [],
       buildCommands: [],
       testCommands: [],
+      description: undefined,
       confidence: 'low',
     };
   }

@@ -1055,6 +1055,613 @@
           "updated_at"
         ]
       },
+      "ValidationStrategy": {
+        "type": "object",
+        "properties": {
+          "runBuild": {
+            "type": "boolean"
+          },
+          "runTests": {
+            "type": "boolean"
+          },
+          "runLinter": {
+            "type": "boolean"
+          }
+        },
+        "required": ["runBuild", "runTests", "runLinter"]
+      },
+      "DevcontainerConfig": {
+        "type": "object",
+        "properties": {
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runArgs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["image", "runArgs"]
+      },
+      "RepoConfig": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "repoId": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "string"
+          },
+          "executionStrategy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["auto"]
+              },
+              {
+                "type": "string",
+                "enum": ["devcontainer"]
+              },
+              {
+                "type": "string",
+                "enum": ["docker-compose"]
+              },
+              {
+                "type": "string",
+                "enum": ["custom"]
+              }
+            ]
+          },
+          "setupCommands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "buildCommands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "testCommands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "validationStrategy": {
+            "type": "object",
+            "properties": {
+              "runBuild": {
+                "type": "boolean"
+              },
+              "runTests": {
+                "type": "boolean"
+              },
+              "runLinter": {
+                "type": "boolean"
+              }
+            },
+            "required": ["runBuild", "runTests", "runLinter"]
+          },
+          "envVarsNeeded": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "detectedLanguage": {
+            "type": "string"
+          },
+          "detectedFrom": {
+            "type": "string"
+          },
+          "devcontainerConfig": {
+            "type": "object",
+            "properties": {
+              "image": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "runArgs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["image", "runArgs"]
+          },
+          "isConfirmed": {
+            "type": "boolean"
+          },
+          "inferredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "confirmedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inferenceSource": {
+            "type": "string"
+          },
+          "inferenceConfidence": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["high"]
+              },
+              {
+                "type": "string",
+                "enum": ["medium"]
+              },
+              {
+                "type": "string",
+                "enum": ["low"]
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "repoId",
+          "orgId",
+          "isConfirmed",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "RepoWithConfig": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "repo_provider_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "repoId": {
+                    "type": "string"
+                  },
+                  "orgId": {
+                    "type": "string"
+                  },
+                  "executionStrategy": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["auto"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["devcontainer"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["docker-compose"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["custom"]
+                      }
+                    ]
+                  },
+                  "setupCommands": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "buildCommands": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "testCommands": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "validationStrategy": {
+                    "type": "object",
+                    "properties": {
+                      "runBuild": {
+                        "type": "boolean"
+                      },
+                      "runTests": {
+                        "type": "boolean"
+                      },
+                      "runLinter": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["runBuild", "runTests", "runLinter"]
+                  },
+                  "envVarsNeeded": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "detectedLanguage": {
+                    "type": "string"
+                  },
+                  "detectedFrom": {
+                    "type": "string"
+                  },
+                  "devcontainerConfig": {
+                    "type": "object",
+                    "properties": {
+                      "image": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "runArgs": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": ["image", "runArgs"]
+                  },
+                  "isConfirmed": {
+                    "type": "boolean"
+                  },
+                  "inferredAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "confirmedAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "inferenceSource": {
+                    "type": "string"
+                  },
+                  "inferenceConfidence": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["high"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["medium"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["low"]
+                      }
+                    ]
+                  },
+                  "createdAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "updatedAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "repoId",
+                  "orgId",
+                  "isConfirmed",
+                  "createdAt",
+                  "updatedAt"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url",
+          "repo_provider_id",
+          "created_at",
+          "updated_at",
+          "config"
+        ]
+      },
+      "GetReposWithConfigsResponse": {
+        "type": "array",
+        "items": {
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "repo_provider_id": {
+              "type": "string"
+            },
+            "created_at": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "config": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "repoId": {
+                      "type": "string"
+                    },
+                    "orgId": {
+                      "type": "string"
+                    },
+                    "executionStrategy": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["auto"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["devcontainer"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["docker-compose"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["custom"]
+                        }
+                      ]
+                    },
+                    "setupCommands": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "buildCommands": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "testCommands": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "validationStrategy": {
+                      "type": "object",
+                      "properties": {
+                        "runBuild": {
+                          "type": "boolean"
+                        },
+                        "runTests": {
+                          "type": "boolean"
+                        },
+                        "runLinter": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["runBuild", "runTests", "runLinter"]
+                    },
+                    "envVarsNeeded": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "detectedLanguage": {
+                      "type": "string"
+                    },
+                    "detectedFrom": {
+                      "type": "string"
+                    },
+                    "devcontainerConfig": {
+                      "type": "object",
+                      "properties": {
+                        "image": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "runArgs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": ["image", "runArgs"]
+                    },
+                    "isConfirmed": {
+                      "type": "boolean"
+                    },
+                    "inferredAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "confirmedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "inferenceSource": {
+                      "type": "string"
+                    },
+                    "inferenceConfidence": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["high"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["medium"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["low"]
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "repoId",
+                    "orgId",
+                    "isConfirmed",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "url",
+            "repo_provider_id",
+            "created_at",
+            "updated_at",
+            "config"
+          ]
+        }
+      },
+      "UpdateRepoDescriptionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "ConfirmRepoConfigRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "setupCommands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "buildCommands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "testCommands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "RepoProvider": {
         "additionalProperties": false,
         "type": "object",
@@ -3330,122 +3937,10 @@
         }
       }
     },
-    "/repos": {
-      "get": {
-        "tags": ["repos"],
-        "description": "Get all repos for the current organization",
-        "responses": {
-          "200": {
-            "description": "List of repos",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Repo"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/repos/{id}": {
-      "patch": {
-        "tags": ["repos"],
-        "description": "Update a repo description",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "description": {
-                    "type": "string",
-                    "maxLength": 2000
-                  }
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "id",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Repo updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Repo"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Repo not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/repos/{repoId}/config": {
       "get": {
+        "tags": ["repos"],
+        "description": "Get repository configuration",
         "parameters": [
           {
             "schema": {
@@ -3458,7 +3953,34 @@
         ],
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "Repository configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoConfig"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -3512,6 +4034,226 @@
         "responses": {
           "200": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/repos/{repoId}/config/confirm": {
+      "post": {
+        "tags": ["repos"],
+        "description": "Confirm repository configuration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmRepoConfigRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "repoId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoConfig"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/{repoId}/config/re-infer": {
+      "post": {
+        "tags": ["repos"],
+        "description": "Re-infer repository configuration",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "repoId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration re-inferred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoConfig"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/": {
+      "get": {
+        "tags": ["repos"],
+        "description": "Get all repositories with configurations",
+        "responses": {
+          "200": {
+            "description": "List of repositories with configurations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetReposWithConfigsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/{id}": {
+      "patch": {
+        "tags": ["repos"],
+        "description": "Update repository description",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRepoDescriptionRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Repository updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoWithConfig"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }

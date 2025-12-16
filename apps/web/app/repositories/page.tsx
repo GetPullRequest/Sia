@@ -1,7 +1,9 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -10,28 +12,24 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { api, type Repo } from '@/lib/api';
-import { ExternalLink, Edit2, Save, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import type { RepoConfig } from '@sia/models/api-client';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  ExternalLink,
+  Settings,
+  CheckCircle,
+  AlertCircle,
+  Info,
+} from 'lucide-react';
 import { useAuthInfo } from '@propelauth/react';
+import { RepoConfigDialog } from '@/components/repos/repo-config-dialog';
 
 export default function Repositories() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   const authInfo = useAuthInfo();
   const { isLoggedIn } = authInfo;
-  const [editingRepoId, setEditingRepoId] = useState<string | null>(null);
-  const [editDescription, setEditDescription] = useState<string>('');
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null);
 
   const { data: repos = [], isLoading } = useQuery<Repo[]>({
     queryKey: ['repos'],
@@ -41,54 +39,14 @@ export default function Repositories() {
     refetchOnWindowFocus: false,
   });
 
-  const updateRepoMutation = useMutation({
-    mutationFn: ({
-      repoId,
-      description,
-    }: {
-      repoId: string;
-      description: string;
-    }) => api.updateRepoDescription(repoId, description),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['repos'] });
-      setEditDialogOpen(false);
-      setEditingRepoId(null);
-      setEditDescription('');
-      toast({
-        title: 'Repository updated',
-        description: 'Repository description has been updated successfully',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Failed to update repository',
-        description:
-          error.message ||
-          'Unable to update repository description. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const handleEditClick = (repo: Repo) => {
-    setEditingRepoId(repo.id);
-    setEditDescription(repo.description || '');
-    setEditDialogOpen(true);
+  // Helper function to get config for a repo
+  const getRepoConfig = (repo: Repo): RepoConfig | undefined => {
+    return repo.config as RepoConfig | undefined;
   };
 
-  const handleSave = () => {
-    if (editingRepoId) {
-      updateRepoMutation.mutate({
-        repoId: editingRepoId,
-        description: editDescription,
-      });
-    }
-  };
-
-  const handleCancel = () => {
-    setEditDialogOpen(false);
-    setEditingRepoId(null);
-    setEditDescription('');
+  const handleConfigureClick = (repo: Repo) => {
+    setSelectedRepo(repo);
+    setConfigDialogOpen(true);
   };
 
   if (!isLoggedIn) {
@@ -132,98 +90,153 @@ export default function Repositories() {
       ) : repos.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground text-center py-8">
-              No repositories found. Connect a GitHub provider in Integrations
-              to get started.
-            </p>
+            <div className="text-center py-8">
+              <p className="text-xs text-muted-foreground mb-4">
+                No repositories found. Connect a git hosting platform to get
+                started.
+              </p>
+              <Link href="/integrations">
+                <Button variant="outline" size="sm">
+                  Go to Integrations
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {repos.map(repo => (
-            <Card key={repo.id} className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-sm">{repo.name}</CardTitle>
-                    <CardDescription className="mt-1">
-                      <a
-                        href={repo.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs hover:underline"
-                      >
-                        View on GitHub
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </CardDescription>
+          {repos.map(repo => {
+            const config = getRepoConfig(repo);
+            return (
+              <Card key={repo.id} className="flex flex-col">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-sm">{repo.name}</CardTitle>
+                      <CardDescription className="mt-1">
+                        <a
+                          href={repo.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs hover:underline"
+                        >
+                          View on GitHub
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </CardDescription>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <div className="flex-1 mb-4">
-                  {repo.description ? (
-                    <p className="text-xs text-muted-foreground whitespace-pre-wrap">
-                      {repo.description}
-                    </p>
+
+                  {/* Configuration status badges */}
+                  <div className="flex gap-2 mt-3 flex-wrap items-center">
+                    {config?.isConfirmed ? (
+                      <Badge
+                        variant="default"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Confirmed
+                      </Badge>
+                    ) : config ? (
+                      <div className="flex items-center gap-1 text-orange-600 text-xs font-medium">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>Needs Review (Auto detected)</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-orange-600 text-xs font-medium">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>Needs configuration</span>
+                      </div>
+                    )}
+
+                    {config?.detectedFrom && (
+                      <Badge variant="outline" className="text-xs">
+                        <Info className="h-3 w-3 mr-1" />
+                        {config.detectedFrom}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col gap-2">
+                  {/* Display commands if available */}
+                  {config &&
+                  (config.setupCommands?.length ||
+                    config.buildCommands?.length ||
+                    config.testCommands?.length) ? (
+                    <div className="flex-1 mb-2 space-y-2">
+                      {config.setupCommands &&
+                        config.setupCommands.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Setup:
+                            </p>
+                            <code className="text-xs bg-muted px-2 py-1 rounded block">
+                              {config.setupCommands.join(' && ')}
+                            </code>
+                          </div>
+                        )}
+                      {config.buildCommands &&
+                        config.buildCommands.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Build:
+                            </p>
+                            <code className="text-xs bg-muted px-2 py-1 rounded block">
+                              {config.buildCommands.join(' && ')}
+                            </code>
+                          </div>
+                        )}
+                      {config.testCommands &&
+                        config.testCommands.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Test:
+                            </p>
+                            <code className="text-xs bg-muted px-2 py-1 rounded block">
+                              {config.testCommands.join(' && ')}
+                            </code>
+                          </div>
+                        )}
+                    </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground italic">
-                      No description provided
-                    </p>
+                    <div className="flex-1 mb-2">
+                      {repo.description ? (
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                          {repo.description}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">
+                          No description provided
+                        </p>
+                      )}
+                    </div>
                   )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEditClick(repo)}
-                  className="w-full"
-                >
-                  <Edit2 className="h-4 w-4 mr-2" />
-                  Edit Description
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleConfigureClick(repo)}
+                    className="w-full"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configure
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Repository Description</DialogTitle>
-            <DialogDescription>
-              Add or update a description for this repository. This information
-              will help decide which repository to use for tasks.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder="Enter repository description..."
-              value={editDescription}
-              onChange={e => setEditDescription(e.target.value)}
-              rows={6}
-              className="resize-none"
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              disabled={updateRepoMutation.isPending}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={updateRepoMutation.isPending}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {updateRepoMutation.isPending ? 'Saving...' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Repository Configuration Dialog */}
+      {selectedRepo && (
+        <RepoConfigDialog
+          open={configDialogOpen}
+          onOpenChange={setConfigDialogOpen}
+          repo={selectedRepo}
+          config={selectedRepo ? getRepoConfig(selectedRepo) : undefined}
+        />
+      )}
     </div>
   );
 }

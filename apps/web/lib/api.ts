@@ -41,19 +41,13 @@ import type {
   Agent as GeneratedAgent,
   CreateAgentRequest as GeneratedCreateAgentRequest,
   UpdateAgentRequest as GeneratedUpdateAgentRequest,
+  RepoWithConfig,
 } from '@sia/models';
 import type { JobResponse } from '@/types';
 import type { Agent, Integration, ActivityEvent } from '@/types';
 
-export type Repo = {
-  id: string;
-  name: string;
-  description?: string;
-  url: string;
-  repo_provider_id: string;
-  created_at: string;
-  updated_at: string;
-};
+// Use generated type for Repo with Config
+export type Repo = RepoWithConfig;
 
 // In-memory store for demo purposes (for features not yet in API)
 const integrations = [...supportedIntegrations];

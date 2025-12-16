@@ -11,6 +11,8 @@ import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 import { getCurrentUser, type User } from '../auth/index.js';
+import { repoInferenceService } from '../services/repo-inference.service.js';
+import { RepoProviderService } from '../services/repo-provider.service.js';
 
 const { repos, repoProviders } = schema;
 
@@ -173,7 +175,9 @@ function transformRepoResponse(repo: Repo) {
   };
 }
 
-async function getValidAccessToken(provider: RepoProvider): Promise<string> {
+export async function getValidAccessToken(
+  provider: RepoProvider
+): Promise<string> {
   // If provider is a PAT or standard user token
   const installationId = provider.metadata?.installation_id;
   if (!installationId) {
@@ -486,6 +490,8 @@ async function reposRoutes(fastify: FastifyInstance) {
 
         const tokenData = await getInstallationToken(installation_id);
 
+        // TODO: Make all these logic async
+
         // Fetch organization/account details to get the actual name
         let accountName = installation.account.login;
         if (installation.account.type === 'Organization') {
@@ -591,6 +597,18 @@ async function reposRoutes(fastify: FastifyInstance) {
 
           if (reposToInsert.length > 0) {
             await db.insert(repos).values(reposToInsert).onConflictDoNothing();
+
+            // Trigger async inference for newly synced repos (fire-and-forget)
+            const repoIds = reposToInsert.map(r => r.id);
+            repoInferenceService
+              .inferConfigsForRepos(repoIds, orgId)
+              .catch(err => {
+                fastify.log.error(
+                  { err },
+                  'Background inference failed for newly synced repos'
+                );
+                // Don't block the callback response
+              });
           }
         } catch (err) {
           fastify.log.error(
@@ -869,33 +887,19 @@ async function reposRoutes(fastify: FastifyInstance) {
         const user = request.user!;
         const { id } = request.params;
 
-        const provider = await db
-          .select()
-          .from(repoProviders)
-          .where(
-            and(eq(repoProviders.id, id), eq(repoProviders.orgId, user.orgId))
-          )
-          .limit(1);
-
-        if (!provider[0]) {
-          return reply.code(404).send({ error: 'Repo provider not found' });
-        }
-
-        await db
-          .delete(repos)
-          .where(
-            and(eq(repos.repo_provider_id, id), eq(repos.orgId, user.orgId))
-          );
-        await db
-          .delete(repoProviders)
-          .where(
-            and(eq(repoProviders.id, id), eq(repoProviders.orgId, user.orgId))
-          );
+        await RepoProviderService.disconnectProvider(id, user.orgId);
 
         return reply.send({
           message: 'Repo provider disconnected successfully',
         });
       } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === 'Repo provider not found'
+        ) {
+          return reply.code(404).send({ error: 'Repo provider not found' });
+        }
+
         fastify.log.error({ err: error }, 'Failed to disconnect repo provider');
         return reply
           .code(500)
@@ -1249,176 +1253,6 @@ async function reposRoutes(fastify: FastifyInstance) {
       } catch (error) {
         fastify.log.error({ err: error }, 'Failed to fetch token');
         return reply.code(500).send({ error: 'Failed to fetch token' });
-      }
-    }
-  );
-
-  fastify.get(
-    '/repos',
-    {
-      schema: {
-        tags: ['repos'],
-        description: 'Get all repos for the current organization',
-        response: {
-          200: {
-            description: 'List of repos',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'array',
-                  items: {
-                    $ref: 'Repo#',
-                  },
-                },
-              },
-            },
-          },
-          401: {
-            description: 'Unauthorized',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: 'ErrorResponse#',
-                },
-              },
-            },
-          },
-          500: {
-            description: 'Internal Server Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: 'ErrorResponse#',
-                },
-              },
-            },
-          },
-        },
-      },
-      preHandler: async (request: FastifyRequest, reply: FastifyReply) => {
-        const user = await getCurrentUser(request, reply);
-        request.user = user;
-      },
-    },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const user = request.user!;
-
-        const reposList = await db
-          .select()
-          .from(repos)
-          .where(eq(repos.orgId, user.orgId));
-
-        return reply.send(reposList.map(transformRepoResponse));
-      } catch (error) {
-        fastify.log.error({ err: error }, 'Failed to fetch repos');
-        return reply.code(500).send({ error: 'Failed to fetch repos' });
-      }
-    }
-  );
-
-  fastify.patch<{ Params: { id: string }; Body: { description?: string } }>(
-    '/repos/:id',
-    {
-      schema: {
-        tags: ['repos'],
-        description: 'Update a repo description',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            description: { type: 'string', maxLength: 2000 },
-          },
-        },
-        response: {
-          200: {
-            description: 'Repo updated successfully',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: 'Repo#',
-                },
-              },
-            },
-          },
-          401: {
-            description: 'Unauthorized',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: 'ErrorResponse#',
-                },
-              },
-            },
-          },
-          404: {
-            description: 'Repo not found',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: 'ErrorResponse#',
-                },
-              },
-            },
-          },
-          500: {
-            description: 'Internal Server Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: 'ErrorResponse#',
-                },
-              },
-            },
-          },
-        },
-      },
-      preHandler: async (request: FastifyRequest, reply: FastifyReply) => {
-        const user = await getCurrentUser(request, reply);
-        request.user = user;
-      },
-    },
-    async (
-      request: FastifyRequest<{
-        Params: { id: string };
-        Body: { description?: string };
-      }>,
-      reply: FastifyReply
-    ) => {
-      try {
-        const user = request.user!;
-        const { id } = request.params;
-        const { description } = request.body;
-
-        const repo = await db
-          .select()
-          .from(repos)
-          .where(and(eq(repos.id, id), eq(repos.orgId, user.orgId)))
-          .limit(1);
-
-        if (!repo[0]) {
-          return reply.code(404).send({ error: 'Repo not found' });
-        }
-
-        const updatedRepo = await db
-          .update(repos)
-          .set({
-            description:
-              description !== undefined ? description : repo[0].description,
-            updatedAt: new Date(),
-          })
-          .where(and(eq(repos.id, id), eq(repos.orgId, user.orgId)))
-          .returning();
-
-        return reply.send(transformRepoResponse(updatedRepo[0]));
-      } catch (error) {
-        fastify.log.error({ err: error }, 'Failed to update repo');
-        return reply.code(500).send({ error: 'Failed to update repo' });
       }
     }
   );

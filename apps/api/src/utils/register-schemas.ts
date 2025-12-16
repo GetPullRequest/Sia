@@ -8,6 +8,13 @@ import {
   JobResponseSchema,
   ErrorResponseSchema,
   RepoSchema,
+  RepoConfigSchema,
+  RepoWithConfigSchema,
+  GetReposWithConfigsResponseSchema,
+  UpdateRepoDescriptionRequestSchema,
+  ConfirmRepoConfigRequestSchema,
+  ValidationStrategySchema,
+  DevcontainerConfigSchema,
   RepoProviderSchema,
   RepoProviderTokenSchema,
   ConnectGitHubRequestSchema,
@@ -52,6 +59,27 @@ export function registerSchemas(fastify: FastifyInstance) {
   fastify.addSchema({ $id: 'JobResponse', ...JobResponseSchema });
   fastify.addSchema({ $id: 'ErrorResponse', ...ErrorResponseSchema });
   fastify.addSchema({ $id: 'Repo', ...RepoSchema });
+
+  // Register nested schemas for RepoConfig first
+  fastify.addSchema({ $id: 'ValidationStrategy', ...ValidationStrategySchema });
+  fastify.addSchema({ $id: 'DevcontainerConfig', ...DevcontainerConfigSchema });
+
+  // Register RepoConfig schemas
+  fastify.addSchema({ $id: 'RepoConfig', ...RepoConfigSchema });
+  fastify.addSchema({ $id: 'RepoWithConfig', ...RepoWithConfigSchema });
+  fastify.addSchema({
+    $id: 'GetReposWithConfigsResponse',
+    ...GetReposWithConfigsResponseSchema,
+  });
+  fastify.addSchema({
+    $id: 'UpdateRepoDescriptionRequest',
+    ...UpdateRepoDescriptionRequestSchema,
+  });
+  fastify.addSchema({
+    $id: 'ConfirmRepoConfigRequest',
+    ...ConfirmRepoConfigRequestSchema,
+  });
+
   fastify.addSchema({ $id: 'RepoProvider', ...RepoProviderSchema });
   fastify.addSchema({ $id: 'RepoProviderToken', ...RepoProviderTokenSchema });
   fastify.addSchema({

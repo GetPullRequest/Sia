@@ -141,6 +141,88 @@ export const RepoSchema = Type.Object(
   { additionalProperties: false }
 );
 
+const ExecutionStrategySchema = Type.Union([
+  Type.Literal('auto'),
+  Type.Literal('devcontainer'),
+  Type.Literal('docker-compose'),
+  Type.Literal('custom'),
+]);
+
+const InferenceConfidenceSchema = Type.Union([
+  Type.Literal('high'),
+  Type.Literal('medium'),
+  Type.Literal('low'),
+]);
+
+export const ValidationStrategySchema = Type.Object({
+  runBuild: Type.Boolean(),
+  runTests: Type.Boolean(),
+  runLinter: Type.Boolean(),
+});
+
+export const DevcontainerConfigSchema = Type.Object({
+  image: Type.Union([Type.String(), Type.Null()]),
+  runArgs: Type.Array(Type.String()),
+});
+
+export const RepoConfigSchema = Type.Object(
+  {
+    id: Type.String(),
+    repoId: Type.String(),
+    orgId: Type.String(),
+    executionStrategy: Type.Optional(ExecutionStrategySchema),
+    setupCommands: Type.Optional(Type.Array(Type.String())),
+    buildCommands: Type.Optional(Type.Array(Type.String())),
+    testCommands: Type.Optional(Type.Array(Type.String())),
+    validationStrategy: Type.Optional(ValidationStrategySchema),
+    envVarsNeeded: Type.Optional(Type.Array(Type.String())),
+    detectedLanguage: Type.Optional(Type.String()),
+    detectedFrom: Type.Optional(Type.String()),
+    devcontainerConfig: Type.Optional(DevcontainerConfigSchema),
+    isConfirmed: Type.Boolean(),
+    inferredAt: Type.Optional(Type.String({ format: 'date-time' })),
+    confirmedAt: Type.Optional(Type.String({ format: 'date-time' })),
+    inferenceSource: Type.Optional(Type.String()),
+    inferenceConfidence: Type.Optional(InferenceConfidenceSchema),
+    createdAt: Type.String({ format: 'date-time' }),
+    updatedAt: Type.String({ format: 'date-time' }),
+  },
+  { additionalProperties: false }
+);
+
+export const RepoWithConfigSchema = Type.Object(
+  {
+    id: Type.String(),
+    name: Type.String(),
+    description: Type.Optional(Type.String()),
+    url: Type.String(),
+    repo_provider_id: Type.String(),
+    created_at: Type.String({ format: 'date-time' }),
+    updated_at: Type.String({ format: 'date-time' }),
+    config: Type.Union([RepoConfigSchema, Type.Null()]),
+  },
+  { additionalProperties: false }
+);
+
+export const GetReposWithConfigsResponseSchema =
+  Type.Array(RepoWithConfigSchema);
+
+export const UpdateRepoDescriptionRequestSchema = Type.Object(
+  {
+    description: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false }
+);
+
+export const ConfirmRepoConfigRequestSchema = Type.Object(
+  {
+    setupCommands: Type.Optional(Type.Array(Type.String())),
+    buildCommands: Type.Optional(Type.Array(Type.String())),
+    testCommands: Type.Optional(Type.Array(Type.String())),
+  },
+  { additionalProperties: false }
+);
+
 export const JobResponseSchema = Type.Object(
   {
     id: Type.String(),
@@ -487,6 +569,19 @@ export type UpdateJobRequestType = Static<typeof UpdateJobRequestSchema>;
 export type JobType = Static<typeof JobSchema>;
 export type ErrorResponseType = Static<typeof ErrorResponseSchema>;
 export type RepoType = Static<typeof RepoSchema>;
+export type RepoConfigType = Static<typeof RepoConfigSchema>;
+export type RepoWithConfigType = Static<typeof RepoWithConfigSchema>;
+export type GetReposWithConfigsResponseType = Static<
+  typeof GetReposWithConfigsResponseSchema
+>;
+export type UpdateRepoDescriptionRequestType = Static<
+  typeof UpdateRepoDescriptionRequestSchema
+>;
+export type ConfirmRepoConfigRequestType = Static<
+  typeof ConfirmRepoConfigRequestSchema
+>;
+export type ValidationStrategyType = Static<typeof ValidationStrategySchema>;
+export type DevcontainerConfigType = Static<typeof DevcontainerConfigSchema>;
 export type RepoProviderType = Static<typeof RepoProviderSchema>;
 export type RepoProviderTokenType = Static<typeof RepoProviderTokenSchema>;
 export type ConnectGitHubRequestType = Static<

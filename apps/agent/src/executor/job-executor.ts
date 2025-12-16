@@ -3,10 +3,10 @@ import { GitService, type GitCredentials } from '../git/git-service.js';
 import type { VibeCoder } from '../vibe/vibe-coder-interface.js';
 import { CursorVibeCoder } from '../vibe/cursor-vibe-coder.js';
 import { BuildService } from '../build/build-service.js';
-import { JobApiClient } from '../api/job-api-client.js';
 import { ContainerManager } from '../container/container-manager.js';
 import { CleanupService } from '../cleanup/cleanup-service.js';
 import type { LogMessage } from '@sia/models';
+import fs from 'fs/promises';
 
 export interface RepoConfig {
   repoId: string; // "org/frontend"
@@ -25,7 +25,6 @@ export interface JobExecutionConfig {
 
 export class JobExecutor {
   private workspaceManager: WorkspaceManager;
-  private jobApiClient: JobApiClient;
   private containerManager: ContainerManager;
   private cleanupService: CleanupService;
   private config: Omit<Required<JobExecutionConfig>, 'cursorExecutablePath'> & {
@@ -34,7 +33,6 @@ export class JobExecutor {
 
   constructor(config: JobExecutionConfig = {}) {
     this.workspaceManager = new WorkspaceManager();
-    this.jobApiClient = new JobApiClient(config.apiBaseUrl);
     this.containerManager = new ContainerManager({
       image: config.containerImage,
     });
@@ -75,22 +73,6 @@ export class JobExecutor {
     };
   }
 
-  private extractBuildCommands(jobDetails?: Record<string, string>): string[] {
-    const buildCommand = jobDetails?.build_command || jobDetails?.buildCommand;
-    if (buildCommand) {
-      return buildCommand.split(',').map(cmd => cmd.trim());
-    }
-    return this.config.buildCommands;
-  }
-
-  private extractCommitMessage(jobDetails?: Record<string, string>): string {
-    return (
-      jobDetails?.commit_message ||
-      jobDetails?.commitMessage ||
-      this.config.commitMessage
-    );
-  }
-
   private getVibeCoder(jobDetails?: Record<string, string>): VibeCoder {
     const vibeAgentType =
       jobDetails?.type || jobDetails?.vibeAgentType || 'cursor';
@@ -126,7 +108,7 @@ export class JobExecutor {
   }
 
   /**
-   * Execute a job with multi-repo support
+   * Execute a job step (checkout, setup, build, execute, validate)
    */
   async *executeJob(
     jobId: string,
@@ -134,340 +116,213 @@ export class JobExecutor {
     repos?: RepoConfig[],
     jobDetails?: Record<string, string>
   ): AsyncGenerator<LogMessage> {
-    let buildSuccess = false;
-    let reworkCount = 0;
-    const maxReworkAttempts = this.config.maxReworkAttempts;
+    const step =
+      (jobDetails?.step as
+        | 'checkout'
+        | 'setup'
+        | 'build'
+        | 'execute'
+        | 'validate') || 'execute';
 
-    try {
-      // Ensure container is running
-      yield {
-        level: 'info',
-        message: 'Ensuring container is ready',
-        timestamp: new Date().toISOString(),
-        jobId,
-        stage: 'setup',
-      };
-      await this.containerManager.ensureContainerRunning();
+    const stepLogs = this.executeStep(jobId, prompt, repos, jobDetails, step);
+    for await (const log of stepLogs) {
+      yield log;
+    }
+  }
 
-      // Stage 1: Setup workspace structure
-      yield {
-        level: 'info',
-        message: `Setting up workspace for job ${jobId}`,
-        timestamp: new Date().toISOString(),
-        jobId,
-        stage: 'setup',
-      };
+  /**
+   * Execute a single step of the pipeline (checkout, setup, build, execute, validate)
+   */
+  private async *executeStep(
+    jobId: string,
+    prompt: string,
+    repos: RepoConfig[] | undefined,
+    jobDetails: Record<string, string> | undefined,
+    step: 'checkout' | 'setup' | 'build' | 'execute' | 'validate'
+  ): AsyncGenerator<LogMessage> {
+    // Start step
+    yield {
+      level: 'info',
+      message: `Starting '${step}' step for job ${jobId}`,
+      timestamp: new Date().toISOString(),
+      jobId,
+      stage: step,
+    };
 
-      const jobWorkspace = this.workspaceManager.getJobWorkspace(jobId);
+    const jobWorkspace = this.workspaceManager.getJobWorkspace(jobId);
+    const bareReposPath = this.workspaceManager.getBareReposPath();
+    const jobsPath = this.workspaceManager.getJobsPath();
 
-      // Create job workspace directory in container
-      await this.containerManager.execInContainer(
-        `mkdir -p ${jobWorkspace}`,
-        '/workspace'
-      );
+    // Ensure local directories exist (no container dependency for step mode)
+    await fs.mkdir(bareReposPath, { recursive: true });
+    await fs.mkdir(jobsPath, { recursive: true });
+    await fs.mkdir(jobWorkspace, { recursive: true });
 
-      // Stage 2: Clone bare repos and create worktrees (if repos provided)
-      if (repos && repos.length > 0) {
-        const credentials = this.extractGitCredentials(jobDetails);
-        const gitService = new GitService('/workspace', this.containerManager);
+    // Checkout step: materialize git worktrees for all repos
+    if (step === 'checkout' && repos && repos.length > 0) {
+      const credentials = this.extractGitCredentials(jobDetails);
+      // For step-based flow, run git commands directly on host (no container)
+      const gitService = new GitService(this.workspaceManager.getBasePath());
 
-        for (const repo of repos) {
-          const bareRepoPath = this.workspaceManager.getBareRepoPath(
-            repo.repoId
-          );
-          const worktreePath = this.workspaceManager.getRepoWorktreePath(
-            jobId,
-            repo.name
-          );
-          const branch = repo.branch || 'main';
+      for (const repo of repos) {
+        const bareRepoPath = this.workspaceManager.getBareRepoPath(repo.repoId);
+        const worktreePath = this.workspaceManager.getRepoWorktreePath(
+          jobId,
+          repo.name
+        );
+        const branch = repo.branch || 'main';
 
-          // Clone bare repo (or fetch if exists)
-          yield {
-            level: 'info',
-            message: `Setting up repository: ${repo.repoId}`,
-            timestamp: new Date().toISOString(),
-            jobId,
-            stage: 'clone',
-          };
-
-          for await (const log of gitService.cloneBareRepository(
-            repo.repoId,
-            bareRepoPath,
-            credentials,
-            jobId
-          )) {
-            yield log;
-          }
-
-          // Create worktree for this job
-          for await (const log of gitService.createWorktree(
-            bareRepoPath,
-            worktreePath,
-            `${jobId}-${repo.name}`,
-            jobId
-          )) {
-            yield log;
-          }
-
-          // Checkout base branch
-          yield {
-            level: 'info',
-            message: `Checking out branch ${branch} in ${repo.name}`,
-            timestamp: new Date().toISOString(),
-            jobId,
-            stage: 'checkout',
-          };
-        }
-      }
-
-      // Stage 3-6: Code Generation + Build (with retry loop)
-      const buildCommands = this.extractBuildCommands(jobDetails);
-      const vibeCoder = this.getVibeCoder(jobDetails);
-
-      do {
-        // Stage 3: Invoke vibe coder on job workspace
+        // Clone bare repo (or fetch if exists)
         yield {
           level: 'info',
-          message: `Starting code generation in ${jobWorkspace}`,
+          message: `Ensuring repository is available: ${repo.repoId}`,
           timestamp: new Date().toISOString(),
           jobId,
-          stage: 'code-generation',
+          stage: 'clone',
         };
 
-        // TODO: Update vibe coder to work with container
-        // For now, this will need to be adapted
-        const codeGen = vibeCoder.generateCode(jobWorkspace, prompt, jobId);
-        for await (const log of codeGen) {
+        for await (const log of gitService.cloneBareRepository(
+          repo.repoId,
+          bareRepoPath,
+          credentials,
+          jobId
+        )) {
           yield log;
         }
 
-        // Stage 4: Build all repos
-        if (repos && repos.length > 0) {
-          for (const repo of repos) {
-            const repoPath = this.workspaceManager.getRepoWorktreePath(
-              jobId,
-              repo.name
-            );
-
-            yield {
-              level: 'info',
-              message: `Building ${repo.name} at ${repoPath}`,
-              timestamp: new Date().toISOString(),
-              jobId,
-              stage: 'build',
-            };
-
-            try {
-              // Build service needs to work in container
-              const buildService = new BuildService(repoPath);
-              const buildGen = buildService.build(buildCommands, jobId);
-              for await (const log of buildGen) {
-                yield log;
-              }
-            } catch (buildError) {
-              buildSuccess = false;
-
-              // Stage 5: Request rework if build failed
-              if (reworkCount < maxReworkAttempts) {
-                yield {
-                  level: 'info',
-                  message: `Build failed for ${
-                    repo.name
-                  }. Requesting rework (attempt ${
-                    reworkCount + 1
-                  }/${maxReworkAttempts})`,
-                  timestamp: new Date().toISOString(),
-                  jobId,
-                  stage: 'rework',
-                };
-
-                const buildService = new BuildService(repoPath);
-                const buildResult = await buildService.executeBuild(
-                  buildCommands
-                );
-                const errorContext =
-                  buildResult.errors?.join('\n') ||
-                  'Build failed with unknown errors';
-
-                prompt = `${prompt}\n\nBuild errors in ${repo.name}:\n${errorContext}\n\nPlease fix these errors and regenerate the code.`;
-
-                reworkCount++;
-                break; // Break repo loop to retry generation
-              } else {
-                throw new Error(
-                  `Build failed for ${repo.name} after ${maxReworkAttempts} rework attempts`
-                );
-              }
-            }
-          }
-
-          buildSuccess = true;
-        } else {
-          // No repos, just mark as successful
-          buildSuccess = true;
+        // Create worktree for this job
+        for await (const log of gitService.createWorktree(
+          bareRepoPath,
+          worktreePath,
+          `${jobId}-${repo.name}`,
+          jobId
+        )) {
+          yield log;
         }
-      } while (!buildSuccess && reworkCount < maxReworkAttempts);
 
-      if (!buildSuccess) {
-        throw new Error('Build failed after maximum rework attempts');
+        // Checkout base branch
+        yield {
+          level: 'info',
+          message: `Checking out branch ${branch} in ${repo.name}`,
+          timestamp: new Date().toISOString(),
+          jobId,
+          stage: 'checkout',
+        };
       }
 
-      // Stage 6-10: Git Operations (only if repos exist)
-      if (repos && repos.length > 0) {
-        const credentials = this.extractGitCredentials(jobDetails);
-        const commitMessage = this.extractCommitMessage(jobDetails);
+      yield {
+        level: 'success',
+        message: `Checkout step completed for job ${jobId}`,
+        timestamp: new Date().toISOString(),
+        jobId,
+        stage: 'checkout',
+      };
+      return;
+    }
 
-        for (const repo of repos) {
-          const repoPath = this.workspaceManager.getRepoWorktreePath(
-            jobId,
-            repo.name
-          );
-          const gitService = new GitService(repoPath, this.containerManager);
+    if (step === 'execute') {
+      const vibeCoder = this.getVibeCoder(jobDetails);
 
-          yield {
-            level: 'info',
-            message: `Committing changes for ${repo.name}`,
-            timestamp: new Date().toISOString(),
-            jobId,
-            stage: 'git',
-          };
+      yield {
+        level: 'info',
+        message: `Starting code generation (execute step) in ${jobWorkspace}`,
+        timestamp: new Date().toISOString(),
+        jobId,
+        stage: 'code-generation',
+      };
 
-          // Add all changes
-          for await (const log of gitService.addAll(jobId)) {
-            yield log;
-          }
-
-          // Commit
-          for await (const log of gitService.commit(commitMessage, jobId)) {
-            yield log;
-          }
-
-          // Push
-          const branchName = `${jobId}-${repo.name}`;
-          for await (const log of gitService.push(
-            branchName,
-            credentials,
-            jobId
-          )) {
-            yield log;
-          }
-
-          yield {
-            level: 'success',
-            message: `Successfully pushed changes for ${repo.name}`,
-            timestamp: new Date().toISOString(),
-            jobId,
-            stage: 'git',
-          };
-        }
-      }
-
-      // Stage 11: Update job status
-      const prLinks = repos?.map(
-        repo =>
-          `https://github.com/${repo.repoId}/compare/${jobId}-${repo.name}`
-      );
-
-      const updateGen = this.jobApiClient.updateJob(jobId, {
-        status: 'completed',
-        prLink: prLinks?.[0],
-        updatedBy: 'agent',
-      });
-      for await (const log of updateGen) {
+      const codeGen = vibeCoder.generateCode(jobWorkspace, prompt, jobId);
+      for await (const log of codeGen) {
         yield log;
       }
 
       yield {
         level: 'success',
-        message: `Job ${jobId} completed successfully`,
+        message: `Execute step completed for job ${jobId}`,
         timestamp: new Date().toISOString(),
         jobId,
-        stage: 'completed',
+        stage: 'code-generation',
       };
 
-      // Stage 12: Cleanup worktrees
-      if (repos && repos.length > 0) {
-        yield {
-          level: 'info',
-          message: 'Cleaning up worktrees',
-          timestamp: new Date().toISOString(),
-          jobId,
-          stage: 'cleanup',
-        };
+      return;
+    }
 
-        const gitService = new GitService('/workspace', this.containerManager);
-        for (const repo of repos) {
-          const bareRepoPath = this.workspaceManager.getBareRepoPath(
-            repo.repoId
-          );
-          const worktreePath = this.workspaceManager.getRepoWorktreePath(
-            jobId,
-            repo.name
-          );
+    // For setup/build/validate steps, run commands inside each repo worktree
+    const commandKey =
+      step === 'setup'
+        ? 'setupCommands'
+        : step === 'build'
+        ? 'buildCommands'
+        : 'testCommands';
+    const rawCommands = jobDetails?.[commandKey] || '';
+    const commands =
+      rawCommands
+        .split(';')
+        .map(cmd => cmd.trim())
+        .filter(Boolean) || (step === 'build' ? this.config.buildCommands : []);
 
-          for await (const log of gitService.removeWorktree(
-            bareRepoPath,
-            worktreePath,
-            jobId
-          )) {
-            yield log;
-          }
-        }
-      }
-
-      // Full cleanup between jobs
-      for await (const log of this.cleanupService.cleanupBetweenJobs(
-        jobId,
-        jobWorkspace
-      )) {
-        yield log;
-      }
-    } catch (error) {
+    if (!commands.length) {
       yield {
-        level: 'error',
-        message: `Job execution failed: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
+        level: 'info',
+        message: `No ${step} commands configured for job ${jobId} - skipping`,
         timestamp: new Date().toISOString(),
         jobId,
-        stage: 'error',
+        stage: step,
+      };
+      return;
+    }
+
+    if (!repos || repos.length === 0) {
+      yield {
+        level: 'info',
+        message: `No repositories provided for ${step} step - nothing to do`,
+        timestamp: new Date().toISOString(),
+        jobId,
+        stage: step,
+      };
+      return;
+    }
+
+    for (const repo of repos) {
+      const repoPath = this.workspaceManager.getRepoWorktreePath(
+        jobId,
+        repo.name
+      );
+      const buildService = new BuildService(repoPath);
+
+      yield {
+        level: 'info',
+        message: `Running ${step} commands in ${repo.name} at ${repoPath}`,
+        timestamp: new Date().toISOString(),
+        jobId,
+        stage: step,
       };
 
-      // Update job status to failed
       try {
-        const updateGen = this.jobApiClient.updateJob(jobId, {
-          status: 'failed',
-          updatedBy: 'agent',
-        });
-        for await (const log of updateGen) {
+        const gen = buildService.build(commands, jobId);
+        for await (const log of gen) {
           yield log;
         }
-      } catch (updateError) {
+      } catch (error) {
         yield {
           level: 'error',
-          message: `Failed to update job status: ${
-            updateError instanceof Error ? updateError.message : 'Unknown error'
+          message: `${step} step failed for ${repo.name}: ${
+            error instanceof Error ? error.message : 'Unknown error'
           }`,
           timestamp: new Date().toISOString(),
           jobId,
-          stage: 'error',
+          stage: step,
         };
+        throw error;
       }
-
-      // Attempt cleanup even on failure
-      try {
-        const jobWorkspace = this.workspaceManager.getJobWorkspace(jobId);
-        for await (const log of this.cleanupService.cleanupBetweenJobs(
-          jobId,
-          jobWorkspace
-        )) {
-          yield log;
-        }
-      } catch {
-        // Ignore cleanup errors
-      }
-
-      throw error;
     }
+
+    yield {
+      level: 'success',
+      message: `${step} step completed for job ${jobId}`,
+      timestamp: new Date().toISOString(),
+      jobId,
+      stage: step,
+    };
   }
 }

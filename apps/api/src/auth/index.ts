@@ -142,10 +142,11 @@ export async function getCurrentUser(
 
     if (!authInstance) {
       // Mock authentication for development
+      // Using a fixed UUID for development org to match database schema
       return {
         id: 'dev_user',
         email: 'dev@example.com',
-        orgId: 'dev_org',
+        orgId: '00000000-0000-0000-0000-000000000000',
         role: 'admin',
         name: 'Dev User',
       };
