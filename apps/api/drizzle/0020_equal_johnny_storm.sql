@@ -1,0 +1,1 @@
+ALTER TABLE "gpr_jobs" ALTER COLUMN "updates" SET DATA TYPE jsonb;

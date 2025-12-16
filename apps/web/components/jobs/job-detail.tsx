@@ -396,7 +396,7 @@ export function JobDetail({
               jobId={job.id}
               comments={comments}
               currentUserName={currentUserName}
-              updates={job.updates || ''}
+              updates={job.updates || []}
             />
           </div>
         </Card>

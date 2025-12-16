@@ -4,6 +4,7 @@ import { websocketManager } from './websocket-manager.js';
 import { db, schema } from '../db/index.js';
 import { eq, and, desc } from 'drizzle-orm';
 import type { LogMessage } from '@sia/models/proto';
+import type { Update } from '../types.js';
 
 export class JobExecutionService {
   private activeExecutions: Map<string, AgentClient> = new Map();
@@ -28,12 +29,25 @@ export class JobExecutionService {
     const job = jobResult[0];
     const prompt = job.userInput?.prompt || '';
 
-    const existingUpdates = job.updates || '';
-    const timestamp = new Date().toLocaleString();
-    const updateMessage = `Job execution started at ${timestamp}.`;
-    const newUpdates = existingUpdates
-      ? `${existingUpdates}\n${updateMessage}`
-      : updateMessage;
+    // Helper function to add an update to the updates array
+    const addUpdate = (
+      existingUpdates: Update[] | null | undefined,
+      message: string,
+      status: string
+    ): Update[] => {
+      const timestamp = new Date().toISOString();
+      const newUpdate: Update = { message, timestamp, status };
+
+      if (!existingUpdates || existingUpdates.length === 0) {
+        return [newUpdate];
+      }
+
+      // Prepend new update (latest first)
+      return [newUpdate, ...existingUpdates];
+    };
+
+    const updateMessage = `Job execution started.`;
+    const newUpdates = addUpdate(job.updates, updateMessage, 'in-progress');
 
     await db
       .update(schema.jobs)
@@ -70,12 +84,8 @@ export class JobExecutionService {
         },
       });
 
-      const existingUpdates = job.updates || '';
-      const timestamp = new Date().toLocaleString();
-      const updateMessage = `Job completed successfully at ${timestamp}.`;
-      const newUpdates = existingUpdates
-        ? `${existingUpdates}\n${updateMessage}`
-        : updateMessage;
+      const updateMessage = `Job completed successfully.`;
+      const newUpdates = addUpdate(job.updates, updateMessage, 'completed');
 
       await db
         .update(schema.jobs)
@@ -151,13 +161,9 @@ export class JobExecutionService {
         }
       }
 
-      const existingUpdates = job.updates || '';
-      const timestamp = new Date().toLocaleString();
-      const updateMessage = `Job execution failed at ${timestamp}. Error details: ${errorMessage}`;
-      // Prepend new updates (latest first)
-      const newUpdates = existingUpdates
-        ? `${updateMessage}\n${existingUpdates}`
-        : updateMessage;
+      const updateMessage = `Job execution failed. Error details: ${errorMessage}`;
+      // Add new update to array (prepend, latest first)
+      const newUpdates = addUpdate(job.updates, updateMessage, 'failed');
 
       await db
         .update(schema.jobs)

@@ -134,6 +134,20 @@
       "when": 1765791416945,
       "tag": "0018_add-repo-config-confirmation-tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1765884375706,
+      "tag": "0019_opposite_zombie",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1765890438537,
+      "tag": "0020_equal_johnny_storm",
+      "breakpoints": true
     }
   ]
 }

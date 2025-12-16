@@ -13,19 +13,27 @@ import { useAuthInfo } from '@propelauth/react';
 import { JobsUpdateSection } from './jobs-update-section';
 import { cn } from '@/lib/utils';
 import { UserComment } from '@sia/models';
+import { formatDateTime } from './job-constants';
+
+// Update type definition
+type Update = {
+  message: string;
+  timestamp: string;
+  status: string;
+};
 
 interface JobCommentsProps {
   jobId: string;
   comments: UserComment[];
   currentUserName?: string;
-  updates?: string;
+  updates?: Update[] | string | null;
 }
 
 export function JobComments({
   jobId,
   comments,
   currentUserName,
-  updates = '',
+  updates = [],
 }: JobCommentsProps) {
   const [newComment, setNewComment] = useState('');
   const [showUpdates, setShowUpdates] = useState(false);
@@ -71,11 +79,13 @@ export function JobComments({
         file_name: '',
         line_no: 0,
         prompt: commentText,
+        created_at: new Date().toISOString(),
       };
       const normalizedExisting = comments.map(c => ({
         file_name: c.file_name ?? '',
         line_no: c.line_no ?? 0,
         prompt: c.prompt,
+        created_at: c.created_at ?? '',
       }));
       const result = await api.updateJob(jobId, {
         user_comments: [newCommentObj, ...normalizedExisting],
@@ -228,7 +238,11 @@ export function JobComments({
           size="sm"
           className="text-xs h-8 px-3"
           onClick={() => setShowUpdates(prev => !prev)}
-          disabled={!updates}
+          disabled={
+            !updates ||
+            (Array.isArray(updates) && updates.length === 0) ||
+            (typeof updates === 'string' && updates.trim().length === 0)
+          }
         >
           {showUpdates ? 'Hide Updates' : 'Show Updates'}
         </Button>
@@ -237,7 +251,7 @@ export function JobComments({
         {showUpdates && updates && (
           <div className="rounded-lg border border-border bg-card/60 p-3">
             <JobsUpdateSection
-              updates={updates}
+              updates={updates as Update[] | string | null | undefined}
               currentUserName={currentUserName}
             />
           </div>
@@ -380,6 +394,11 @@ export function JobComments({
                     <p className="text-xs leading-relaxed text-foreground/90">
                       {comment.prompt}
                     </p>
+                    {comment.created_at && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatDateTime(comment.created_at)}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

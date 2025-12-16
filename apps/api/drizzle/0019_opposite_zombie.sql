@@ -1,0 +1,1 @@
+ALTER TABLE "gpr_jobs" DROP COLUMN "repo_id";

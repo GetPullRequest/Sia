@@ -163,11 +163,18 @@ export const jobs = pgTable(
         file_name: string;
         line_no: number;
         prompt: string;
+        created_at: string;
       }>
     >(),
     confidenceScore: varchar('confidence_score', { length: 50 }),
     prLink: varchar('pr_link', { length: 500 }),
-    updates: varchar('updates', { length: 10000 }),
+    updates: jsonb('updates').$type<
+      Array<{
+        message: string;
+        timestamp: string;
+        status: string;
+      }>
+    >(),
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (table: any) => [

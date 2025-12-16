@@ -1,6 +1,7 @@
 import { db, schema, type NewActivity } from '../../db/index.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import type { Update } from '../../types.js';
 
 // Helper function to create activity
 async function createActivity(
@@ -50,49 +51,61 @@ export async function updateJobStatus(params: {
   const currentJob = jobResult[0];
   const oldStatus = currentJob?.status;
 
+  // Helper function to add an update to the updates array
+  const addUpdate = (
+    existingUpdates: Update[] | null | undefined,
+    message: string,
+    status: string
+  ): Update[] => {
+    const timestamp = new Date().toISOString();
+    const newUpdate: Update = { message, timestamp, status };
+
+    if (!existingUpdates || existingUpdates.length === 0) {
+      return [newUpdate];
+    }
+
+    // Prepend new update (latest first)
+    return [newUpdate, ...existingUpdates];
+  };
+
   // Build update message for the updates field
   let updateMessage = '';
   if (currentJob && oldStatus !== params.status) {
-    const timestamp = new Date().toLocaleString();
-
     if (params.status === 'failed') {
-      updateMessage = `Job execution failed at ${timestamp}.`;
+      updateMessage = `Job execution failed.`;
       if (params.error) {
         updateMessage += ` Error details: ${params.error}`;
       }
     } else if (params.status === 'completed') {
-      updateMessage = `Job completed successfully at ${timestamp}.`;
+      updateMessage = `Job completed successfully.`;
       if (params.prLink) {
         updateMessage += ` PR created: ${params.prLink}`;
       }
     } else if (params.status === 'in-review') {
-      updateMessage = `Job moved to review state at ${timestamp}.`;
+      updateMessage = `Job moved to review state.`;
       if (params.prLink) {
         updateMessage += ` PR link: ${params.prLink}`;
       }
     } else if (params.status === 'in-progress') {
-      updateMessage = `Job execution started at ${timestamp}.`;
+      updateMessage = `Job execution started.`;
     } else if (params.status === 'queued') {
-      updateMessage = `Job queued at ${timestamp}.`;
+      updateMessage = `Job queued.`;
     } else {
-      updateMessage = `Job status changed from ${oldStatus} to ${params.status} at ${timestamp}.`;
+      updateMessage = `Job status changed from ${oldStatus} to ${params.status}.`;
     }
   }
 
-  // Prepend new updates (latest first)
-  const existingUpdates = currentJob?.updates || '';
+  // Add new update to array (prepend, latest first)
   const newUpdates = updateMessage
-    ? existingUpdates
-      ? `${updateMessage}\n${existingUpdates}`
-      : updateMessage
-    : existingUpdates;
+    ? addUpdate(currentJob?.updates, updateMessage, params.status)
+    : currentJob?.updates || null;
 
   await db
     .update(schema.jobs)
     .set({
       status: params.status as any,
       prLink: params.prLink,
-      updates: updateMessage ? newUpdates : existingUpdates,
+      updates: newUpdates,
       updatedAt: new Date(),
     })
     .where(

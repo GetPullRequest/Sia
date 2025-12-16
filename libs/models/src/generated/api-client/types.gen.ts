@@ -34,6 +34,7 @@ export type UserComment = {
   file_name: string;
   line_no: number;
   prompt: string;
+  created_at: string;
 };
 
 export type CreateJobRequest = {
@@ -109,6 +110,7 @@ export type UpdateJobRequest = {
     file_name: string;
     line_no: number;
     prompt: string;
+    created_at: string;
   }>;
   user_acceptance_status?:
     | 'not_reviewed'
@@ -174,6 +176,7 @@ export type Job = {
     file_name: string;
     line_no: number;
     prompt: string;
+    created_at: string;
   }>;
   confidence_score?: string;
   pr_link?: string;
@@ -244,10 +247,15 @@ export type JobResponse = {
     file_name: string;
     line_no: number;
     prompt: string;
+    created_at: string;
   }>;
   confidence_score?: string;
   pr_link?: string;
-  updates?: string;
+  updates?: Array<{
+    message: string;
+    timestamp: string;
+    status: string;
+  }>;
 };
 
 export type ErrorResponse = {
@@ -451,10 +459,15 @@ export type ReprioritizeJobResponse = {
       file_name: string;
       line_no: number;
       prompt: string;
+      created_at: string;
     }>;
     confidence_score?: string;
     pr_link?: string;
-    updates?: string;
+    updates?: Array<{
+      message: string;
+      timestamp: string;
+      status: string;
+    }>;
   };
 };
 

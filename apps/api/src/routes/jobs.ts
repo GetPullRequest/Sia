@@ -12,6 +12,8 @@ import type {
   CreateJobRequest,
   UpdateJobRequest,
   ReprioritizeJobRequest,
+  UserComment,
+  Update,
 } from '../types.js';
 import { jobExecutionService } from '../services/job-execution.js';
 import { queueWorkflowService } from '../services/queue-workflow-service.js';
@@ -122,6 +124,60 @@ async function createActivity(
   } catch (error) {
     // Log error but don't fail the main operation
     console.error('Failed to create activity:', error);
+  }
+}
+
+// Helper function to ensure all user comments have created_at timestamps
+function processUserComments(
+  newComments: UserComment[] | undefined,
+  existingComments: UserComment[] | null | undefined
+): UserComment[] | null {
+  if (!newComments) {
+    return existingComments ?? null;
+  }
+
+  const currentTimestamp = new Date().toISOString();
+  const existingCommentsMap = new Map<string, UserComment>();
+
+  // Create a map of existing comments by file_name and line_no for quick lookup
+  if (existingComments) {
+    existingComments.forEach(comment => {
+      const key = `${comment.file_name}:${comment.line_no}`;
+      existingCommentsMap.set(key, comment);
+    });
+  }
+
+  // Process each new comment
+  return newComments.map(comment => {
+    const key = `${comment.file_name}:${comment.line_no}`;
+    const existingComment = existingCommentsMap.get(key);
+
+    // If comment already exists, preserve its created_at
+    // Otherwise, this is a new comment - use current timestamp (ignore any provided created_at)
+    const created_at = existingComment?.created_at || currentTimestamp;
+
+    return {
+      file_name: comment.file_name,
+      line_no: comment.line_no,
+      prompt: comment.prompt,
+      created_at,
+    };
+  });
+}
+
+// Helper function to add an update to the updates array
+function addUpdate(
+  existingUpdates: Update[] | null | undefined,
+  message: string,
+  status: string
+): Update[] {
+  const timestamp = new Date().toISOString();
+  const newUpdate: Update = { message, timestamp, status };
+  if (!existingUpdates || existingUpdates.length === 0) {
+    return [newUpdate];
+  } else {
+    // Prepend new update (latest first)
+    return [newUpdate, ...existingUpdates];
   }
 }
 
@@ -563,7 +619,18 @@ async function jobsRoutes(fastify: FastifyInstance) {
             userComments: row.user_comments as Job['userComments'],
             confidenceScore: row.confidence_score as string | null,
             prLink: row.pr_link as string | null,
-            updates: row.updates as string | null,
+            updates: (() => {
+              const updates = row.updates;
+              if (!updates) return null;
+              if (typeof updates === 'string') {
+                try {
+                  return JSON.parse(updates) as Job['updates'];
+                } catch {
+                  return null;
+                }
+              }
+              return updates as Job['updates'];
+            })(),
           })
         );
 
@@ -852,20 +919,19 @@ async function jobsRoutes(fastify: FastifyInstance) {
             newOrderInQueue = currentJob.orderInQueue;
           }
 
-          // Build updates message for status changes
+          // Build updates array for status changes
           let newUpdates = currentJob.updates || null;
           if (status !== undefined && status !== currentJob.status) {
-            const timestamp = new Date().toLocaleString();
             let updateMessage = '';
 
             if (status === 'failed') {
-              updateMessage = `Job execution failed at ${timestamp}.`;
+              updateMessage = `Job execution failed.`;
             } else if (status === 'completed') {
-              updateMessage = `Job completed successfully at ${timestamp}.`;
+              updateMessage = `Job completed successfully.`;
             } else if (status === 'in-review') {
-              updateMessage = `Job moved to review state at ${timestamp}.`;
+              updateMessage = `Job moved to review state.`;
             } else if (status === 'in-progress') {
-              updateMessage = `Job execution started at ${timestamp}.`;
+              updateMessage = `Job execution started.`;
             } else if (status === 'queued') {
               // Check if this is a retry (queue_type is rework and has comments)
               const isRetryForUpdate =
@@ -876,20 +942,18 @@ async function jobsRoutes(fastify: FastifyInstance) {
                 const latestComment = user_comments[user_comments.length - 1];
                 const commentText = latestComment.prompt?.trim();
                 if (commentText && commentText !== 'No comment provided') {
-                  updateMessage = `User retried the job at ${timestamp} and added a comment: "${commentText}". Job is now waiting to be scheduled in the rework queue.`;
+                  updateMessage = `User retried the job and added a comment: "${commentText}". Job is now waiting to be scheduled in the rework queue.`;
                 } else {
-                  updateMessage = `User retried the job at ${timestamp}. Job is now waiting to be scheduled in the rework queue.`;
+                  updateMessage = `User retried the job. Job is now waiting to be scheduled in the rework queue.`;
                 }
               } else {
-                updateMessage = `Job queued at ${timestamp}.`;
+                updateMessage = `Job queued.`;
               }
             } else {
-              updateMessage = `Job status changed from ${currentJob.status} to ${status} at ${timestamp}.`;
+              updateMessage = `Job status changed from ${currentJob.status} to ${status}.`;
             }
 
-            newUpdates = currentJob.updates
-              ? `${currentJob.updates}\n${updateMessage}`
-              : updateMessage;
+            newUpdates = addUpdate(currentJob.updates, updateMessage, status);
           }
 
           const newJob: NewJob = {
@@ -936,7 +1000,10 @@ async function jobsRoutes(fastify: FastifyInstance) {
               : currentJob.codeVerificationLogs ?? null,
             userAcceptanceStatus:
               user_acceptance_status ?? currentJob.userAcceptanceStatus,
-            userComments: user_comments ?? currentJob.userComments ?? null,
+            userComments: processUserComments(
+              user_comments,
+              currentJob.userComments
+            ),
             confidenceScore: currentJob.confidenceScore ?? null,
             prLink: currentJob.prLink ?? null,
             updates: newUpdates,
@@ -1062,18 +1129,16 @@ async function jobsRoutes(fastify: FastifyInstance) {
 
             // Add update message for status changes
             if (status !== currentJob.status) {
-              const existingUpdates = currentJob.updates || '';
-              const timestamp = new Date().toLocaleString();
               let updateMessage = '';
 
               if (status === 'failed') {
-                updateMessage = `Job execution failed at ${timestamp}.`;
+                updateMessage = `Job execution failed.`;
               } else if (status === 'completed') {
-                updateMessage = `Job completed successfully at ${timestamp}.`;
+                updateMessage = `Job completed successfully.`;
               } else if (status === 'in-review') {
-                updateMessage = `Job moved to review state at ${timestamp}.`;
+                updateMessage = `Job moved to review state.`;
               } else if (status === 'in-progress') {
-                updateMessage = `Job execution started at ${timestamp}.`;
+                updateMessage = `Job execution started.`;
               } else if (status === 'queued') {
                 // Check if this is a retry (queue_type is rework and has comments)
                 const isRetry =
@@ -1084,30 +1149,33 @@ async function jobsRoutes(fastify: FastifyInstance) {
                   const latestComment = user_comments[user_comments.length - 1];
                   const commentText = latestComment.prompt?.trim();
                   if (commentText && commentText !== 'No comment provided') {
-                    updateMessage = `User retried the job at ${timestamp} and added a comment: "${commentText}". Job is now waiting to be scheduled in the rework queue.`;
+                    updateMessage = `User retried the job and added a comment: "${commentText}". Job is now waiting to be scheduled in the rework queue.`;
                   } else {
-                    updateMessage = `User retried the job at ${timestamp}. Job is now waiting to be scheduled in the rework queue.`;
+                    updateMessage = `User retried the job. Job is now waiting to be scheduled in the rework queue.`;
                   }
                 } else {
-                  updateMessage = `Job queued at ${timestamp}.`;
+                  updateMessage = `Job queued.`;
                 }
               } else {
-                updateMessage = `Job status changed from ${currentJob.status} to ${status} at ${timestamp}.`;
+                updateMessage = `Job status changed from ${currentJob.status} to ${status}.`;
               }
 
-              // Prepend new updates (latest first)
-              updateData.updates = updateMessage
-                ? existingUpdates
-                  ? `${updateMessage}\n${existingUpdates}`
-                  : updateMessage
-                : existingUpdates;
+              // Add new update to array (prepend, latest first)
+              updateData.updates = addUpdate(
+                currentJob.updates,
+                updateMessage,
+                status
+              );
             }
           }
           if (priority !== undefined) updateData.priority = priority;
           if (order_in_queue !== undefined)
             updateData.orderInQueue = order_in_queue;
           if (user_comments !== undefined)
-            updateData.userComments = user_comments;
+            updateData.userComments = processUserComments(
+              user_comments,
+              currentJob.userComments
+            );
           if (user_acceptance_status !== undefined) {
             updateData.userAcceptanceStatus = user_acceptance_status;
             // Handle queue changes based on user_acceptance_status
