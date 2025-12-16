@@ -69,10 +69,22 @@ export function RepoConfigDialog({
       // Get auth headers
       const headers = await getAuthHeaders();
 
+      // Parse commands from textareas (newline-separated) and filter out empty lines
+      const parseCommands = (text: string): string[] =>
+        text
+          .split('\n')
+          .map(cmd => cmd.trim())
+          .filter(cmd => cmd.length > 0);
+
       // Then confirm configuration - wrap with handleSdkResponse to properly throw errors
       const response = await postReposByRepoIdConfigConfirm({
         path: { repoId: repo.id },
         headers,
+        body: {
+          setupCommands: parseCommands(setupCommands),
+          buildCommands: parseCommands(buildCommands),
+          testCommands: parseCommands(testCommands),
+        },
       });
       return handleSdkResponse(response);
     },
@@ -149,7 +161,7 @@ export function RepoConfigDialog({
                 <>
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <AlertDescription>
-                    Configuration confirmed on{' '}
+                    User confirmed configuration on{' '}
                     {config.confirmedAt
                       ? new Date(config.confirmedAt).toLocaleDateString()
                       : 'N/A'}

@@ -130,13 +130,10 @@ export default function Repositories() {
                   {/* Configuration status badges */}
                   <div className="flex gap-2 mt-3 flex-wrap items-center">
                     {config?.isConfirmed ? (
-                      <Badge
-                        variant="default"
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Confirmed
-                      </Badge>
+                      <div className="flex items-center gap-1 text-green-600 text-xs font-medium">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Confirmed</span>
+                      </div>
                     ) : config ? (
                       <div className="flex items-center gap-1 text-orange-600 text-xs font-medium">
                         <AlertCircle className="h-3 w-3" />
@@ -158,59 +155,60 @@ export default function Repositories() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col gap-2">
+                  {/* Repository Description */}
+                  <div className="mb-2">
+                    {repo.description ? (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {repo.description}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        No description provided
+                      </p>
+                    )}
+                  </div>
+
                   {/* Display commands if available */}
                   {config &&
-                  (config.setupCommands?.length ||
-                    config.buildCommands?.length ||
-                    config.testCommands?.length) ? (
-                    <div className="flex-1 mb-2 space-y-2">
-                      {config.setupCommands &&
-                        config.setupCommands.length > 0 && (
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground mb-1">
-                              Setup:
-                            </p>
-                            <code className="text-xs bg-muted px-2 py-1 rounded block">
-                              {config.setupCommands.join(' && ')}
-                            </code>
-                          </div>
-                        )}
-                      {config.buildCommands &&
-                        config.buildCommands.length > 0 && (
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground mb-1">
-                              Build:
-                            </p>
-                            <code className="text-xs bg-muted px-2 py-1 rounded block">
-                              {config.buildCommands.join(' && ')}
-                            </code>
-                          </div>
-                        )}
-                      {config.testCommands &&
-                        config.testCommands.length > 0 && (
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground mb-1">
-                              Test:
-                            </p>
-                            <code className="text-xs bg-muted px-2 py-1 rounded block">
-                              {config.testCommands.join(' && ')}
-                            </code>
-                          </div>
-                        )}
-                    </div>
-                  ) : (
-                    <div className="flex-1 mb-2">
-                      {repo.description ? (
-                        <p className="text-xs text-muted-foreground whitespace-pre-wrap">
-                          {repo.description}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground italic">
-                          No description provided
-                        </p>
-                      )}
-                    </div>
-                  )}
+                    (config.setupCommands?.length ||
+                      config.buildCommands?.length ||
+                      config.testCommands?.length) && (
+                      <div className="flex-1 mb-2 space-y-1">
+                        {config.setupCommands &&
+                          config.setupCommands.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-0.5">
+                                Setup:
+                              </p>
+                              <code className="text-xs bg-muted px-2 py-1 rounded block truncate">
+                                {config.setupCommands.join(' && ')}
+                              </code>
+                            </div>
+                          )}
+                        {config.buildCommands &&
+                          config.buildCommands.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-0.5">
+                                Build:
+                              </p>
+                              <code className="text-xs bg-muted px-2 py-1 rounded block truncate">
+                                {config.buildCommands.join(' && ')}
+                              </code>
+                            </div>
+                          )}
+                        {config.testCommands &&
+                          config.testCommands.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-0.5">
+                                Test:
+                              </p>
+                              <code className="text-xs bg-muted px-2 py-1 rounded block truncate">
+                                {config.testCommands.join(' && ')}
+                              </code>
+                            </div>
+                          )}
+                      </div>
+                    )}
 
                   <Button
                     variant="outline"
