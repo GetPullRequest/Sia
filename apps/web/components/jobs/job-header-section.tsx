@@ -1,9 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import {
+  MultiSelect,
+  type MultiSelectOption,
+} from '@/components/ui/multi-select';
 import {
   Select,
   SelectContent,
@@ -26,13 +30,18 @@ interface JobHeaderProps {
     generated_description: string;
     user_input_prompt: string;
     order_in_queue: string;
-    repo_name: string;
+    repo_names: string[];
     priority: string;
   };
   titleError: string;
   onEditFormChange: (field: string, value: string) => void;
   onTitleErrorChange: (error: string) => void;
-  onRepoChange: (repoName: string) => void;
+  onRepoChange: (repoNames: string[], repoIds?: string[]) => void;
+  jobRepositories?: Array<{
+    id: string;
+    name: string;
+    url: string;
+  }>;
   onClose?: () => void;
   onBackClick?: () => void;
 }
@@ -44,6 +53,7 @@ export function JobHeaderSection({
   onEditFormChange,
   onTitleErrorChange,
   onRepoChange,
+  jobRepositories = [],
   onClose,
   onBackClick,
 }: JobHeaderProps) {
@@ -53,6 +63,7 @@ export function JobHeaderSection({
   const [availableRepos, setAvailableRepos] = useState<
     Array<{ id: string; name: string; url: string }>
   >([]);
+
   // Track the last valid name to restore if user tries to clear it
   const lastValidNameRef = useRef<string>(
     editForm.generated_name || job?.generated_name || ''
@@ -137,12 +148,51 @@ export function JobHeaderSection({
     }
   };
 
-  const handleRepoChange = (value: string) => {
-    onEditFormChange('repo_name', value);
-    console.log('value', value);
-    const selectedRepo = availableRepos.find(repo => repo.name === value);
-    onRepoChange(selectedRepo?.name || value);
+  const handleRepoChange = (selectedNames: string[]) => {
+    // Convert names to IDs using the repo map
+    const selectedIds = selectedNames
+      .map(name => repoNameToIdMap.get(name))
+      .filter((id): id is string => id !== undefined);
+
+    // Pass both names (for form state) and IDs (for API update)
+    onRepoChange(selectedNames, selectedIds);
   };
+
+  // Merge API-loaded repos with job repositories to ensure all job repos are available
+  // even if they're not in the current API list (e.g., if repo was deleted)
+  const allAvailableRepos = useMemo(() => {
+    const repoMap = new Map<
+      string,
+      { id: string; name: string; url: string }
+    >();
+
+    // Add API-loaded repos
+    availableRepos.forEach(repo => {
+      repoMap.set(repo.id, repo);
+    });
+
+    // Add job repositories (these take precedence if there's a conflict)
+    jobRepositories.forEach(repo => {
+      repoMap.set(repo.id, repo);
+    });
+
+    return Array.from(repoMap.values());
+  }, [availableRepos, jobRepositories]);
+
+  // Create a map of repo name to ID for easy lookup
+  const repoNameToIdMap = useMemo(() => {
+    const map = new Map<string, string>();
+    allAvailableRepos.forEach(repo => {
+      map.set(repo.name, repo.id);
+    });
+    return map;
+  }, [allAvailableRepos]);
+
+  // Convert available repos to MultiSelect options format
+  const repoOptions: MultiSelectOption[] = allAvailableRepos.map(repo => ({
+    label: repo.name,
+    value: repo.name,
+  }));
 
   return (
     <div className="rounded-2xl p-2">
@@ -217,58 +267,32 @@ export function JobHeaderSection({
                     className="h-4 w-4"
                   />
                   {selectedProviderId ? (
-                    <Select
-                      value={editForm.repo_name || undefined}
-                      onValueChange={value => {
-                        if (value && value !== '__none__') {
-                          handleRepoChange(value);
-                        } else if (value === '__none__') {
-                          handleRepoChange('');
-                        }
-                      }}
-                      disabled={isLoadingRepos || availableRepos.length === 0}
-                    >
-                      <SelectTrigger
-                        className={cn(
-                          'h-8 gap-2  w-fit border-none bg-card px-2 py-1 text-xs cursor-pointer focus:ring-2 focus:ring-ring focus:ring-offset-2',
-                          !editForm.repo_name &&
-                            'text-destructive font-semibold'
-                        )}
-                        onClick={e => {
-                          e.stopPropagation();
-                        }}
-                        onKeyDown={handleKeyDown}
-                      >
-                        <SelectValue
-                          placeholder={
-                            isLoadingRepos
-                              ? 'Loading repos...'
-                              : availableRepos.length === 0
-                              ? 'No repositories available'
-                              : '⚠️ No repository selected'
-                          }
-                        />
-                      </SelectTrigger>
-                      {!isLoadingRepos && availableRepos.length > 0 && (
-                        <SelectContent
-                          className="z-[10000] border-border"
-                          position="popper"
-                          onKeyDown={handleKeyDown}
-                        >
-                          <SelectItem
-                            value="__none__"
-                            className="text-destructive"
-                          >
-                            ⚠️ No repository selected
-                          </SelectItem>
-                          {availableRepos.map(repo => (
-                            <SelectItem key={repo.id} value={repo.name}>
-                              {repo.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
+                    // <div
+                    //   onClick={e => {
+                    //     e.stopPropagation();
+                    //   }}
+                    //   onKeyDown={handleKeyDown}
+                    // >
+                    <MultiSelect
+                      options={repoOptions}
+                      selected={editForm.repo_names || []}
+                      onChange={handleRepoChange}
+                      placeholder={
+                        isLoadingRepos
+                          ? 'Loading repos...'
+                          : repoOptions.length === 0
+                          ? 'No repositories available'
+                          : (editForm.repo_names?.length || 0) === 0
+                          ? '⚠️ No repository selected'
+                          : 'Select repositories...'
+                      }
+                      disabled={isLoadingRepos || repoOptions.length === 0}
+                      className={cn(
+                        (!editForm.repo_names ||
+                          editForm.repo_names.length === 0) &&
+                          'text-destructive font-semibold'
                       )}
-                    </Select>
+                    />
                   ) : (
                     <span className="text-xs">Loading providers...</span>
                   )}

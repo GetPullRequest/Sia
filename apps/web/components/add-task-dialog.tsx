@@ -5,6 +5,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthInfo } from '@propelauth/react';
+// import { useDropzone } from 'react-dropzone';
 import {
   Dialog,
   DialogContent,
@@ -30,12 +31,25 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
   const authInfo = useAuthInfo();
 
   const [prompt, setPrompt] = useState('');
-  const [userInstructions, setUserInstructions] = useState('');
-  const [buildCommands, setBuildCommands] = useState('');
-  const [verificationCommands, setVerificationCommands] = useState('');
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
   const [availableRepos, setAvailableRepos] = useState<Repo[]>([]);
+  // const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [repoBuildCommands, setRepoBuildCommands] = useState<
+    Record<string, string>
+  >({});
+  const [repoVerificationCommands, setRepoVerificationCommands] = useState<
+    Record<string, string>
+  >({});
+  const [repoSavedBuildCommands, setRepoSavedBuildCommands] = useState<
+    Record<string, string>
+  >({});
+  const [repoSavedVerificationCommands, setRepoSavedVerificationCommands] =
+    useState<Record<string, string>>({});
+  const [dirtyRepos, setDirtyRepos] = useState<Set<string>>(new Set());
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+  const [configuringRepoId, setConfiguringRepoId] = useState<string | null>(
+    null
+  );
 
   const createJobMutation = useMutation({
     mutationFn: async (userPrompt: string) => {
@@ -56,10 +70,14 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
         description: 'Your task has been submitted to the Sia agent',
       });
       setPrompt('');
-      setUserInstructions('');
-      setBuildCommands('');
-      setVerificationCommands('');
       setSelectedRepoIds([]);
+      // setUploadedFiles([]);
+      setRepoBuildCommands({});
+      setRepoVerificationCommands({});
+      setRepoSavedBuildCommands({});
+      setRepoSavedVerificationCommands({});
+      setDirtyRepos(new Set());
+      setConfiguringRepoId(null);
       onOpenChange(false);
     },
     onError: error => {
@@ -100,12 +118,62 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
 
   const handleCancel = () => {
     setPrompt('');
-    setUserInstructions('');
-    setBuildCommands('');
-    setVerificationCommands('');
     setSelectedRepoIds([]);
+    // setUploadedFiles([]);
+    setRepoBuildCommands({});
+    setRepoVerificationCommands({});
+    setRepoSavedBuildCommands({});
+    setRepoSavedVerificationCommands({});
+    setDirtyRepos(new Set());
+    setConfiguringRepoId(null);
     onOpenChange(false);
   };
+
+  useEffect(() => {
+    // Remove repo-specific data when repos are deselected
+    setRepoBuildCommands(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => {
+        if (!selectedRepoIds.includes(id)) {
+          delete next[id];
+        }
+      });
+      return next;
+    });
+    setRepoVerificationCommands(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => {
+        if (!selectedRepoIds.includes(id)) {
+          delete next[id];
+        }
+      });
+      return next;
+    });
+    setRepoSavedBuildCommands(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => {
+        if (!selectedRepoIds.includes(id)) {
+          delete next[id];
+        }
+      });
+      return next;
+    });
+    setRepoSavedVerificationCommands(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => {
+        if (!selectedRepoIds.includes(id)) {
+          delete next[id];
+        }
+      });
+      return next;
+    });
+    setDirtyRepos(prev => {
+      const next = new Set(
+        [...prev].filter(id => selectedRepoIds.includes(id))
+      );
+      return next;
+    });
+  }, [selectedRepoIds]);
 
   // Convert repos to MultiSelect options
   const repoOptions = availableRepos.map(repo => ({
@@ -115,14 +183,14 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col ">
         <DialogHeader>
-          <DialogTitle>Add New Task</DialogTitle>
+          <DialogTitle className="text-lg">Add New Task</DialogTitle>
           <DialogDescription>
             Enter a prompt for the Sia agent to execute
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="flex-1 overflow-y-auto space-y-4 py-4 px-2">
           <div className="space-y-2">
             <label htmlFor="prompt-input" className="text-sm font-medium">
               Prompt
@@ -135,21 +203,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
               className="min-h-[100px]"
             />
           </div>
-          <div className="space-y-2">
-            <label
-              htmlFor="user-instructions-input"
-              className="text-sm font-medium"
-            >
-              User Instructions
-            </label>
-            <Textarea
-              id="user-instructions-input"
-              placeholder="Enter user instructions here..."
-              value={userInstructions}
-              onChange={e => setUserInstructions(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
+
           <div className="space-y-2">
             <label htmlFor="repo-select" className="text-sm font-medium">
               Repository (Optional)
@@ -175,38 +229,153 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
               </p>
             )}
           </div>
-          <div className="space-y-2">
-            <label
-              htmlFor="build-commands-input"
-              className="text-sm font-medium"
-            >
-              Build Commands{' '}
-              <span className="text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              id="build-commands-input"
-              placeholder="Enter build commands (e.g., npm run build)"
-              value={buildCommands}
-              onChange={e => setBuildCommands(e.target.value)}
-              className="px-4 py-3 h-14"
-            />
-          </div>
-          <div className="space-y-2">
-            <label
-              htmlFor="verification-commands-input"
-              className="text-sm font-medium"
-            >
-              Verification Commands{' '}
-              <span className="text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              id="verification-commands-input"
-              placeholder="Enter verification commands (e.g., npm test)"
-              value={verificationCommands}
-              onChange={e => setVerificationCommands(e.target.value)}
-              className="px-4 py-4 h-14"
-            />
-          </div>
+          {selectedRepoIds.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Selected Repositories
+              </label>
+              <div className="space-y-2">
+                {availableRepos
+                  .filter(repo => selectedRepoIds.includes(repo.id))
+                  .map(repo => (
+                    <div key={repo.id} className="space-y-2">
+                      <div className="flex items-center justify-start gap-4 rounded-lg bg-card/50 px-4 py-3">
+                        <span className="text-sm font-medium">{repo.name}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2 text-xs"
+                          onClick={() =>
+                            setConfiguringRepoId(
+                              configuringRepoId === repo.id ? null : repo.id
+                            )
+                          }
+                        >
+                          {configuringRepoId === repo.id ? 'Hide' : 'Configure'}
+                        </Button>
+                      </div>
+                      {configuringRepoId === repo.id && (
+                        <div className="rounded-lg border border-border bg-card/50 px-4 py-3 space-y-3">
+                          <div className="space-y-2">
+                            <label
+                              htmlFor={`build-${repo.id}`}
+                              className="text-sm font-medium"
+                            >
+                              Build Commands
+                            </label>
+                            <Input
+                              id={`build-${repo.id}`}
+                              placeholder="Enter build commands (e.g., npm run build)"
+                              value={repoBuildCommands[repo.id] || ''}
+                              onChange={e =>
+                                setRepoBuildCommands(prev => {
+                                  const next = {
+                                    ...prev,
+                                    [repo.id]: e.target.value,
+                                  };
+                                  setDirtyRepos(dirty => {
+                                    const updated = new Set(dirty);
+                                    updated.add(repo.id);
+                                    return updated;
+                                  });
+                                  return next;
+                                })
+                              }
+                              className="px-4 py-3 h-12"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label
+                              htmlFor={`verify-${repo.id}`}
+                              className="text-sm font-medium"
+                            >
+                              Verification Commands
+                            </label>
+                            <Input
+                              id={`verify-${repo.id}`}
+                              placeholder="Enter verification commands (e.g., npm test)"
+                              value={repoVerificationCommands[repo.id] || ''}
+                              onChange={e =>
+                                setRepoVerificationCommands(prev => {
+                                  const next = {
+                                    ...prev,
+                                    [repo.id]: e.target.value,
+                                  };
+                                  setDirtyRepos(dirty => {
+                                    const updated = new Set(dirty);
+                                    updated.add(repo.id);
+                                    return updated;
+                                  });
+                                  return next;
+                                })
+                              }
+                              className="px-4 py-3 h-12"
+                            />
+                          </div>
+                          <div className="flex items-center justify-end gap-2 pt-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={!dirtyRepos.has(repo.id)}
+                              onClick={() => {
+                                setRepoBuildCommands(prev => ({
+                                  ...prev,
+                                  [repo.id]:
+                                    repoSavedBuildCommands[repo.id] || '',
+                                }));
+                                setRepoVerificationCommands(prev => ({
+                                  ...prev,
+                                  [repo.id]:
+                                    repoSavedVerificationCommands[repo.id] ||
+                                    '',
+                                }));
+                                setDirtyRepos(prev => {
+                                  const next = new Set(prev);
+                                  next.delete(repo.id);
+                                  return next;
+                                });
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={
+                                !dirtyRepos.has(repo.id) ||
+                                !(
+                                  (repoBuildCommands[repo.id] || '').trim() ||
+                                  (
+                                    repoVerificationCommands[repo.id] || ''
+                                  ).trim()
+                                )
+                              }
+                              onClick={() => {
+                                setRepoSavedBuildCommands(prev => ({
+                                  ...prev,
+                                  [repo.id]: repoBuildCommands[repo.id] || '',
+                                }));
+                                setRepoSavedVerificationCommands(prev => ({
+                                  ...prev,
+                                  [repo.id]:
+                                    repoVerificationCommands[repo.id] || '',
+                                }));
+                                setDirtyRepos(prev => {
+                                  const next = new Set(prev);
+                                  next.delete(repo.id);
+                                  return next;
+                                });
+                              }}
+                            >
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button

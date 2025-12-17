@@ -46,6 +46,8 @@ export function MultiSelect({
     } else {
       onChange([...selected, value]);
     }
+    // Close the popover after selection, similar to Select behavior
+    setOpen(false);
   };
 
   const selectedOptions = options.filter(option =>
@@ -59,11 +61,10 @@ export function MultiSelect({
           type="button"
           disabled={disabled}
           className={cn(
-            'flex w-full min-h-10 items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-            selected.length > 0 ? 'h-auto py-2' : 'h-10',
+            'flex w-full  min-h-10 max-h-20 items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+            // selected.length > 0 ? 'min py-2 max-h-20' : 'h-10 max-h-20',
             className
           )}
-          onClick={() => !disabled && setOpen(!open)}
         >
           <div className="flex flex-wrap gap-1 flex-1 min-w-0">
             {selected.length === 0 ? (
@@ -80,7 +81,7 @@ export function MultiSelect({
                   <span
                     role="button"
                     tabIndex={0}
-                    className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer inline-flex items-center justify-center"
+                    className="ml-1 max-w-96 max-h-20 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer inline-flex items-center justify-center"
                     onKeyDown={e => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
@@ -106,8 +107,12 @@ export function MultiSelect({
         className="w-[var(--radix-popover-trigger-width)] p-1 min-w-[200px]"
         align="start"
         side="bottom"
+        onInteractOutside={e => {
+          // Allow normal closing behavior - don't prevent closing when clicking outside
+          // This overrides the base popover's behavior that prevents closing inside dialogs
+        }}
       >
-        <div className="max-h-[300px] overflow-y-auto">
+        <div className="max-h-[300px] overflow-y-scroll">
           {options.length === 0 ? (
             <div className="px-2 py-1.5 text-sm text-muted-foreground">
               No options available
