@@ -77,6 +77,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
       setRepoSavedBuildCommands({});
       setRepoSavedVerificationCommands({});
       setDirtyRepos(new Set());
+      setConfiguringRepoId(null);
       onOpenChange(false);
     },
     onError: error => {
@@ -124,6 +125,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
     setRepoSavedBuildCommands({});
     setRepoSavedVerificationCommands({});
     setDirtyRepos(new Set());
+    setConfiguringRepoId(null);
     onOpenChange(false);
   };
 
