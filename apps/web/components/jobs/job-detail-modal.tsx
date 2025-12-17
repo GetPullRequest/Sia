@@ -99,7 +99,7 @@ export function JobDetailModal({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className="max-w-[80%] p-0 rounded-3xl">
+      <DialogContent className="max-w-[80%] max-h-[90vh] p-0 rounded-3xl">
         <DialogTitle className="text-base font-semibold text-foreground p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-3xl px-5 py-4">
             <div className="flex flex-wrap items-center gap-4">

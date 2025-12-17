@@ -20,6 +20,7 @@ import { JobHeaderSection } from './job-header-section';
 import { JobRetryForm } from './job-retry-form';
 import { JobDescription } from './job-description';
 import { JobComments } from './job-comments';
+import { JobConfigurations } from './job-configurations';
 import { StreamingLogsViewer } from './streaming-logs-viewer';
 import {
   CollapsibleContent,
@@ -76,7 +77,7 @@ export function JobDetail({
     generated_description: job?.generated_description || '',
     user_input_prompt: job?.user_input?.prompt || '',
     order_in_queue: job?.order_in_queue?.toString() || '',
-    repo_name: job?.repositories?.[0]?.name || '',
+    repo_names: job?.repositories?.map(repo => repo.name) || [],
     priority: job?.priority || 'medium',
   });
   const [titleError, setTitleError] = useState<string>('');
@@ -87,7 +88,7 @@ export function JobDetail({
       generated_description: job?.generated_description || '',
       user_input_prompt: job?.user_input?.prompt || '',
       order_in_queue: job?.order_in_queue?.toString() || '',
-      repo_name: job?.repositories?.[0]?.name || '',
+      repo_names: job?.repositories?.map(repo => repo.name) || [],
       priority: job?.priority || 'medium',
     });
   }, [
@@ -95,7 +96,7 @@ export function JobDetail({
     job?.generated_description,
     job?.user_input?.prompt,
     job?.order_in_queue,
-    job?.repositories?.[0]?.name,
+    job?.repositories,
     job?.priority,
   ]);
 
@@ -185,10 +186,40 @@ export function JobDetail({
     debouncedInlineUpdate(updates);
   };
 
-  const handleRepoChangeWithTracking = (repoName: string) => {
-    setEditForm(prev => ({ ...prev, repo_name: repoName }));
-    // TODO: Implement proper repo update logic with availableRepos
-    // For now, just update the form state without API call
+  const handleRepoChangeWithTracking = (
+    repoNames: string[],
+    repoIds?: string[]
+  ) => {
+    setEditForm(prev => ({ ...prev, repo_names: repoNames }));
+
+    const updates: UpdateJobRequest = {
+      updated_by: currentUserName,
+    };
+
+    // Use the provided repo IDs if available, otherwise try to map from names
+    if (repoIds && repoIds.length > 0) {
+      updates.repos = repoIds;
+    } else if (repoNames.length > 0) {
+      // Fallback: try to map names to IDs from job.repositories
+      const mappedIds = repoNames
+        .map(name => {
+          const repo = job?.repositories?.find(r => r.name === name);
+          return repo?.id;
+        })
+        .filter((id): id is string => id !== undefined);
+
+      if (mappedIds.length > 0) {
+        updates.repos = mappedIds;
+      } else {
+        // If we can't map to IDs, don't update yet
+        return;
+      }
+    } else {
+      // If no repos selected, set to empty array
+      updates.repos = [];
+    }
+
+    debouncedInlineUpdate(updates);
   };
 
   // Handle ESC key and other user actions
@@ -282,7 +313,7 @@ export function JobDetail({
     formatLogs(job.code_verification_logs);
 
   return (
-    <div className="flex w-full flex-col gap-4 max-h-[85vh] overflow-auto px-2 lg:px-0">
+    <div className="flex w-full flex-col gap-4 h-[90vh] overflow-auto px-2 lg:px-0">
       {showDeleteConfirmation && (
         <div className="flex items-start justify-between gap-3 rounded-2xl bg-card px-4 py-3">
           <div className="flex gap-3">
@@ -334,7 +365,7 @@ export function JobDetail({
       )}
       <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] h-[50vh]">
         <Card className="space-y-3 border border-border shadow-none p-0 h-[50vh] overflow-auto">
-          <div className="px-8 mt-4">
+          <div className="px-8 mt-2">
             <JobHeaderSection
               job={job}
               editForm={editForm}
@@ -342,6 +373,7 @@ export function JobDetail({
               onEditFormChange={handleInlineChangeWithTracking}
               onTitleErrorChange={setTitleError}
               onRepoChange={handleRepoChangeWithTracking}
+              jobRepositories={job?.repositories || []}
               onClose={() => {
                 flushPendingUpdates();
                 onClose?.();
@@ -361,6 +393,10 @@ export function JobDetail({
                 handleInlineChangeWithTracking('generated_description', value)
               }
             />
+          </div>
+
+          <div className="px-7 pb-4">
+            <JobConfigurations repositories={job?.repositories || []} />
           </div>
         </Card>
 

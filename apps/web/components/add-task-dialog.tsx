@@ -18,12 +18,6 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { MultiSelect } from './ui/multi-select';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import { api, type Repo } from '@/lib/api';
 
 interface AddTaskDialogProps {
@@ -53,6 +47,9 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
     useState<Record<string, string>>({});
   const [dirtyRepos, setDirtyRepos] = useState<Set<string>>(new Set());
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+  const [configuringRepoId, setConfiguringRepoId] = useState<string | null>(
+    null
+  );
 
   const createJobMutation = useMutation({
     mutationFn: async (userPrompt: string) => {
@@ -80,6 +77,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
       setRepoSavedBuildCommands({});
       setRepoSavedVerificationCommands({});
       setDirtyRepos(new Set());
+      setConfiguringRepoId(null);
       onOpenChange(false);
     },
     onError: error => {
@@ -127,6 +125,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
     setRepoSavedBuildCommands({});
     setRepoSavedVerificationCommands({});
     setDirtyRepos(new Set());
+    setConfiguringRepoId(null);
     onOpenChange(false);
   };
 
@@ -354,141 +353,151 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
             )}
           </div>
           {selectedRepoIds.length > 0 && (
-            <Accordion type="multiple" className="space-y-3">
-              {availableRepos
-                .filter(repo => selectedRepoIds.includes(repo.id))
-                .map(repo => (
-                  <AccordionItem
-                    key={repo.id}
-                    value={repo.id}
-                    className="rounded-lg border border-border bg-card/50 px-4 py-2 shadow-sm"
-                  >
-                    <AccordionTrigger className="text-sm font-semibold hover:no-underline">
-                      {repo.name}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-3 pt-2 pb-2">
-                        <div className="space-y-2">
-                          <label
-                            htmlFor={`build-${repo.id}`}
-                            className="text-sm font-medium"
-                          >
-                            Build Commands{' '}
-                            <span className="text-muted-foreground">
-                              (optional)
-                            </span>
-                          </label>
-                          <Input
-                            id={`build-${repo.id}`}
-                            placeholder="Enter build commands (e.g., npm run build)"
-                            value={repoBuildCommands[repo.id] || ''}
-                            onChange={e =>
-                              setRepoBuildCommands(prev => {
-                                const next = {
-                                  ...prev,
-                                  [repo.id]: e.target.value,
-                                };
-                                setDirtyRepos(dirty => {
-                                  const updated = new Set(dirty);
-                                  updated.add(repo.id);
-                                  return updated;
-                                });
-                                return next;
-                              })
-                            }
-                            className="px-4 py-3 h-12"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label
-                            htmlFor={`verify-${repo.id}`}
-                            className="text-sm font-medium"
-                          >
-                            Verification Commands{' '}
-                            <span className="text-muted-foreground">
-                              (optional)
-                            </span>
-                          </label>
-                          <Input
-                            id={`verify-${repo.id}`}
-                            placeholder="Enter verification commands (e.g., npm test)"
-                            value={repoVerificationCommands[repo.id] || ''}
-                            onChange={e =>
-                              setRepoVerificationCommands(prev => {
-                                const next = {
-                                  ...prev,
-                                  [repo.id]: e.target.value,
-                                };
-                                setDirtyRepos(dirty => {
-                                  const updated = new Set(dirty);
-                                  updated.add(repo.id);
-                                  return updated;
-                                });
-                                return next;
-                              })
-                            }
-                            className="px-4 py-3 h-12"
-                          />
-                        </div>
-                        <div className="flex items-center justify-end gap-2 pt-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={!dirtyRepos.has(repo.id)}
-                            onClick={() => {
-                              setRepoBuildCommands(prev => ({
-                                ...prev,
-                                [repo.id]:
-                                  repoSavedBuildCommands[repo.id] || '',
-                              }));
-                              setRepoVerificationCommands(prev => ({
-                                ...prev,
-                                [repo.id]:
-                                  repoSavedVerificationCommands[repo.id] || '',
-                              }));
-                              setDirtyRepos(prev => {
-                                const next = new Set(prev);
-                                next.delete(repo.id);
-                                return next;
-                              });
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            size="sm"
-                            disabled={
-                              !dirtyRepos.has(repo.id) ||
-                              !(
-                                (repoBuildCommands[repo.id] || '').trim() ||
-                                (repoVerificationCommands[repo.id] || '').trim()
-                              )
-                            }
-                            onClick={() => {
-                              setRepoSavedBuildCommands(prev => ({
-                                ...prev,
-                                [repo.id]: repoBuildCommands[repo.id] || '',
-                              }));
-                              setRepoSavedVerificationCommands(prev => ({
-                                ...prev,
-                                [repo.id]:
-                                  repoVerificationCommands[repo.id] || '',
-                              }));
-                              setDirtyRepos(prev => {
-                                const next = new Set(prev);
-                                next.delete(repo.id);
-                                return next;
-                              });
-                            }}
-                          >
-                            Save
-                          </Button>
-                        </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Selected Repositories
+              </label>
+              <div className="space-y-2">
+                {availableRepos
+                  .filter(repo => selectedRepoIds.includes(repo.id))
+                  .map(repo => (
+                    <div key={repo.id} className="space-y-2">
+                      <div className="flex items-center justify-start gap-4 rounded-lg bg-card/50 px-4 py-3">
+                        <span className="text-sm font-medium">{repo.name}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2 text-xs"
+                          onClick={() =>
+                            setConfiguringRepoId(
+                              configuringRepoId === repo.id ? null : repo.id
+                            )
+                          }
+                        >
+                          {configuringRepoId === repo.id ? 'Hide' : 'Configure'}
+                        </Button>
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-            </Accordion>
+                      {configuringRepoId === repo.id && (
+                        <div className="rounded-lg border border-border bg-card/50 px-4 py-3 space-y-3">
+                          <div className="space-y-2">
+                            <label
+                              htmlFor={`build-${repo.id}`}
+                              className="text-sm font-medium"
+                            >
+                              Build Commands
+                            </label>
+                            <Input
+                              id={`build-${repo.id}`}
+                              placeholder="Enter build commands (e.g., npm run build)"
+                              value={repoBuildCommands[repo.id] || ''}
+                              onChange={e =>
+                                setRepoBuildCommands(prev => {
+                                  const next = {
+                                    ...prev,
+                                    [repo.id]: e.target.value,
+                                  };
+                                  setDirtyRepos(dirty => {
+                                    const updated = new Set(dirty);
+                                    updated.add(repo.id);
+                                    return updated;
+                                  });
+                                  return next;
+                                })
+                              }
+                              className="px-4 py-3 h-12"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label
+                              htmlFor={`verify-${repo.id}`}
+                              className="text-sm font-medium"
+                            >
+                              Verification Commands
+                            </label>
+                            <Input
+                              id={`verify-${repo.id}`}
+                              placeholder="Enter verification commands (e.g., npm test)"
+                              value={repoVerificationCommands[repo.id] || ''}
+                              onChange={e =>
+                                setRepoVerificationCommands(prev => {
+                                  const next = {
+                                    ...prev,
+                                    [repo.id]: e.target.value,
+                                  };
+                                  setDirtyRepos(dirty => {
+                                    const updated = new Set(dirty);
+                                    updated.add(repo.id);
+                                    return updated;
+                                  });
+                                  return next;
+                                })
+                              }
+                              className="px-4 py-3 h-12"
+                            />
+                          </div>
+                          <div className="flex items-center justify-end gap-2 pt-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={!dirtyRepos.has(repo.id)}
+                              onClick={() => {
+                                setRepoBuildCommands(prev => ({
+                                  ...prev,
+                                  [repo.id]:
+                                    repoSavedBuildCommands[repo.id] || '',
+                                }));
+                                setRepoVerificationCommands(prev => ({
+                                  ...prev,
+                                  [repo.id]:
+                                    repoSavedVerificationCommands[repo.id] ||
+                                    '',
+                                }));
+                                setDirtyRepos(prev => {
+                                  const next = new Set(prev);
+                                  next.delete(repo.id);
+                                  return next;
+                                });
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={
+                                !dirtyRepos.has(repo.id) ||
+                                !(
+                                  (repoBuildCommands[repo.id] || '').trim() ||
+                                  (
+                                    repoVerificationCommands[repo.id] || ''
+                                  ).trim()
+                                )
+                              }
+                              onClick={() => {
+                                setRepoSavedBuildCommands(prev => ({
+                                  ...prev,
+                                  [repo.id]: repoBuildCommands[repo.id] || '',
+                                }));
+                                setRepoSavedVerificationCommands(prev => ({
+                                  ...prev,
+                                  [repo.id]:
+                                    repoVerificationCommands[repo.id] || '',
+                                }));
+                                setDirtyRepos(prev => {
+                                  const next = new Set(prev);
+                                  next.delete(repo.id);
+                                  return next;
+                                });
+                              }}
+                            >
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
           )}
         </div>
         <DialogFooter>

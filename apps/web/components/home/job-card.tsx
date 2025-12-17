@@ -3,7 +3,7 @@
 import { useState, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, GripVertical } from 'lucide-react';
+import { LayoutGrid, GripVertical, MoreHorizontal } from 'lucide-react';
 import type { JobResponse } from '@/types';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -286,21 +286,61 @@ export function JobCard({
       </div>
 
       <div className="flex items-center gap-3 text-xs text-muted-foreground ">
-        <span className="flex items-center gap-1.5">
+        <span className="flex items-center gap-1.5 flex-1 min-w-0 relative">
           <LayoutGrid className="h-3 w-3 flex-shrink-0" />
-          <Link
-            href={
-              job.repositories?.[0]?.url ||
-              'https://github.com/getpullrequest/sia'
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            className="truncate text-primary hover:text-primary transition-colors "
-            onClick={event => event.stopPropagation()}
-            onPointerDown={event => event.stopPropagation()}
-          >
-            {job.repositories?.[0]?.name || '@getpullrequest/sia'}
-          </Link>
+          {job.repositories && job.repositories.length > 0 ? (
+            <Link
+              href={job.repositories[0].url || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="truncate text-primary hover:text-primary transition-colors "
+              onClick={event => event.stopPropagation()}
+              onPointerDown={event => event.stopPropagation()}
+            >
+              {job.repositories[0].name || 'Unnamed Repository'}
+            </Link>
+          ) : (
+            <span className="truncate text-destructive">
+              No repositories available
+            </span>
+          )}
+          {job.repositories && job.repositories.length > 1 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded hover:bg-accent"
+                  onClick={event => event.stopPropagation()}
+                  onPointerDown={event => event.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                className="w-auto max-w-xs p-2"
+                onClick={event => event.stopPropagation()}
+                onPointerDown={event => event.stopPropagation()}
+              >
+                <div className="space-y-1">
+                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mb-1">
+                    All Repositories
+                  </div>
+                  {job.repositories.map((repo, index) => (
+                    <Link
+                      key={repo.id || index}
+                      href={repo.url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block px-2 py-1 text-xs text-foreground hover:text-primary transition-colors truncate"
+                      onClick={event => event.stopPropagation()}
+                      onPointerDown={event => event.stopPropagation()}
+                    >
+                      {repo.name || 'Unnamed Repository'}
+                    </Link>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </span>
       </div>
 
