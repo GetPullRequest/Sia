@@ -175,49 +175,6 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
     });
   }, [selectedRepoIds]);
 
-  // const formatFileSize = (bytes: number) => {
-  //   if (bytes === 0) return '0 B';
-  //   const sizes = ['B', 'KB', 'MB', 'GB'];
-  //   const i = Math.min(
-  //     Math.floor(Math.log(bytes) / Math.log(1024)),
-  //     sizes.length - 1
-  //   );
-  //   const value = bytes / Math.pow(1024, i);
-  //   return `${value.toFixed(1)} ${sizes[i]}`;
-  // };
-
-  // const onDrop = useCallback(
-  //   (acceptedFiles: File[]) => {
-  //     setUploadedFiles(prev => {
-  //       const remainingSlots = Math.max(0, 3 - prev.length);
-  //       const nextFiles = acceptedFiles.slice(0, remainingSlots);
-
-  //       if (acceptedFiles.length > remainingSlots) {
-  //         toast({
-  //           title: 'Upload limit reached',
-  //           description: 'You can upload a maximum of 3 files.',
-  //           variant: 'destructive',
-  //         });
-  //       }
-
-  //       return [...prev, ...nextFiles];
-  //     });
-  //   },
-  //   [toast]
-  // );
-
-  // const { getRootProps, getInputProps, isDragActive } = useDropzone({
-  //   onDrop,
-  //   multiple: true,
-  //   maxFiles: 3,
-  //   disabled: uploadedFiles.length >= 3,
-  //   accept: {
-  //     'image/png': [],
-  //     'image/svg+xml': [],
-  //     'application/pdf': [],
-  //   },
-  // });
-
   // Convert repos to MultiSelect options
   const repoOptions = availableRepos.map(repo => ({
     label: repo.name,
@@ -246,87 +203,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
               className="min-h-[100px]"
             />
           </div>
-          {/* <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
-            <span className="font-medium">OR</span>
-            <div className="h-px flex-1 bg-border" />
-          </div> */}
-          {/* <div className="space-y-2">
-            <label className="text-sm font-medium">Attachments</label>
-            <div
-              {...getRootProps()}
-              className={`flex flex-col items-center justify-center rounded-md border border-dashed px-4 py-6 text-center transition ${
-                isDragActive
-                  ? 'border-primary bg-primary/5'
-                  : 'border-muted-foreground/30 bg-muted/30'
-              } ${
-                uploadedFiles.length >= 3
-                  ? 'cursor-not-allowed opacity-70'
-                  : 'cursor-pointer'
-              }`}
-            >
-              <input {...getInputProps()} />
-              <p className="text-sm font-medium">
-                {isDragActive
-                  ? 'Drop the files here...'
-                  : 'Drag & drop files here, or click to select'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Max 3 files. Uploaded: {uploadedFiles.length}/3
-              </p>
-            </div>
-            {uploadedFiles.length > 0 && (
-              <div className="space-y-2">
-                {uploadedFiles.map(file => (
-                  <div
-                    key={`${file.name}-${file.size}-${file.lastModified}`}
-                    className="flex items-center justify-between gap-2 rounded-md border border-border shadow-small px-3 py-2 text-sm"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
-                      <span className="font-medium">{file.name}</span>
-                      <span className="text-muted-foreground">
-                        {formatFileSize(file.size)}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setUploadedFiles(prev =>
-                          prev.filter(
-                            f =>
-                              !(
-                                f.name === file.name &&
-                                f.size === file.size &&
-                                f.lastModified === file.lastModified
-                              )
-                          )
-                        )
-                      }
-                      className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
-                      aria-label={`Remove ${file.name}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div> */}
-          {/* <div className="space-y-2">
-            <label
-              htmlFor="user-instructions-input"
-              className="text-sm font-medium"
-            >
-              User Instructions
-            </label>
-            <Textarea
-              id="user-instructions-input"
-              placeholder="Enter user instructions here..."
-              value={userInstructions}
-              onChange={e => setUserInstructions(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div> */}
+
           <div className="space-y-2">
             <label htmlFor="repo-select" className="text-sm font-medium">
               Repository (Optional)
