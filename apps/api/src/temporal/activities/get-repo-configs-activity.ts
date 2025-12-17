@@ -9,6 +9,7 @@ export interface GetRepoConfigsParams {
 
 export interface RepoConfigResult {
   repoId: string;
+  name?: string; // Repository name from repos table
   url?: string;
   setupCommands?: string[];
   buildCommands?: string[];
@@ -22,14 +23,15 @@ export interface RepoConfigResult {
 /**
  * Fetch repository configurations for the given repo IDs
  * Returns configs with confirmation status and detected commands, including repo URLs
+ * Note: Returns plain object instead of Map for Temporal workflow compatibility
  */
 export async function getRepoConfigs(
   params: GetRepoConfigsParams
-): Promise<Map<string, RepoConfigResult>> {
+): Promise<Record<string, RepoConfigResult>> {
   const { repoIds } = params;
 
   if (!repoIds || repoIds.length === 0) {
-    return new Map();
+    return {};
   }
 
   // Fetch all configs for the repos
@@ -50,16 +52,17 @@ export async function getRepoConfigs(
     reposMap.set(repo.id, { url: repo.url, name: repo.name });
   }
 
-  // Transform to result format
-  const result = new Map<string, RepoConfigResult>();
+  // Transform to result format - use plain object for Temporal compatibility
+  const result: Record<string, RepoConfigResult> = {};
 
   for (const repoId of repoIds) {
     const config = configsMap.get(repoId);
     const repo = reposMap.get(repoId);
 
     if (config) {
-      result.set(repoId, {
+      result[repoId] = {
         repoId: config.repoId,
+        name: repo?.name,
         url: repo?.url,
         setupCommands: config.setupCommands || undefined,
         buildCommands: config.buildCommands || undefined,
@@ -68,14 +71,15 @@ export async function getRepoConfigs(
         detectedFrom: config.detectedFrom || undefined,
         inferenceSource: config.inferenceSource || undefined,
         inferenceConfidence: config.inferenceConfidence || undefined,
-      });
+      };
     } else {
       // No config found - will trigger runtime detection
-      result.set(repoId, {
+      result[repoId] = {
         repoId,
+        name: repo?.name,
         url: repo?.url,
         isConfirmed: false,
-      });
+      };
     }
   }
 

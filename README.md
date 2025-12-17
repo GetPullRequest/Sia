@@ -88,7 +88,7 @@ Get Sia running locally in minutes:
 
 ```sh
 # Clone the repository
-git clone https://github.com/your-org/sia.git
+git clone https://github.com/getpullrequest/sia.git
 cd sia
 
 # Copy and configure environment files
@@ -176,8 +176,8 @@ Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on:
 
 - **Discord:** Join our community on [Discord](https://discord.gg/U4kzxjBv) for discussions, support, and updates
 - **Website:** [getpullrequest.com](https://getpullrequest.com)
-- **Issues:** Report bugs or request features on [GitHub Issues](https://github.com/your-org/sia/issues)
-- **Discussions:** Join conversations on [GitHub Discussions](https://github.com/your-org/sia/discussions)
+- **Issues:** Report bugs or request features on [GitHub Issues](https://github.com/getpullrequest/sia/issues)
+- **Discussions:** Join conversations on [GitHub Discussions](https://github.com/getpullrequest/sia/discussions)
 
 ## License
 

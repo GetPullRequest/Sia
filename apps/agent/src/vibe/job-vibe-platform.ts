@@ -36,9 +36,24 @@ export class JobVibePlatform implements VibeCodingPlatform {
         prompt = `${prompt}\n\nAdditional hints:\n${allHints}`;
       }
 
-      const repos = repoId
-        ? [{ repoId, name: repoId.split('/').pop() || repoId }]
-        : undefined;
+      // Decode repos from jobDetails if available, otherwise use single repoId
+      let repos;
+      if (jobDetails?.reposJson) {
+        try {
+          repos = JSON.parse(jobDetails.reposJson);
+        } catch (error) {
+          console.error('Failed to parse reposJson:', error);
+          // Fallback to single repo
+          repos = repoId
+            ? [{ repoId, name: repoId.split('/').pop() || repoId }]
+            : undefined;
+        }
+      } else {
+        // Legacy: single repoId
+        repos = repoId
+          ? [{ repoId, name: repoId.split('/').pop() || repoId }]
+          : undefined;
+      }
 
       const logStream = this.executor.executeJob(
         jobId,

@@ -86,19 +86,19 @@ export async function jobExecutionWorkflow(params: {
       reposToUse = repos;
     } else if (job.repos && job.repos.length > 0) {
       if (job.repos.length === 1) {
-        // Single repo - use it automatically
+        // Single repo - use it automatically (name will be fetched from configs)
         reposToUse = [
           {
             repoId: job.repos[0],
-            name: job.repos[0].split('/')[1] || job.repos[0],
+            name: 'repo', // Placeholder, will be replaced by getRepoConfigs
           },
         ];
       } else {
-        // Multiple repos - map them
+        // Multiple repos - map them (names will be fetched from configs)
         reposToUse = job.repos.map(
           (repoId: string): RepoConfig => ({
             repoId,
-            name: repoId.split('/')[1] || repoId,
+            name: 'repo', // Placeholder, will be replaced by getRepoConfigs
           })
         );
       }
@@ -118,19 +118,20 @@ export async function jobExecutionWorkflow(params: {
       // Merge configs with repos and log status
       enrichedRepos = [];
       for (const repo of reposToUse) {
-        const config = configsMap.get(repo.repoId);
+        const config = configsMap[repo.repoId];
         if (config) {
           await log(
             'info',
             `${
               config.isConfirmed ? '✓ Confirmed' : '⚠ Unconfirmed'
-            } config for ${repo.repoId}${
+            } config for ${config.name || repo.repoId}${
               config.detectedFrom ? ` (from ${config.detectedFrom})` : ''
             }`
           );
 
           enrichedRepos.push({
             ...repo,
+            name: config.name || repo.name,
             url: config.url || repo.url,
             setupCommands: config.setupCommands,
             buildCommands: config.buildCommands,

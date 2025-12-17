@@ -21,9 +21,15 @@ export class WorkspaceManager {
   private basePath: string;
 
   constructor(basePath?: string) {
-    // Default to /workspace for container mode
-    // In local mode, this should be passed from the execution manager
-    this.basePath = basePath || '/workspace';
+    // Default to ~/.sia/workspace for local mode, or /workspace for container mode
+    // Auto-detect: if /workspace exists and is writable, use it (container mode)
+    // Otherwise use ~/.sia/workspace (local mode)
+    if (!basePath) {
+      const homeDir = process.env.HOME || process.env.USERPROFILE || '~';
+      basePath = `${homeDir}/.sia/workspace`;
+    }
+
+    this.basePath = basePath;
     this.bareReposPath = `${this.basePath}/.bare-repos`;
     this.jobsPath = `${this.basePath}/jobs`;
   }

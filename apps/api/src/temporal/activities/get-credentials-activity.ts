@@ -146,14 +146,21 @@ export async function getVibeCoderCredentials(params: {
         }
       }
 
-      // If no executable path found (neither from agent record nor integrations), throw error
+      // If no executable path found, assume CLI is in PATH (v0 behavior)
       if (!decryptedExecutablePath) {
-        const errorMessage = `No executable path configured for vibe-agent "${vibeAgent}". Please configure it in agent settings or integrations.`;
+        // Use default CLI command names (assumes they are installed and in PATH)
+        const defaultCommands: Record<string, string> = {
+          cursor: 'cursor',
+          'claude-code': 'claude',
+          'kiro-cli': 'kiro-cli',
+        };
 
-        // Update job status to failed with error message
-        // Note: We need jobId to update job, but it's not available in params
-        // The workflow will handle the error and update the job
-        throw new Error(errorMessage);
+        decryptedExecutablePath =
+          defaultCommands[vibeAgent] || vibeAgent.toLowerCase();
+
+        console.log(
+          `[getVibeCoderCredentials] No executable path configured for vibe-agent "${vibeAgent}". Assuming "${decryptedExecutablePath}" is available in PATH.`
+        );
       }
 
       return {
@@ -163,8 +170,13 @@ export async function getVibeCoderCredentials(params: {
     }
   }
 
-  // If no agentId provided or agent not found, throw error
-  throw new Error(
-    'Agent not found or no agentId provided. Cannot determine vibe-agent credentials.'
+  // If no agentId provided or agent not found, use default (v0 behavior)
+  console.log(
+    '[getVibeCoderCredentials] No agentId provided or agent not found. Using default vibe-agent (cursor) from PATH.'
   );
+
+  return {
+    type: 'cursor', // Default to cursor for v0
+    executablePath: 'cursor', // Assume cursor is in PATH
+  };
 }

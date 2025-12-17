@@ -125,7 +125,14 @@ async function main() {
     port,
   });
 
-  const server = new AgentServer(undefined, backendClient);
+  // Create JobVibePlatform with workspace configuration
+  const { JobVibePlatform } = await import('./vibe/job-vibe-platform.js');
+  const vibePlatform = new JobVibePlatform({
+    workspacePath: workspaceDir,
+    containerImage: local ? undefined : containerImage,
+  });
+
+  const server = new AgentServer(vibePlatform, backendClient);
   server.start(port, '0.0.0.0');
 
   try {

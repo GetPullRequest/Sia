@@ -229,6 +229,7 @@ export async function sendCommandToAgent(params: {
         );
 
         // Agent: Clone repositories
+        // Pass repos as JSON-encoded string in jobDetails since gRPC proto only supports single repoId
         await agentClient.executeJob({
           jobId,
           prompt: payload.prompt || '',
@@ -237,6 +238,8 @@ export async function sendCommandToAgent(params: {
             ...payload.gitCredentials,
             ...payload.vibeCoderCredentials,
             step: 'checkout',
+            // Encode repos array as JSON string
+            reposJson: JSON.stringify(payload.repos || []),
           },
           onLog: async (log: LogMessage) => {
             await logStorage.addLog(jobId, jobVersion, orgId, log);
@@ -271,6 +274,7 @@ export async function sendCommandToAgent(params: {
             ...payload.vibeCoderCredentials,
             step: 'setup',
             setupCommands: payload.repos?.[0]?.setupCommands?.join(';') || '',
+            reposJson: JSON.stringify(payload.repos || []),
           },
           onLog: async (log: LogMessage) => {
             await logStorage.addLog(jobId, jobVersion, orgId, log);
@@ -305,6 +309,7 @@ export async function sendCommandToAgent(params: {
             ...payload.vibeCoderCredentials,
             step: 'build',
             buildCommands: payload.repos?.[0]?.buildCommands?.join(';') || '',
+            reposJson: JSON.stringify(payload.repos || []),
           },
           onLog: async (log: LogMessage) => {
             await logStorage.addLog(jobId, jobVersion, orgId, log);
@@ -340,6 +345,7 @@ export async function sendCommandToAgent(params: {
             ...payload.gitCredentials,
             ...payload.vibeCoderCredentials,
             step: 'execute',
+            reposJson: JSON.stringify(payload.repos || []),
           },
           onLog: async (log: LogMessage) => {
             await logStorage.addLog(jobId, jobVersion, orgId, log);

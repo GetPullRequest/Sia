@@ -20,8 +20,7 @@ export class GitService {
   }
 
   private buildRepoUrl(repoId: string, credentials?: GitCredentials): string {
-    // TODO: Parse repoId to determine if it's a full URL or just owner/repo
-    // For now, assume it's in format: owner/repo or full GitHub URL
+    // Parse repoId to determine if it's a full URL or just owner/repo
 
     if (
       repoId.startsWith('http://') ||
@@ -30,20 +29,42 @@ export class GitService {
     ) {
       // Full URL provided
       if (credentials?.token && repoId.startsWith('https://')) {
-        // Inject token into HTTPS URL
-        const url = new URL(repoId);
-        url.username = credentials.username || 'git';
-        url.password = credentials.token;
-        return url.toString();
+        // Inject token into HTTPS URL based on token type
+        const token = credentials.token;
+
+        if (repoId.includes('github.com')) {
+          // GitHub: Handle App tokens (ghs_*) vs personal tokens
+          if (token.startsWith('ghs_')) {
+            // GitHub App installation token - use x-access-token format
+            return repoId.replace(
+              'https://github.com/',
+              `https://x-access-token:${token}@github.com/`
+            );
+          } else {
+            // Personal access token - use token:x-oauth-basic format
+            return repoId.replace(
+              'https://github.com/',
+              `https://${token}:x-oauth-basic@github.com/`
+            );
+          }
+        } else {
+          // Other git providers - use standard basic auth
+          return repoId.replace('https://', `https://${token}:x-oauth-basic@`);
+        }
       }
       return repoId;
     }
 
     // Assume GitHub format: owner/repo
     if (credentials?.token) {
-      return `https://${credentials.username || 'git'}:${
-        credentials.token
-      }@github.com/${repoId}.git`;
+      const token = credentials.token;
+      if (token.startsWith('ghs_')) {
+        // GitHub App installation token
+        return `https://x-access-token:${token}@github.com/${repoId}.git`;
+      } else {
+        // Personal access token
+        return `https://${token}:x-oauth-basic@github.com/${repoId}.git`;
+      }
     }
 
     return `https://github.com/${repoId}.git`;
@@ -154,6 +175,51 @@ export class GitService {
         }`,
         timestamp: new Date().toISOString(),
         jobId,
+        stage: 'git',
+      };
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new branch in a worktree (for making changes)
+   * This creates and checks out a new branch in the specified worktree path
+   */
+  async *createBranchInWorktree(
+    worktreePath: string,
+    branchName: string,
+    jobId?: string
+  ): AsyncGenerator<LogMessage> {
+    try {
+      yield {
+        level: 'info',
+        message: `Creating branch ${branchName} in worktree ${worktreePath}`,
+        timestamp: new Date().toISOString(),
+        jobId: jobId || 'unknown',
+        stage: 'git',
+      };
+
+      // Create and checkout new branch in the worktree
+      await this.execGitCommand(
+        `git -C "${worktreePath}" checkout -b "${branchName}"`,
+        jobId
+      );
+
+      yield {
+        level: 'success',
+        message: `Successfully created branch ${branchName}`,
+        timestamp: new Date().toISOString(),
+        jobId: jobId || 'unknown',
+        stage: 'git',
+      };
+    } catch (error) {
+      yield {
+        level: 'error',
+        message: `Failed to create branch in worktree: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        timestamp: new Date().toISOString(),
+        jobId: jobId || 'unknown',
         stage: 'git',
       };
       throw error;
@@ -314,7 +380,7 @@ export class GitService {
   }
 
   /**
-   * Execute git command in container (if containerManager is provided)
+   * Execute git command in container (if containerManager is provided) or locally
    */
   private async execGitCommand(command: string, jobId?: string): Promise<void> {
     if (this.containerManager) {
@@ -328,9 +394,36 @@ export class GitService {
         );
       }
     } else {
-      // Fallback to local execution (not recommended for production)
+      // Execute locally using execa
       const { execa } = await import('execa');
-      await execa('sh', ['-c', command], { cwd: this.workspacePath });
+      await execa('sh', ['-c', command], {
+        cwd: this.workspacePath,
+        env: {
+          ...process.env,
+          GIT_TERMINAL_PROMPT: '0', // Disable interactive prompts
+        },
+      });
+    }
+  }
+
+  /**
+   * Check if a directory exists
+   */
+  private async directoryExists(path: string): Promise<boolean> {
+    try {
+      if (this.containerManager) {
+        const result = await this.containerManager.execInContainer(
+          `test -d "${path}"`,
+          this.workspacePath
+        );
+        return result.exitCode === 0;
+      } else {
+        const fs = await import('fs/promises');
+        await fs.access(path);
+        return true;
+      }
+    } catch {
+      return false;
     }
   }
 
@@ -356,31 +449,33 @@ export class GitService {
       };
 
       // Check if bare repo already exists
-      if (this.containerManager) {
-        const checkResult = await this.containerManager.execInContainer(
-          `test -d ${bareRepoPath}`,
-          this.workspacePath
+      const bareRepoExists = await this.directoryExists(bareRepoPath);
+      if (bareRepoExists) {
+        yield {
+          level: 'info',
+          message: `Bare repository already exists at ${bareRepoPath}, fetching latest changes`,
+          timestamp: new Date().toISOString(),
+          jobId: jobId || 'unknown',
+          stage: 'clone',
+        };
+        // Fetch latest changes
+        await this.execGitCommand(
+          `git -C "${bareRepoPath}" fetch --all`,
+          jobId
         );
-        if (checkResult.exitCode === 0) {
-          yield {
-            level: 'info',
-            message: `Bare repository already exists at ${bareRepoPath}, fetching latest changes`,
-            timestamp: new Date().toISOString(),
-            jobId: jobId || 'unknown',
-            stage: 'clone',
-          };
-          // Fetch latest changes
-          await this.execGitCommand(
-            `git -C ${bareRepoPath} fetch --all`,
-            jobId
-          );
-          return;
-        }
+        yield {
+          level: 'success',
+          message: `Successfully updated bare repository: ${repoId}`,
+          timestamp: new Date().toISOString(),
+          jobId: jobId || 'unknown',
+          stage: 'clone',
+        };
+        return;
       }
 
       // Clone as bare
       await this.execGitCommand(
-        `git clone --bare ${repoUrl} ${bareRepoPath}`,
+        `git clone --bare "${repoUrl}" "${bareRepoPath}"`,
         jobId
       );
 
@@ -406,7 +501,7 @@ export class GitService {
   }
 
   /**
-   * Create a worktree from a bare repository
+   * Create a worktree from a bare repository, checking out an existing branch
    * This creates a working directory linked to the bare repo for a specific job
    */
   async *createWorktree(
@@ -425,11 +520,14 @@ export class GitService {
       };
 
       // Ensure parent directory exists
-      await this.execGitCommand(`mkdir -p $(dirname ${worktreePath})`, jobId);
-
-      // Create worktree
       await this.execGitCommand(
-        `git -C ${bareRepoPath} worktree add ${worktreePath} -b ${branchName}`,
+        `mkdir -p "$(dirname "${worktreePath}")"`,
+        jobId
+      );
+
+      // Create worktree - create new branch from HEAD
+      await this.execGitCommand(
+        `git -C "${bareRepoPath}" worktree add "${worktreePath}" -b "${branchName}"`,
         jobId
       );
 
@@ -444,6 +542,166 @@ export class GitService {
       yield {
         level: 'error',
         message: `Failed to create worktree: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        timestamp: new Date().toISOString(),
+        jobId: jobId || 'unknown',
+        stage: 'worktree',
+      };
+      throw error;
+    }
+  }
+
+  /**
+   * Create a worktree from an existing remote branch
+   * This checks out an existing branch rather than creating a new one
+   */
+  async *createWorktreeFromBranch(
+    bareRepoPath: string,
+    worktreePath: string,
+    baseBranch: string,
+    jobId?: string
+  ): AsyncGenerator<LogMessage> {
+    try {
+      // Extract job directory to find all worktrees for this job
+      const jobDirMatch = worktreePath.match(/(.+\/jobs\/[^/]+)\//);
+      const jobDir = jobDirMatch ? jobDirMatch[1] : null;
+
+      // Prune any stale worktrees for this job
+      if (jobDir) {
+        yield {
+          level: 'info',
+          message: `Cleaning up any stale worktrees for job in ${jobDir}`,
+          timestamp: new Date().toISOString(),
+          jobId: jobId || 'unknown',
+          stage: 'worktree',
+        };
+
+        // List all worktrees and remove any that belong to this job
+        try {
+          const { execa } = await import('execa');
+          const { stdout } = await execa(
+            'git',
+            ['-C', bareRepoPath, 'worktree', 'list', '--porcelain'],
+            {
+              env: {
+                ...process.env,
+                GIT_TERMINAL_PROMPT: '0',
+              },
+            }
+          );
+
+          // Parse worktree list to find job-related worktrees
+          const lines = stdout.split('\n');
+          const worktreesToRemove: string[] = [];
+
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].startsWith('worktree ')) {
+              const path = lines[i].substring('worktree '.length);
+              if (path.includes(jobDir)) {
+                worktreesToRemove.push(path);
+              }
+            }
+          }
+
+          // Remove all job-related worktrees
+          for (const path of worktreesToRemove) {
+            yield {
+              level: 'info',
+              message: `Removing stale worktree at ${path}`,
+              timestamp: new Date().toISOString(),
+              jobId: jobId || 'unknown',
+              stage: 'worktree',
+            };
+
+            try {
+              await this.execGitCommand(
+                `git -C "${bareRepoPath}" worktree remove "${path}" --force`,
+                jobId
+              );
+            } catch (err) {
+              // Ignore errors, worktree might already be gone
+            }
+
+            // Also remove the directory
+            if (!this.containerManager) {
+              const fs = await import('fs/promises');
+              await fs.rm(path, { recursive: true, force: true }).catch(e => {
+                console.error(
+                  `Failed to remove worktree at ${path}: ${
+                    e instanceof Error ? e.message : 'Unknown error'
+                  }`
+                );
+              });
+            } else {
+              await this.execGitCommand(`rm -rf "${path}"`, jobId).catch(e => {
+                console.error(
+                  `Failed to remove worktree at ${path}: ${
+                    e instanceof Error ? e.message : 'Unknown error'
+                  }`
+                );
+              });
+            }
+          }
+
+          // Prune stale worktree entries
+          await this.execGitCommand(
+            `git -C "${bareRepoPath}" worktree prune`,
+            jobId
+          );
+        } catch (error) {
+          yield {
+            level: 'info',
+            message: `Failed to list/cleanup worktrees: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`,
+            timestamp: new Date().toISOString(),
+            jobId: jobId || 'unknown',
+            stage: 'worktree',
+          };
+        }
+      }
+
+      yield {
+        level: 'info',
+        message: `Creating worktree at ${worktreePath} from branch ${baseBranch}`,
+        timestamp: new Date().toISOString(),
+        jobId: jobId || 'unknown',
+        stage: 'worktree',
+      };
+
+      // Ensure parent directory exists
+      await this.execGitCommand(
+        `mkdir -p "$(dirname "${worktreePath}")"`,
+        jobId
+      );
+
+      // Create worktree from existing branch (creates local tracking branch)
+      // First try with origin/<branch>, fall back to just <branch>
+      try {
+        await this.execGitCommand(
+          `git -C "${bareRepoPath}" worktree add "${worktreePath}" "origin/${baseBranch}"`,
+          jobId
+        );
+      } catch (error) {
+        // If origin/<branch> doesn't exist, try just <branch>
+        await this.execGitCommand(
+          `git -C "${bareRepoPath}" worktree add "${worktreePath}" "${baseBranch}"`,
+          jobId
+        );
+      }
+
+      yield {
+        level: 'success',
+        message: `Successfully created worktree at ${worktreePath} from branch ${baseBranch}`,
+        timestamp: new Date().toISOString(),
+        jobId: jobId || 'unknown',
+        stage: 'worktree',
+      };
+    } catch (error) {
+      yield {
+        level: 'error',
+        message: `Failed to create worktree from branch: ${
           error instanceof Error ? error.message : 'Unknown error'
         }`,
         timestamp: new Date().toISOString(),

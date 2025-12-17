@@ -9,9 +9,15 @@ import type { LogMessage } from '@sia/models';
 import fs from 'fs/promises';
 
 export interface RepoConfig {
-  repoId: string; // "org/frontend"
+  repoId: string; // "org/frontend" or numeric ID
   name: string; // "frontend" (folder name)
+  url?: string; // Full repository URL (e.g., "https://github.com/owner/repo.git")
   branch?: string; // default: "main"
+  setupCommands?: string[];
+  buildCommands?: string[];
+  testCommands?: string[];
+  isConfirmed?: boolean;
+  detectedFrom?: string;
 }
 
 export interface JobExecutionConfig {
@@ -21,18 +27,23 @@ export interface JobExecutionConfig {
   apiBaseUrl?: string;
   cursorExecutablePath?: string;
   containerImage?: string;
+  workspacePath?: string; // Base path for workspace (defaults to ~/.sia/workspace for local, /workspace for container)
 }
 
 export class JobExecutor {
   private workspaceManager: WorkspaceManager;
   private containerManager: ContainerManager;
   private cleanupService: CleanupService;
-  private config: Omit<Required<JobExecutionConfig>, 'cursorExecutablePath'> & {
+  private config: Omit<
+    Required<JobExecutionConfig>,
+    'cursorExecutablePath' | 'workspacePath'
+  > & {
     cursorExecutablePath?: string;
+    workspacePath?: string;
   };
 
   constructor(config: JobExecutionConfig = {}) {
-    this.workspaceManager = new WorkspaceManager();
+    this.workspaceManager = new WorkspaceManager(config.workspacePath);
     this.containerManager = new ContainerManager({
       image: config.containerImage,
     });
@@ -44,6 +55,7 @@ export class JobExecutor {
       apiBaseUrl: config.apiBaseUrl || 'http://localhost:3001',
       cursorExecutablePath: config.cursorExecutablePath,
       containerImage: config.containerImage || 'sia-dev-env:latest',
+      workspacePath: config.workspacePath,
     };
   }
 
@@ -165,24 +177,53 @@ export class JobExecutor {
       const gitService = new GitService(this.workspaceManager.getBasePath());
 
       for (const repo of repos) {
-        const bareRepoPath = this.workspaceManager.getBareRepoPath(repo.repoId);
+        // Use URL if available, otherwise fall back to repoId
+        const repoUrlOrId = repo.url || repo.repoId;
+
+        // Extract repo identifier for path generation (prefer owner/repo format)
+        let repoIdentifier = repo.repoId;
+        if (repo.url) {
+          // Extract owner/repo from URL (e.g., https://github.com/owner/repo.git -> owner/repo)
+          const urlMatch = repo.url.match(
+            /github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/
+          );
+          if (urlMatch) {
+            repoIdentifier = `${urlMatch[1]}/${urlMatch[2]}`;
+          }
+        }
+
+        // Use repo.name for worktree path, but ensure it's not a numeric ID
+        // If name looks like a numeric ID, extract name from URL
+        let repoName = repo.name;
+        if (repo.url && /^\d+$/.test(repoName)) {
+          // Name is numeric, extract from URL instead
+          const urlMatch = repo.url.match(
+            /github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/
+          );
+          if (urlMatch) {
+            repoName = urlMatch[2]; // Use the repo name from URL
+          }
+        }
+
+        const bareRepoPath =
+          this.workspaceManager.getBareRepoPath(repoIdentifier);
         const worktreePath = this.workspaceManager.getRepoWorktreePath(
           jobId,
-          repo.name
+          repoName
         );
-        const branch = repo.branch || 'main';
+        const baseBranch = repo.branch || 'main';
 
         // Clone bare repo (or fetch if exists)
         yield {
           level: 'info',
-          message: `Ensuring repository is available: ${repo.repoId}`,
+          message: `Ensuring repository is available: ${repoName} (${repoUrlOrId})`,
           timestamp: new Date().toISOString(),
           jobId,
           stage: 'clone',
         };
 
         for await (const log of gitService.cloneBareRepository(
-          repo.repoId,
+          repoUrlOrId,
           bareRepoPath,
           credentials,
           jobId
@@ -190,20 +231,27 @@ export class JobExecutor {
           yield log;
         }
 
-        // Create worktree for this job
-        for await (const log of gitService.createWorktree(
+        // Create worktree from base branch (checkout existing branch)
+        yield {
+          level: 'info',
+          message: `Creating worktree for ${repoName} from branch ${baseBranch}`,
+          timestamp: new Date().toISOString(),
+          jobId,
+          stage: 'checkout',
+        };
+
+        for await (const log of gitService.createWorktreeFromBranch(
           bareRepoPath,
           worktreePath,
-          `${jobId}-${repo.name}`,
+          baseBranch,
           jobId
         )) {
           yield log;
         }
 
-        // Checkout base branch
         yield {
-          level: 'info',
-          message: `Checking out branch ${branch} in ${repo.name}`,
+          level: 'success',
+          message: `Successfully checked out ${repoName} on branch ${baseBranch}`,
           timestamp: new Date().toISOString(),
           jobId,
           stage: 'checkout',
@@ -222,6 +270,45 @@ export class JobExecutor {
 
     if (step === 'execute') {
       const vibeCoder = this.getVibeCoder(jobDetails);
+      const gitService = new GitService(this.workspaceManager.getBasePath());
+
+      // Create new branch for changes in each repo worktree
+      if (repos && repos.length > 0) {
+        for (const repo of repos) {
+          // Extract proper repo name (same logic as checkout step)
+          let repoName = repo.name;
+          if (repo.url && /^\d+$/.test(repoName)) {
+            const urlMatch = repo.url.match(
+              /github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/
+            );
+            if (urlMatch) {
+              repoName = urlMatch[2];
+            }
+          }
+
+          const worktreePath = this.workspaceManager.getRepoWorktreePath(
+            jobId,
+            repoName
+          );
+          const newBranchName = `sia-${jobId}-${repoName}`;
+
+          yield {
+            level: 'info',
+            message: `Creating branch ${newBranchName} in ${repoName}`,
+            timestamp: new Date().toISOString(),
+            jobId,
+            stage: 'git',
+          };
+
+          for await (const log of gitService.createBranchInWorktree(
+            worktreePath,
+            newBranchName,
+            jobId
+          )) {
+            yield log;
+          }
+        }
+      }
 
       yield {
         level: 'info',
@@ -284,15 +371,26 @@ export class JobExecutor {
     }
 
     for (const repo of repos) {
+      // Extract proper repo name (same logic as checkout step)
+      let repoName = repo.name;
+      if (repo.url && /^\d+$/.test(repoName)) {
+        const urlMatch = repo.url.match(
+          /github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/
+        );
+        if (urlMatch) {
+          repoName = urlMatch[2];
+        }
+      }
+
       const repoPath = this.workspaceManager.getRepoWorktreePath(
         jobId,
-        repo.name
+        repoName
       );
       const buildService = new BuildService(repoPath);
 
       yield {
         level: 'info',
-        message: `Running ${step} commands in ${repo.name} at ${repoPath}`,
+        message: `Running ${step} commands in ${repoName} at ${repoPath}`,
         timestamp: new Date().toISOString(),
         jobId,
         stage: step,
@@ -306,7 +404,7 @@ export class JobExecutor {
       } catch (error) {
         yield {
           level: 'error',
-          message: `${step} step failed for ${repo.name}: ${
+          message: `${step} step failed for ${repoName}: ${
             error instanceof Error ? error.message : 'Unknown error'
           }`,
           timestamp: new Date().toISOString(),
