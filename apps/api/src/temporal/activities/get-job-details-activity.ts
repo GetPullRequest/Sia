@@ -1,8 +1,9 @@
 import { db, schema } from '../../db/index.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export async function getJobDetails(params: {
   jobId: string;
+  jobVersion: number;
   orgId: string;
 }): Promise<{
   prompt: string;
@@ -19,9 +20,12 @@ export async function getJobDetails(params: {
     })
     .from(schema.jobs)
     .where(
-      and(eq(schema.jobs.id, params.jobId), eq(schema.jobs.orgId, params.orgId))
+      and(
+        eq(schema.jobs.id, params.jobId),
+        eq(schema.jobs.version, params.jobVersion),
+        eq(schema.jobs.orgId, params.orgId)
+      )
     )
-    .orderBy(desc(schema.jobs.version))
     .limit(1);
 
   if (!jobResult[0]) {

@@ -22,6 +22,7 @@ export async function queueMonitorWorkflow(params: {
 }): Promise<{
   processed: boolean;
   jobId?: string;
+  jobVersion?: number;
   queueType?: 'rework' | 'backlog';
 }> {
   const { agentId } = params;
@@ -30,30 +31,33 @@ export async function queueMonitorWorkflow(params: {
   const result = await preprocessActivity({ agentId });
 
   // Step 2: Process
-  if (result.jobId && result.queueType && result.orgId) {
+  if (result.jobId && result.jobVersion && result.queueType && result.orgId) {
     try {
       await executeChild(jobExecutionWorkflow, {
         args: [
           {
             jobId: result.jobId,
+            jobVersion: result.jobVersion,
             orgId: result.orgId,
             queueType: result.queueType,
             agentId,
           },
         ],
-        workflowId: `job-execution-${result.jobId}`,
+        workflowId: `job-execution-${result.jobId}-v${result.jobVersion}`,
         workflowExecutionTimeout: '2 hours',
         workflowRunTimeout: '1 hour',
       });
       return {
         processed: true,
         jobId: result.jobId,
+        jobVersion: result.jobVersion,
         queueType: result.queueType,
       };
     } catch {
       return {
         processed: false,
         jobId: result.jobId,
+        jobVersion: result.jobVersion,
         queueType: result.queueType,
       };
     }

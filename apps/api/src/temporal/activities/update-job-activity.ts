@@ -1,5 +1,5 @@
 import { db, schema, type NewActivity } from '../../db/index.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 // Helper function to create activity
@@ -32,6 +32,7 @@ async function createActivity(
 
 export async function updateJobStatus(params: {
   jobId: string;
+  jobVersion: number;
   orgId: string;
   status: string;
   prLink?: string;
@@ -42,9 +43,12 @@ export async function updateJobStatus(params: {
     .select()
     .from(schema.jobs)
     .where(
-      and(eq(schema.jobs.id, params.jobId), eq(schema.jobs.orgId, params.orgId))
+      and(
+        eq(schema.jobs.id, params.jobId),
+        eq(schema.jobs.version, params.jobVersion),
+        eq(schema.jobs.orgId, params.orgId)
+      )
     )
-    .orderBy(desc(schema.jobs.version))
     .limit(1);
 
   const currentJob = jobResult[0];
@@ -96,7 +100,11 @@ export async function updateJobStatus(params: {
       updatedAt: new Date(),
     })
     .where(
-      and(eq(schema.jobs.id, params.jobId), eq(schema.jobs.orgId, params.orgId))
+      and(
+        eq(schema.jobs.id, params.jobId),
+        eq(schema.jobs.version, params.jobVersion),
+        eq(schema.jobs.orgId, params.orgId)
+      )
     );
 
   // Create activity for status changes

@@ -4,7 +4,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npx tsx src/main.ts",
+        "command": "npx tsx src/main.ts --local {args}",
         "cwd": "apps/agent"
       },
       "cache": true

@@ -1481,10 +1481,6 @@ export type PostReposByRepoIdConfigConfirmErrors = {
   /**
    * Default Response
    */
-  404: ErrorResponse;
-  /**
-   * Default Response
-   */
   500: ErrorResponse;
 };
 

@@ -1,7 +1,7 @@
 import { db, schema } from '../../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { SecretStorageService } from '../../services/secrets/secret-storage-service.js';
-import { getInstallationToken } from '../../routes/github.js';
+import { getValidAccessToken } from '../../routes/github.js';
 
 export interface GitCredentials {
   token?: string;
@@ -70,51 +70,7 @@ export async function getGitCredentials(params: {
   const provider = providers[0];
 
   // Get valid access token (handles token refresh for installations)
-  let accessToken: string;
-  const installationId = provider.metadata?.installation_id;
-
-  if (!installationId) {
-    // PAT or standard user token
-    if (!provider.access_token) {
-      throw new Error('No access token available for repo provider');
-    }
-    accessToken = provider.access_token;
-  } else {
-    // Installation token - check if needs refresh
-    const tokenMissing = !provider.access_token;
-    const createdAt = provider.token_created_at
-      ? new Date(provider.token_created_at)
-      : new Date(provider.createdAt);
-    const expiresIn = provider.expires_in || 0;
-    const expiresAt = new Date(createdAt.getTime() + expiresIn * 1000);
-    const now = new Date();
-    const bufferSeconds = 300;
-    const needsRefresh =
-      tokenMissing ||
-      expiresIn === 0 ||
-      expiresAt.getTime() - now.getTime() < bufferSeconds * 1000;
-
-    if (needsRefresh) {
-      const tokenData = await getInstallationToken(installationId);
-
-      // Update token in database
-      await db
-        .update(schema.repoProviders)
-        .set({
-          access_token: tokenData.token,
-          expires_in: Math.floor(
-            (tokenData.expiresAt.getTime() - Date.now()) / 1000
-          ),
-          token_created_at: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.repoProviders.id, provider.id));
-
-      accessToken = tokenData.token;
-    } else {
-      accessToken = provider.access_token || '';
-    }
-  }
+  const accessToken = await getValidAccessToken(provider);
 
   return {
     token: accessToken,

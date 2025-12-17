@@ -270,9 +270,6 @@ export default async function reposRoutes(fastify: FastifyInstance) {
           401: {
             $ref: 'ErrorResponse#',
           },
-          404: {
-            $ref: 'ErrorResponse#',
-          },
           500: {
             $ref: 'ErrorResponse#',
           },
@@ -298,22 +295,19 @@ export default async function reposRoutes(fastify: FastifyInstance) {
       const { repoId } = request.params;
 
       try {
-        // Get existing config
+        // Get existing config (if any)
         const config = await repoConfigService.getConfig(repoId);
-        if (!config) {
-          return reply.status(404).send({ error: 'Config not found' });
-        }
 
-        // Update config with user edits (if any) and mark as confirmed
+        // Create or update config with user edits (if any) and mark as confirmed
         const updatedConfig = await repoConfigService.saveConfig({
           repoId,
           orgId: user.orgId,
           setupCommands:
-            request.body.setupCommands ?? (config.setupCommands || undefined),
+            request.body.setupCommands ?? (config?.setupCommands || undefined),
           buildCommands:
-            request.body.buildCommands ?? (config.buildCommands || undefined),
+            request.body.buildCommands ?? (config?.buildCommands || undefined),
           testCommands:
-            request.body.testCommands ?? (config.testCommands || undefined),
+            request.body.testCommands ?? (config?.testCommands || undefined),
           isConfirmed: true,
           confirmedAt: new Date(),
         });

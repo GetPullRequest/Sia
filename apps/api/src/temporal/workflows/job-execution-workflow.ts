@@ -34,12 +34,13 @@ export interface RepoConfig {
 
 export async function jobExecutionWorkflow(params: {
   jobId: string;
+  jobVersion: number;
   orgId: string;
   queueType: 'rework' | 'backlog';
   agentId?: string;
   repos?: RepoConfig[];
 }): Promise<{ prLink?: string; status: string }> {
-  const { jobId, orgId, agentId, repos } = params;
+  const { jobId, jobVersion, orgId, agentId, repos } = params;
 
   // Helper function for logging - only requires level and message
   const log = async (
@@ -48,6 +49,7 @@ export async function jobExecutionWorkflow(params: {
   ) => {
     await logToJobActivity({
       jobId,
+      jobVersion,
       orgId,
       level,
       message,
@@ -62,7 +64,7 @@ export async function jobExecutionWorkflow(params: {
 
   try {
     // Get job details
-    const job = await getJobDetails({ jobId, orgId });
+    const job = await getJobDetails({ jobId, jobVersion, orgId });
 
     if (!job) {
       throw new Error('Job not found');
@@ -217,6 +219,7 @@ export async function jobExecutionWorkflow(params: {
     try {
       await sendCommandToAgent({
         jobId,
+        jobVersion,
         orgId,
         command: 'checkout',
         payload: {
@@ -240,6 +243,7 @@ export async function jobExecutionWorkflow(params: {
     try {
       await sendCommandToAgent({
         jobId,
+        jobVersion,
         orgId,
         command: 'setup',
         payload: {
@@ -263,6 +267,7 @@ export async function jobExecutionWorkflow(params: {
     try {
       await sendCommandToAgent({
         jobId,
+        jobVersion,
         orgId,
         command: 'execute',
         payload: {
@@ -286,6 +291,7 @@ export async function jobExecutionWorkflow(params: {
     try {
       await sendCommandToAgent({
         jobId,
+        jobVersion,
         orgId,
         command: 'build',
         payload: {
@@ -310,6 +316,7 @@ export async function jobExecutionWorkflow(params: {
     try {
       const verificationResult = await sendCommandToAgent({
         jobId,
+        jobVersion,
         orgId,
         command: 'runVerification',
         payload: { agentId },
@@ -381,6 +388,7 @@ export async function jobExecutionWorkflow(params: {
         try {
           const repoPrResult = await sendCommandToAgent({
             jobId,
+            jobVersion,
             orgId,
             command: 'createPR',
             payload: {
@@ -420,6 +428,7 @@ export async function jobExecutionWorkflow(params: {
     try {
       await sendCommandToAgent({
         jobId,
+        jobVersion,
         orgId,
         command: 'cleanup',
         payload: { agentId },
@@ -582,6 +591,7 @@ export async function jobExecutionWorkflow(params: {
 
       await updateJobStatus({
         jobId,
+        jobVersion,
         orgId,
         status,
         prLink,

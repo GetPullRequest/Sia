@@ -1,6 +1,6 @@
 import { db } from '../../db/index.js';
 import * as schema from '../../db/schema.js';
-import { eq, and, or, lt, asc } from 'drizzle-orm';
+import { eq, and, or, lt, asc, desc } from 'drizzle-orm';
 import { agentStreamManager } from '../../services/agent-stream-manager.js';
 import { BackendStreamMessageType } from '@sia/models/proto';
 import { AgentClient } from '../../services/agent-client.js';
@@ -8,6 +8,7 @@ import { queueWorkflowService } from '../../services/queue-workflow-service.js';
 
 export async function preprocessActivity(params: { agentId: string }): Promise<{
   jobId: string | null;
+  jobVersion: number | null;
   queueType: 'rework' | 'backlog' | null;
   orgId: string | null;
 }> {
@@ -95,7 +96,7 @@ export async function preprocessActivity(params: { agentId: string }): Promise<{
     }
 
     // Return early since agent is offline
-    return { jobId: null, queueType: null, orgId: null };
+    return { jobId: null, jobVersion: null, queueType: null, orgId: null };
   }
 
   // 1. Check for orphan jobs (stuck jobs)
@@ -138,7 +139,7 @@ export async function preprocessActivity(params: { agentId: string }): Promise<{
     .limit(1);
 
   if (inProgressJobs.length > 0) {
-    return { jobId: null, queueType: null, orgId };
+    return { jobId: null, jobVersion: null, queueType: null, orgId };
   }
 
   // 3. Check if queues are paused
@@ -160,7 +161,7 @@ export async function preprocessActivity(params: { agentId: string }): Promise<{
       continue;
     }
 
-    // Get lowest priority job (lowest orderInQueue value)
+    // Get lowest priority job (lowest orderInQueue value) with highest version
     const nextJobs = await db
       .select()
       .from(schema.jobs)
@@ -171,12 +172,12 @@ export async function preprocessActivity(params: { agentId: string }): Promise<{
           eq(schema.jobs.queueType, queueType)
         )
       )
-      .orderBy(asc(schema.jobs.orderInQueue))
+      .orderBy(asc(schema.jobs.orderInQueue), desc(schema.jobs.version))
       .limit(1);
 
     if (nextJobs.length > 0) {
       const nextJob = nextJobs[0];
-      // Claim the job
+      // Claim the job (update the specific version)
       await db
         .update(schema.jobs)
         .set({
@@ -184,11 +185,21 @@ export async function preprocessActivity(params: { agentId: string }): Promise<{
           agentId,
           updatedAt: new Date(),
         })
-        .where(eq(schema.jobs.id, nextJob.id));
+        .where(
+          and(
+            eq(schema.jobs.id, nextJob.id),
+            eq(schema.jobs.version, nextJob.version)
+          )
+        );
 
-      return { jobId: nextJob.id, queueType, orgId };
+      return {
+        jobId: nextJob.id,
+        jobVersion: nextJob.version,
+        queueType,
+        orgId,
+      };
     }
   }
 
-  return { jobId: null, queueType: null, orgId };
+  return { jobId: null, jobVersion: null, queueType: null, orgId };
 }

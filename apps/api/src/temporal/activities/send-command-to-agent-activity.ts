@@ -2,11 +2,12 @@ import { AgentClient } from '../../services/agent-client.js';
 import { logStorage } from '../../services/log-storage.js';
 import { websocketManager } from '../../services/websocket-manager.js';
 import { db, schema } from '../../db/index.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import type { LogMessage } from '@sia/models/proto';
 
 export async function sendCommandToAgent(params: {
   jobId: string;
+  jobVersion: number;
   orgId: string;
   command:
     | 'startExecution'
@@ -20,17 +21,7 @@ export async function sendCommandToAgent(params: {
     | 'execute';
   payload?: any;
 }): Promise<any> {
-  const { jobId, orgId, command, payload } = params;
-
-  // Get job version first - we'll use this for all logging
-  const jobVersionResult = await db
-    .select({ version: schema.jobs.version })
-    .from(schema.jobs)
-    .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.orgId, orgId)))
-    .orderBy(desc(schema.jobs.version))
-    .limit(1);
-
-  const jobVersion = jobVersionResult[0]?.version || 1;
+  const { jobId, jobVersion, orgId, command, payload } = params;
 
   // Local helper: log with just level and message
   const log = async (
