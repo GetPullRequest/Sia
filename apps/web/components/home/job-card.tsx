@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { JobDetailModal } from '../jobs/job-detail-modal';
+import { Button } from '../ui/button';
 
 interface JobCardProps {
   job: JobResponse;
@@ -301,19 +302,21 @@ export function JobCard({
             </Link>
           ) : (
             <span className="truncate text-destructive">
-              No repositories available
+              No repositories selected
             </span>
           )}
           {job.repositories && job.repositories.length > 1 && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
-                  className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded hover:bg-accent"
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="flex-shrink-0 text-muted-foreground hover:text-muted-foreground transition-colors p-0.5 rounded hover:bg-accent h-5 w-5"
                   onClick={event => event.stopPropagation()}
                   onPointerDown={event => event.stopPropagation()}
                 >
                   <MoreHorizontal className="h-3 w-3" />
-                </button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent
                 className="w-auto max-w-xs p-2"

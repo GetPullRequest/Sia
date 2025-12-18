@@ -63,17 +63,19 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
     refetchOnWindowFocus: false,
   });
 
-  // Find active agent
-  const activeAgent = useMemo(
-    () => agents.find((agent: Agent) => agent.status === 'active') ?? null,
+  // Separate agents into active and configured (non-active)
+  const activeAgents = useMemo(
+    () => agents.filter((agent: Agent) => agent.status === 'active'),
+    [agents]
+  );
+
+  const configuredAgents = useMemo(
+    () => agents.filter((agent: Agent) => agent.status !== 'active'),
     [agents]
   );
 
   // Count active agents
-  const activeAgentCount = useMemo(
-    () => agents.filter((agent: Agent) => agent.status === 'active').length,
-    [agents]
-  );
+  const activeAgentCount = useMemo(() => activeAgents.length, [activeAgents]);
 
   // Vibe coding platforms
   const vibePlatforms = ['cursor', 'claude-code', 'kiro-cli'];
@@ -233,38 +235,84 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                   </Badge>
                 </PopoverTrigger>
                 <PopoverContent
-                  className="w-64"
+                  className="w-80 max-h-96 overflow-y-auto"
                   side="bottom"
                   align="start"
                   onMouseEnter={() => setIsAgentPopoverOpen(true)}
                   onMouseLeave={() => setIsAgentPopoverOpen(false)}
                 >
-                  <div className="space-y-2">
-                    <div className="text-xs font-medium text-muted-foreground">
-                      Active Agent
-                    </div>
-                    {activeAgent ? (
-                      <div className="space-y-1">
-                        <Link
-                          href="/agents"
-                          className="text-sm font-medium text-foreground hover:text-primary transition-colors underline decoration-muted-foreground/40 hover:decoration-primary"
-                        >
-                          {activeAgent.name}
-                        </Link>
-                        <div className="text-xs text-muted-foreground">
-                          Status: {activeAgent.status}
-                        </div>
-                        {activeAgent.config.host && (
-                          <div className="text-xs text-muted-foreground">
-                            Host: {activeAgent.config.host}
-                          </div>
-                        )}
+                  <div className="space-y-4">
+                    {/* Active Agents Section */}
+                    <div className="space-y-2">
+                      <div className="text-xs font-medium text-muted-foreground">
+                        Active Agents
                       </div>
-                    ) : (
-                      <div className="text-sm text-muted-foreground">
-                        No active agent
+                      {activeAgents.length > 0 ? (
+                        <div className="space-y-2">
+                          {activeAgents.map((agent: Agent) => (
+                            <div key={agent.id} className="space-y-1">
+                              <Link
+                                href="/agents"
+                                className="text-sm font-medium text-foreground hover:text-primary transition-colors underline decoration-muted-foreground/40 hover:decoration-primary"
+                              >
+                                {agent.name}
+                              </Link>
+                              <div className="text-xs text-muted-foreground">
+                                Status: {agent.status}
+                              </div>
+                              {agent.config.host && (
+                                <div className="text-xs text-muted-foreground">
+                                  Host: {agent.config.host}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          No active agents
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Configured Agents Section */}
+                    {configuredAgents.length > 0 && (
+                      <div className="space-y-2 border-t border-border pt-4">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Configured Agents
+                        </div>
+                        <div className="space-y-2">
+                          {configuredAgents.map((agent: Agent) => (
+                            <div key={agent.id} className="space-y-1">
+                              <Link
+                                href="/agents"
+                                className="text-sm font-medium text-foreground hover:text-primary transition-colors underline decoration-muted-foreground/40 hover:decoration-primary"
+                              >
+                                {agent.name}
+                              </Link>
+                              <div className="text-xs text-muted-foreground">
+                                Status: {agent.status}
+                              </div>
+                              {agent.config.host && (
+                                <div className="text-xs text-muted-foreground">
+                                  Host: {agent.config.host}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
+
+                    {/* View Agents Link */}
+                    <div className="border-t border-border pt-2">
+                      <Link
+                        href="/agents"
+                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                      >
+                        View Agents
+                      </Link>
+                    </div>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -297,7 +345,7 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                 >
                   <div className="space-y-2">
                     <div className="text-xs font-medium text-muted-foreground">
-                      Connected Vibe Platforms
+                      Connected Vibe Coding Platforms
                     </div>
                     {connectedVibePlatforms.length > 0 ? (
                       <div className="space-y-2">
