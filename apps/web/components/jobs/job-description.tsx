@@ -24,7 +24,7 @@ export function JobDescription({
           <p className="text-lg">Description</p>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2 pt-0">
+      <CardContent className="space-y-2 pt-0 p-0">
         <Textarea
           value={generatedDescription || ''}
           onChange={e => onGeneratedDescriptionChange(e.target.value)}
@@ -40,7 +40,7 @@ export function JobDescription({
               e.stopPropagation();
             }
           }}
-          className="text-sm min-h-[40px] max-h-full  resize-none rounded-lg bg-card border-none px-3  outline-none"
+          className="text-sm min-h-[40px] max-h-full  resize-none rounded-lg bg-card border-none px-5  outline-none"
           placeholder="No description available"
         />
         {/* <div className="rounded-2xl border border-dashed border-muted p-4">

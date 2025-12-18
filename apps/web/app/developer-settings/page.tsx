@@ -164,7 +164,9 @@ export default function DeveloperSettings() {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Developer Settings</h1>
+        <h1 className="text-2xl font-bold mb-2 text-foreground">
+          Developer Settings
+        </h1>
         <p className="text-muted-foreground">
           Manage your API keys for programmatic access to Sia
         </p>
@@ -174,16 +176,20 @@ export default function DeveloperSettings() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-heading">
                 <Key className="h-5 w-5" />
                 API Keys
               </CardTitle>
-              <CardDescription className="mt-2">
+              <CardDescription className="mt-2 text-sm">
                 API keys allow you to authenticate requests to the Sia API. Keep
                 your keys secure and never share them publicly.
               </CardDescription>
             </div>
-            <Button onClick={() => setCreateDialogOpen(true)}>
+            <Button
+              onClick={() => setCreateDialogOpen(true)}
+              size="sm"
+              className="text-sm"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Create API Key
             </Button>

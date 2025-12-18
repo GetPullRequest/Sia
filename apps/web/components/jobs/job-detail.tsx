@@ -11,7 +11,6 @@ import {
   Code,
   ShieldCheck,
   ChevronDown,
-  Copy,
   Logs,
   AlertTriangle,
 } from 'lucide-react';
@@ -298,16 +297,16 @@ export function JobDetail({
     return '';
   };
 
-  const getGenerationLogsContent = () => {
-    if (Array.isArray(job.code_generation_logs)) {
-      return job.code_generation_logs
-        .map(log =>
-          typeof log === 'string' ? log : JSON.stringify(log, null, 2)
-        )
-        .join('\n');
-    }
-    return formatLogs(job.code_generation_logs);
-  };
+  // const getGenerationLogsContent = () => {
+  //   if (Array.isArray(job.code_generation_logs)) {
+  //     return job.code_generation_logs
+  //       .map(log =>
+  //         typeof log === 'string' ? log : JSON.stringify(log, null, 2)
+  //       )
+  //       .join('\n');
+  //   }
+  //   return formatLogs(job.code_generation_logs);
+  // };
 
   const getVerificationLogsContent = () =>
     formatLogs(job.code_verification_logs);
@@ -363,7 +362,7 @@ export function JobDetail({
           </div>
         </div>
       )}
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] h-[50vh]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] h-[50vh]">
         <Card className="space-y-3 border border-border shadow-none p-0 h-[50vh] overflow-auto">
           <div className="px-8 mt-2">
             <JobHeaderSection
@@ -443,7 +442,7 @@ export function JobDetail({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
+                  {/* <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
@@ -474,7 +473,7 @@ export function JobDetail({
                   >
                     <Copy className="h-4 w-4" />
                     <span className="sr-only">Copy logs</span>
-                  </Button>
+                  </Button> */}
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:-rotate-180" />
                     <span className="sr-only">Toggle logs</span>
@@ -525,7 +524,7 @@ export function JobDetail({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
+                  {/* <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
@@ -543,7 +542,7 @@ export function JobDetail({
                   >
                     <Copy className="h-4 w-4" />
                     <span className="sr-only">Copy logs</span>
-                  </Button>
+                  </Button> */}
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:-rotate-180" />
                     <span className="sr-only">Toggle logs</span>

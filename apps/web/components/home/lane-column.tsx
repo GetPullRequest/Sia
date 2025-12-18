@@ -9,8 +9,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CircleDashed, Pause, PlayCircle } from 'lucide-react';
-import type { JobResponse } from '@/types';
-import type { Agent } from '@/types';
+import type { JobResponse, Agent } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
@@ -54,7 +53,7 @@ export type LaneColumnProps = {
   onExecuteRework?: () => void;
   onExecuteBacklog?: () => void;
   showRework?: boolean;
-  activeAgent?: Agent | null;
+  activeAgents?: Agent[];
   theme?: string | undefined;
   reworkQueuePaused?: boolean;
   backlogQueuePaused?: boolean;
@@ -75,7 +74,7 @@ export function LaneColumn({
   onExecuteRework,
   onExecuteBacklog,
   showRework = true,
-  activeAgent,
+  activeAgents,
   theme,
   reworkQueuePaused,
   backlogQueuePaused,
@@ -162,18 +161,29 @@ export function LaneColumn({
         {/* <div className="flex items-center space-x-2">{controls}</div> */}
       </div>
       <div className="space-y-3 min-h-[64px] flex-1 overflow-y-auto overflow-x-hidden pr-1">
-        {isInProgressLane && activeAgent && !isAnimationDisabled && (
+        {isInProgressLane && !isAnimationDisabled && (
           <div className="space-y-4 pb-3">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
-                  Active Agent –{' '}
-                  <Link
-                    href="/agents"
-                    className="text-foreground hover:text-primary transition-colors underline decoration-muted-foreground/40 hover:decoration-primary"
-                  >
-                    {activeAgent.name}
-                  </Link>
+                  {activeAgents && activeAgents.length > 0 ? (
+                    <>
+                      Active Agents –{' '}
+                      {activeAgents.map((agent, index) => (
+                        <span key={agent.id}>
+                          <Link
+                            href="/agents"
+                            className="text-foreground hover:text-primary transition-colors underline decoration-muted-foreground/40 hover:decoration-primary"
+                          >
+                            {agent.name}
+                          </Link>
+                          {index < activeAgents.length - 1 && ', '}
+                        </span>
+                      ))}
+                    </>
+                  ) : (
+                    'No active agents available'
+                  )}
                 </p>
                 <Tooltip>
                   <TooltipTrigger asChild>

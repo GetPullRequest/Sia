@@ -276,10 +276,10 @@ export function JobConfigurations({
 
   return (
     <Card className="w-full  shadow-none p-0">
-      <CardHeader className="px-6 py-2 ">
-        <CardTitle className="text-base font-semibold text-foreground space-y-0 pb-2 flex flex-row items-center gap-2">
-          <Wrench className="h-4 w-4" />
-          Configurations
+      <CardHeader className="px-5 py-2  ">
+        <CardTitle className="text-lg font-semibold text-foreground space-y-0 pb-2 flex flex-row items-center gap-2">
+          <Wrench className="h-5 w-5" />
+          Repositories Configurations
         </CardTitle>
       </CardHeader>
       <CardContent className="px-6 pb-2 space-y-2">
@@ -294,7 +294,9 @@ export function JobConfigurations({
               <li key={repo.id} className="space-y-2">
                 <div className="flex items-center justify-start gap-2">
                   <div className="w-2 h-2 bg-primary rounded-full" />
-                  <span className="text-base font-medium">{repo.name}</span>
+                  <span className="text-subheading font-medium">
+                    {repo.name}
+                  </span>
                   {repo.url && (
                     <Link
                       href={repo.url}
@@ -322,7 +324,18 @@ export function JobConfigurations({
                           variant="link"
                           size="sm"
                           className="h-7 px-3 underline text-xs"
-                          onClick={() => handleConfigureClick(repo.id)}
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleConfigureClick(repo.id);
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              // Prevent parent key handlers (like reopening job dialog)
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleConfigureClick(repo.id);
+                            }
+                          }}
                           disabled={isConfiguring}
                         >
                           Update
@@ -332,8 +345,19 @@ export function JobConfigurations({
                       <Button
                         variant="link"
                         size="sm"
-                        className="h-7 px-3  underline"
-                        onClick={() => handleConfigureClick(repo.id)}
+                        className="h-7 px-3  underline text-xs"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleConfigureClick(repo.id);
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            // Prevent parent key handlers (like reopening job dialog)
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleConfigureClick(repo.id);
+                          }
+                        }}
                         disabled={isConfiguring}
                       >
                         {/* <Settings className="h-3 w-3 mr-1" /> */}
@@ -383,6 +407,18 @@ export function JobConfigurations({
                           }
                         }}
                         onKeyDown={e => {
+                          // Ctrl+Enter / Cmd+Enter saves this repo's configuration
+                          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (
+                              !saveConfigMutation.isPending &&
+                              hasChanges(repo.id)
+                            ) {
+                              handleSaveConfig(repo.id);
+                            }
+                            return;
+                          }
                           // Prevent Enter and Space from bubbling up
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.stopPropagation();
@@ -421,6 +457,18 @@ export function JobConfigurations({
                           }
                         }}
                         onKeyDown={e => {
+                          // Ctrl+Enter / Cmd+Enter saves this repo's configuration
+                          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (
+                              !saveConfigMutation.isPending &&
+                              hasChanges(repo.id)
+                            ) {
+                              handleSaveConfig(repo.id);
+                            }
+                            return;
+                          }
                           // Prevent Enter and Space from bubbling up
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.stopPropagation();
@@ -459,6 +507,18 @@ export function JobConfigurations({
                           }
                         }}
                         onKeyDown={e => {
+                          // Ctrl+Enter / Cmd+Enter saves this repo's configuration
+                          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (
+                              !saveConfigMutation.isPending &&
+                              hasChanges(repo.id)
+                            ) {
+                              handleSaveConfig(repo.id);
+                            }
+                            return;
+                          }
                           // Prevent Enter and Space from bubbling up
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.stopPropagation();

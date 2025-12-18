@@ -284,7 +284,7 @@ export function ActivityDetail({ activity, onDelete }: ActivityDetailProps) {
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 <Trash2 className="h-4 w-4 text-white" />
-                <span>Delete activity</span>
+                {/* <span>Delete activity</span> */}
               </Button>
             </div>
           </div>

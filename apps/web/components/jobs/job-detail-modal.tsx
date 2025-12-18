@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useJob } from '@/hooks/use-jobs';
@@ -25,6 +25,7 @@ export function JobDetailModal({
   const { data: job, isLoading, isError } = useJob(jobId);
   const [isRetryFormOpen, setIsRetryFormOpen] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const dialogContentRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -99,7 +100,20 @@ export function JobDetailModal({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className="max-w-[80%] p-0 rounded-3xl">
+      <DialogContent
+        ref={dialogContentRef}
+        className="max-w-[80%] p-0 rounded-3xl"
+        tabIndex={-1}
+        onOpenAutoFocus={(event: Event) => {
+          // Prevent Radix from auto-focusing the first interactive element
+          // (like the close button) and instead focus the dialog container
+          // so that keyboard users start at the top and can Tab through.
+          event.preventDefault();
+          window.setTimeout(() => {
+            dialogContentRef.current?.focus();
+          }, 0);
+        }}
+      >
         <DialogTitle className="text-base font-semibold text-foreground p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-3xl px-5 py-4">
             <div className="flex flex-wrap items-center gap-4">
@@ -172,7 +186,7 @@ export function JobDetailModal({
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       e.stopPropagation();
-                      setShowDeleteConfirmation(true);
+                      // setShowDeleteConfirmation(true);
                     }
                   }}
                   className="h-8 text-destructive"
