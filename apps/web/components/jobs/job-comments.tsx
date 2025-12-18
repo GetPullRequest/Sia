@@ -343,7 +343,7 @@ export function JobComments({
                 className="group rounded-lg  bg-card p-2 transition-all hover:border-border hover:bg-card/80 hover:shadow-sm"
               >
                 <div className="flex items-start gap-3">
-                  {comments.length > 0 && (
+                  {comment.prompt !== '' && (
                     <Avatar className="h-9 w-9 border border-border">
                       <AvatarImage
                         src={user?.pictureUrl}
@@ -355,7 +355,7 @@ export function JobComments({
                     </Avatar>
                   )}
                   <div className="flex-1 ">
-                    {comments.length > 0 && (
+                    {comment.prompt !== '' && (
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold">

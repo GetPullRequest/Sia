@@ -99,7 +99,7 @@ export function JobDetailModal({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className="max-w-[80%] max-h-[90vh] p-0 rounded-3xl">
+      <DialogContent className="max-w-[80%] p-0 rounded-3xl">
         <DialogTitle className="text-base font-semibold text-foreground p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-3xl px-5 py-4">
             <div className="flex flex-wrap items-center gap-4">
@@ -164,9 +164,9 @@ export function JobDetailModal({
               )}
               {!isRetryFormOpen && (
                 <Button
-                  type="button"
+                  // type="button"
                   size="sm"
-                  variant="destructive"
+                  variant="ghost"
                   onClick={() => setShowDeleteConfirmation(true)}
                   onKeyDown={e => {
                     if (e.key === 'Enter') {
@@ -175,10 +175,10 @@ export function JobDetailModal({
                       setShowDeleteConfirmation(true);
                     }
                   }}
-                  className="h-8 text-white"
+                  className="h-8 text-destructive"
                 >
                   <Trash className="h-4 w-4 " />
-                  <p className="text-xs font-medium">Delete job</p>
+                  {/* <p className="text-xs font-medium">Delete job</p> */}
                 </Button>
               )}
             </div>

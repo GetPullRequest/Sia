@@ -313,7 +313,7 @@ export function JobDetail({
     formatLogs(job.code_verification_logs);
 
   return (
-    <div className="flex w-full flex-col gap-4 h-[90vh] overflow-auto px-2 lg:px-0">
+    <div className="flex w-full flex-col gap-4 max-h-[85vh] overflow-auto px-2 lg:px-0">
       {showDeleteConfirmation && (
         <div className="flex items-start justify-between gap-3 rounded-2xl bg-card px-4 py-3">
           <div className="flex gap-3">

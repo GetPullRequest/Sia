@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Wrench } from 'lucide-react';
+import { CheckCircle, Wrench, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthHeaders } from '@/lib/api';
 import {
@@ -14,6 +14,7 @@ import {
 } from '@sia/models/api-client';
 import type { RepoConfig } from '@sia/models/api-client';
 import { handleApiError } from '@/lib/api-error-handler';
+import Link from 'next/link';
 
 interface JobConfigurationsProps {
   repositories?: Array<{
@@ -294,6 +295,18 @@ export function JobConfigurations({
                 <div className="flex items-center justify-start gap-2">
                   <div className="w-2 h-2 bg-primary rounded-full" />
                   <span className="text-base font-medium">{repo.name}</span>
+                  {repo.url && (
+                    <Link
+                      href={repo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="flex items-center text-primary hover:text-foreground transition-colors"
+                      aria-label={`Open ${repo.name} repository`}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                    </Link>
+                  )}
                   <div className="flex items-center ">
                     {isLoading ? (
                       <span className="text-xs text-muted-foreground">
@@ -332,7 +345,23 @@ export function JobConfigurations({
 
                 {/* Configuration Form - appears directly below the repository */}
                 {isConfiguring && (
-                  <div className="ml-6 p-4 border border-border rounded-lg bg-card space-y-4">
+                  <div
+                    className="ml-6 p-4 border border-border rounded-lg bg-card space-y-4"
+                    onClick={e => e.stopPropagation()}
+                    onKeyDown={e => {
+                      // Prevent Enter and Space from bubbling up when inside the form
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        const target = e.target as HTMLElement;
+                        // Only stop propagation if not on a button or textarea
+                        if (
+                          target.tagName !== 'BUTTON' &&
+                          target.tagName !== 'TEXTAREA'
+                        ) {
+                          e.stopPropagation();
+                        }
+                      }
+                    }}
+                  >
                     {/* Setup Commands */}
                     <div>
                       <label className="text-sm font-medium block mb-2">
@@ -446,21 +475,39 @@ export function JobConfigurations({
 
                     <div className="flex gap-2 justify-end mt-4">
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         onClick={e => {
+                          e.preventDefault();
                           e.stopPropagation();
                           handleCancelConfig(repo.id);
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleCancelConfig(repo.id);
+                          }
                         }}
                         disabled={saveConfigMutation.isPending}
                       >
                         Cancel
                       </Button>
                       <Button
+                        type="button"
                         size="sm"
                         onClick={e => {
+                          e.preventDefault();
                           e.stopPropagation();
                           handleSaveConfig(repo.id);
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSaveConfig(repo.id);
+                          }
                         }}
                         disabled={
                           saveConfigMutation.isPending || !hasChanges(repo.id)
