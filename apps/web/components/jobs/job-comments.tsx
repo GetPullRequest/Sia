@@ -19,6 +19,7 @@ interface JobCommentsProps {
   comments: UserComment[];
   currentUserName?: string;
   updates?: string;
+  isReadOnly?: boolean;
 }
 
 export function JobComments({
@@ -26,6 +27,7 @@ export function JobComments({
   comments,
   currentUserName,
   updates = '',
+  isReadOnly = false,
 }: JobCommentsProps) {
   const [newComment, setNewComment] = useState('');
   const [showUpdates, setShowUpdates] = useState(false);
@@ -242,87 +244,89 @@ export function JobComments({
             />
           </div>
         )}
-        <div
-          className="space-y-2"
-          onKeyDown={e => {
-            // Prevent Enter key from bubbling up to parent elements
-            if (e.key === 'Enter' && e.target !== e.currentTarget) {
-              // Only stop if the event is from a child element, not the container itself
-              const target = e.target as HTMLElement;
-              if (
-                target.tagName === 'BUTTON' ||
-                target.tagName === 'TEXTAREA'
-              ) {
-                e.stopPropagation();
+        {!isReadOnly && (
+          <div
+            className="space-y-2"
+            onKeyDown={e => {
+              // Prevent Enter key from bubbling up to parent elements
+              if (e.key === 'Enter' && e.target !== e.currentTarget) {
+                // Only stop if the event is from a child element, not the container itself
+                const target = e.target as HTMLElement;
+                if (
+                  target.tagName === 'BUTTON' ||
+                  target.tagName === 'TEXTAREA'
+                ) {
+                  e.stopPropagation();
+                }
               }
-            }
-          }}
-          onClick={e => {
-            // Stop click events from bubbling up
-            e.stopPropagation();
-          }}
-        >
-          <Textarea
-            placeholder="Write a comment..."
-            value={newComment}
-            onChange={e => setNewComment(e.target.value)}
-            onKeyDown={handleTextareaKeyDown}
-            className={cn(
-              'text-sm min-h-[60px] max-h-[180px] resize-none',
-              newComment.trim().length > 0 && 'max-h-[200px] overflow-y-auto'
-            )}
-          />
-          {newComment.trim().length > 0 && (
-            <div className="flex flex-col gap-1">
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setNewComment('');
-                  }}
-                  onKeyDown={handleCancelKeyDown}
-                  onKeyUp={handleCancelKeyUp}
-                  onMouseDown={e => e.stopPropagation()}
-                  onPointerDown={e => e.stopPropagation()}
-                  disabled={addCommentMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleSaveClick}
-                  onKeyDown={handleSaveKeyDown}
-                  onKeyUp={handleSaveKeyUp}
-                  onMouseDown={e => e.stopPropagation()}
-                  onPointerDown={e => e.stopPropagation()}
-                  disabled={
-                    addCommentMutation.isPending ||
-                    createTaskMutation.isPending ||
-                    !newComment.trim()
-                  }
-                  title="Click to save comment. Hold Ctrl/Cmd while clicking to create a task."
-                >
-                  {addCommentMutation.isPending ||
-                  createTaskMutation.isPending ? (
-                    'Saving...'
-                  ) : (
-                    <>
-                      Save{' '}
-                      <span className="text-[10px] opacity-70 ml-1">
-                        ({isMac ? '⌘' : 'Ctrl'}+Enter)
-                      </span>
-                    </>
-                  )}
-                </Button>
+            }}
+            onClick={e => {
+              // Stop click events from bubbling up
+              e.stopPropagation();
+            }}
+          >
+            <Textarea
+              placeholder="Write a comment..."
+              value={newComment}
+              onChange={e => setNewComment(e.target.value)}
+              onKeyDown={handleTextareaKeyDown}
+              className={cn(
+                'text-sm min-h-[60px] max-h-[180px] resize-none',
+                newComment.trim().length > 0 && 'max-h-[200px] overflow-y-auto'
+              )}
+            />
+            {newComment.trim().length > 0 && (
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setNewComment('');
+                    }}
+                    onKeyDown={handleCancelKeyDown}
+                    onKeyUp={handleCancelKeyUp}
+                    onMouseDown={e => e.stopPropagation()}
+                    onPointerDown={e => e.stopPropagation()}
+                    disabled={addCommentMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSaveClick}
+                    onKeyDown={handleSaveKeyDown}
+                    onKeyUp={handleSaveKeyUp}
+                    onMouseDown={e => e.stopPropagation()}
+                    onPointerDown={e => e.stopPropagation()}
+                    disabled={
+                      addCommentMutation.isPending ||
+                      createTaskMutation.isPending ||
+                      !newComment.trim()
+                    }
+                    title="Click to save comment. Hold Ctrl/Cmd while clicking to create a task."
+                  >
+                    {addCommentMutation.isPending ||
+                    createTaskMutation.isPending ? (
+                      'Saving...'
+                    ) : (
+                      <>
+                        Save{' '}
+                        <span className="text-[10px] opacity-70 ml-1">
+                          ({isMac ? '⌘' : 'Ctrl'}+Enter)
+                        </span>
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
         {comments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="rounded-full bg-muted p-3 mb-3">

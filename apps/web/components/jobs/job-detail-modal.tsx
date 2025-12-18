@@ -10,6 +10,11 @@ import { RotateCw, Trash, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface JobDetailModalProps {
   jobId: string;
@@ -139,7 +144,7 @@ export function JobDetailModal({
                   <Button
                     type="button"
                     size="sm"
-                    variant="outline"
+                    // variant="outline"
                     onClick={handleRetryOpen}
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
@@ -151,7 +156,7 @@ export function JobDetailModal({
                     className="h-8"
                   >
                     <RotateCw className="h-4 w-4 mr-1" />
-                    <p className="text-xs font-medium text-foreground">Retry</p>
+                    <p className="text-xs font-medium ">Retry</p>
                   </Button>
                 )}
               {job?.status === 'in-progress' && !isRetryFormOpen && (
@@ -177,23 +182,30 @@ export function JobDetailModal({
                 </Button>
               )}
               {!isRetryFormOpen && (
-                <Button
-                  // type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowDeleteConfirmation(true)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      // setShowDeleteConfirmation(true);
-                    }
-                  }}
-                  className="h-8 text-destructive"
-                >
-                  <Trash className="h-4 w-4 " />
-                  {/* <p className="text-xs font-medium">Delete job</p> */}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      // type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowDeleteConfirmation(true)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          // setShowDeleteConfirmation(true);
+                        }
+                      }}
+                      className="h-8 text-destructive"
+                    >
+                      <Trash className="h-4 w-4 " />
+                      {/* <p className="text-xs font-medium">Delete job</p> */}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    Delete this job permanently
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
