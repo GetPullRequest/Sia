@@ -103,12 +103,12 @@ export class LogStorageService {
     }
 
     const message = log.message || '';
-    const stage = log.stage ? `[${log.stage}] ` : '';
 
     return {
       level: normalizedLevel,
       timestamp,
-      message: stage + message,
+      message,
+      stage: log.stage, // Store stage separately, don't prefix message
     };
   }
 
@@ -165,6 +165,18 @@ export class LogStorageService {
         return;
       }
 
+      // Get existing logs (ensure they're arrays)
+      const existingGenLogs: LogEntry[] = Array.isArray(
+        jobResult[0].codeGenerationLogs
+      )
+        ? jobResult[0].codeGenerationLogs
+        : [];
+      const existingVerLogs: LogEntry[] = Array.isArray(
+        jobResult[0].codeVerificationLogs
+      )
+        ? jobResult[0].codeVerificationLogs
+        : [];
+
       // Separate logs by stage (code-generation or verification) and convert to LogEntry format
       const generationLogEntries: LogEntry[] = [];
       const verificationLogEntries: LogEntry[] = [];
@@ -179,18 +191,6 @@ export class LogStorageService {
           generationLogEntries.push(logEntry);
         }
       }
-
-      // Get existing logs (ensure they're arrays)
-      const existingGenLogs: LogEntry[] = Array.isArray(
-        jobResult[0].codeGenerationLogs
-      )
-        ? jobResult[0].codeGenerationLogs
-        : [];
-      const existingVerLogs: LogEntry[] = Array.isArray(
-        jobResult[0].codeVerificationLogs
-      )
-        ? jobResult[0].codeVerificationLogs
-        : [];
 
       // Append new logs and truncate
       const newGenLogs = this.truncateLogEntries(

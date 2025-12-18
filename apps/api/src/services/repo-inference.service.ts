@@ -407,21 +407,12 @@ export class RepoInferenceService {
       let cloneUrl = repoUrl;
       if (token) {
         if (repoUrl.includes('github.com')) {
-          // For GitHub App installation tokens (ghs_*), use x-access-token as username
-          // For personal access tokens (ghp_* or classic tokens), use token:x-oauth-basic format
-          if (token.startsWith('ghs_')) {
-            // GitHub App installation token - use x-access-token:token format
-            cloneUrl = repoUrl.replace(
-              'https://github.com/',
-              `https://x-access-token:${token}@github.com/`
-            );
-          } else {
-            // Personal access token - use token:x-oauth-basic format
-            cloneUrl = repoUrl.replace(
-              'https://github.com/',
-              `https://${token}:x-oauth-basic@github.com/`
-            );
-          }
+          // Use x-access-token format for all GitHub token types
+          // This works with personal access tokens, fine-grained tokens, and app tokens
+          cloneUrl = repoUrl.replace(
+            'https://github.com/',
+            `https://x-access-token:${token}@github.com/`
+          );
         } else {
           // For other git providers, use standard basic auth format
           cloneUrl = repoUrl.replace(

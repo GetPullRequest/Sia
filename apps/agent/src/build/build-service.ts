@@ -15,7 +15,7 @@ export class BuildService {
   }
 
   async *build(
-    buildCommands: string[] = ['npm install', 'npm run build'],
+    buildCommands: string[],
     jobId: string
   ): AsyncGenerator<LogMessage> {
     try {
@@ -36,34 +36,33 @@ export class BuildService {
           stage: 'build',
         };
 
-        const [cmd, ...args] = command.split(' ');
-
         try {
-          const result = await execa(cmd, args, {
+          // Use shell: true to resolve npm/node executables from PATH
+          // This prevents ENOENT errors when npm/node are not in the direct PATH
+          const subprocess = execa(command, {
             cwd: this.workspacePath,
-            stdio: 'pipe',
+            all: true, // Combine stdout and stderr for streaming
+            shell: true, // Execute through shell to resolve npm, node, etc.
           });
 
-          // Stream output
-          if (result.stdout) {
-            yield {
-              level: 'info',
-              message: result.stdout,
-              timestamp: new Date().toISOString(),
-              jobId,
-              stage: 'build',
-            };
+          // Stream combined output (stdout + stderr) in real-time
+          if (subprocess.all) {
+            for await (const chunk of subprocess.all) {
+              const output = chunk.toString();
+              if (output.trim()) {
+                yield {
+                  level: 'info',
+                  message: output,
+                  timestamp: new Date().toISOString(),
+                  jobId,
+                  stage: 'build',
+                };
+              }
+            }
           }
 
-          if (result.stderr) {
-            yield {
-              level: 'warning',
-              message: result.stderr,
-              timestamp: new Date().toISOString(),
-              jobId,
-              stage: 'build',
-            };
-          }
+          // Wait for the command to complete
+          await subprocess;
 
           yield {
             level: 'success',

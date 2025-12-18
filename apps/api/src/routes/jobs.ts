@@ -1907,11 +1907,19 @@ async function jobsRoutes(fastify: FastifyInstance) {
         const user = request.user!;
         const queueType = request.params.queueType;
 
-        // Only get database pause state
-        const { isQueuePaused } = await import(
-          '../temporal/activities/queue-status-activity.js'
-        );
-        const isPaused = await isQueuePaused({ orgId: user.orgId, queueType });
+        // Check queue pause state from database
+        const queueState = await db
+          .select()
+          .from(schema.queueStates)
+          .where(
+            and(
+              eq(schema.queueStates.orgId, user.orgId),
+              eq(schema.queueStates.queueType, queueType)
+            )
+          )
+          .limit(1);
+
+        const isPaused = queueState.length > 0 ? queueState[0].isPaused : false;
 
         return reply.send({
           isPaused,

@@ -1,4 +1,8 @@
-import { proxyActivities, executeChild } from '@temporalio/workflow';
+import {
+  proxyActivities,
+  executeChild,
+  ParentClosePolicy,
+} from '@temporalio/workflow';
 import type * as activities from '../activities';
 import { jobExecutionWorkflow } from './job-execution-workflow.js';
 
@@ -15,7 +19,10 @@ const { preprocessActivity } = proxyActivities<typeof activities>({
  *
  * Simplified to use only 2 steps:
  * 1. preprocess: Check orphan jobs, heartbeat if job in progress, get next job if queue not paused
- * 2. process: Start child workflow if job found, otherwise complete
+ * 2. process: Start child workflow in fire-and-forget mode, return immediately
+ *
+ * The child workflow (job execution) runs independently with ParentClosePolicy.ABANDON,
+ * ensuring the queue monitor completes quickly while jobs execute for hours.
  */
 export async function queueMonitorWorkflow(params: {
   agentId: string;
@@ -33,6 +40,8 @@ export async function queueMonitorWorkflow(params: {
   // Step 2: Process
   if (result.jobId && result.jobVersion && result.queueType && result.orgId) {
     try {
+      // Start the child workflow in fire-and-forget mode
+      // The child continues running independently even after this parent completes
       await executeChild(jobExecutionWorkflow, {
         args: [
           {
@@ -46,6 +55,9 @@ export async function queueMonitorWorkflow(params: {
         workflowId: `job-execution-${result.jobId}-v${result.jobVersion}`,
         workflowExecutionTimeout: '2 hours',
         workflowRunTimeout: '1 hour',
+        // ABANDON policy: child workflow continues even if parent completes or fails
+        // This prevents parent timeout from affecting long-running job execution
+        parentClosePolicy: ParentClosePolicy.ABANDON,
       });
       return {
         processed: true,
@@ -54,6 +66,8 @@ export async function queueMonitorWorkflow(params: {
         queueType: result.queueType,
       };
     } catch {
+      // Only catches workflow START failures, not execution failures
+      // Execution failures are handled by the child workflow's finally block
       return {
         processed: false,
         jobId: result.jobId,

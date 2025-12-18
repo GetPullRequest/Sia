@@ -1,6 +1,8 @@
 import { db, schema, type NewActivity } from '../../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { logStorage } from '../../services/log-storage.js';
+import { websocketManager } from '../../services/websocket-manager.js';
 
 // Helper function to create activity
 async function createActivity(
@@ -140,5 +142,51 @@ export async function updateJobStatus(params: {
       currentJob.updatedBy || 'system',
       params.orgId
     );
+  }
+
+  // Log final workflow status
+  const finalLog = {
+    level: (params.status === 'failed' ? 'error' : 'info') as 'info' | 'error',
+    message: `Workflow execution ${
+      params.status === 'completed'
+        ? 'completed successfully'
+        : params.status === 'failed'
+        ? `failed${params.error ? `: ${params.error}` : ''}`
+        : `finished with status: ${params.status}`
+    }`,
+    timestamp: new Date().toISOString(),
+    jobId: params.jobId,
+    stage: 'workflow',
+  };
+
+  await logStorage.addLog(
+    params.jobId,
+    params.jobVersion,
+    params.orgId,
+    finalLog
+  );
+  if (websocketManager.hasSubscribers(params.jobId)) {
+    websocketManager.broadcast(params.jobId, { type: 'log', data: finalLog });
+  }
+
+  // Log PR link if available
+  if (params.prLink) {
+    const prLog = {
+      level: 'info' as const,
+      message: `Pull request created: ${params.prLink}`,
+      timestamp: new Date().toISOString(),
+      jobId: params.jobId,
+      stage: 'workflow',
+    };
+
+    await logStorage.addLog(
+      params.jobId,
+      params.jobVersion,
+      params.orgId,
+      prLog
+    );
+    if (websocketManager.hasSubscribers(params.jobId)) {
+      websocketManager.broadcast(params.jobId, { type: 'log', data: prLog });
+    }
   }
 }

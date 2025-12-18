@@ -146,13 +146,23 @@ export async function sendCommandToAgent(params: {
           } chars`
         );
 
+        // Normalize git credentials to the format expected by agent
+        const normalizedGitCreds = payload.gitCredentials
+          ? {
+              github_token: payload.gitCredentials.token,
+              githubToken: payload.gitCredentials.token,
+              github_username: payload.gitCredentials.username,
+              githubUsername: payload.gitCredentials.username,
+            }
+          : {};
+
         // Agent: Clone repo, start cursor, execute task
         await agentClient.executeJob({
           jobId,
           prompt: payload.prompt,
           repos: payload.repos?.map((r: { repoId: string }) => r.repoId),
           jobDetails: {
-            ...payload.gitCredentials,
+            ...normalizedGitCreds,
             ...payload.vibeCoderCredentials,
           },
           onLog: async (log: LogMessage) => {
@@ -228,6 +238,16 @@ export async function sendCommandToAgent(params: {
           `[Activity] Processing checkout command for ${repoCount} repos`
         );
 
+        // Normalize git credentials to the format expected by agent
+        const normalizedGitCreds = payload.gitCredentials
+          ? {
+              github_token: payload.gitCredentials.token,
+              githubToken: payload.gitCredentials.token,
+              github_username: payload.gitCredentials.username,
+              githubUsername: payload.gitCredentials.username,
+            }
+          : {};
+
         // Agent: Clone repositories
         // Pass repos as JSON-encoded string in jobDetails since gRPC proto only supports single repoId
         await agentClient.executeJob({
@@ -235,7 +255,7 @@ export async function sendCommandToAgent(params: {
           prompt: payload.prompt || '',
           repos: payload.repos?.map((r: { repoId: string }) => r.repoId),
           jobDetails: {
-            ...payload.gitCredentials,
+            ...normalizedGitCreds,
             ...payload.vibeCoderCredentials,
             step: 'checkout',
             // Encode repos array as JSON string
@@ -264,13 +284,23 @@ export async function sendCommandToAgent(params: {
           `[Activity] Invoking agent.executeJob via gRPC for setup`
         );
 
+        // Normalize git credentials to the format expected by agent
+        const normalizedGitCreds = payload.gitCredentials
+          ? {
+              github_token: payload.gitCredentials.token,
+              githubToken: payload.gitCredentials.token,
+              github_username: payload.gitCredentials.username,
+              githubUsername: payload.gitCredentials.username,
+            }
+          : {};
+
         // Agent: Run setup commands
         await agentClient.executeJob({
           jobId,
           prompt: payload.prompt || '',
           repos: payload.repos?.map((r: { repoId: string }) => r.repoId),
           jobDetails: {
-            ...payload.gitCredentials,
+            ...normalizedGitCreds,
             ...payload.vibeCoderCredentials,
             step: 'setup',
             setupCommands: payload.repos?.[0]?.setupCommands?.join(';') || '',
@@ -299,13 +329,23 @@ export async function sendCommandToAgent(params: {
           `[Activity] Invoking agent.executeJob via gRPC for build`
         );
 
+        // Normalize git credentials to the format expected by agent
+        const normalizedGitCreds = payload.gitCredentials
+          ? {
+              github_token: payload.gitCredentials.token,
+              githubToken: payload.gitCredentials.token,
+              github_username: payload.gitCredentials.username,
+              githubUsername: payload.gitCredentials.username,
+            }
+          : {};
+
         // Agent: Run build commands
         await agentClient.executeJob({
           jobId,
           prompt: payload.prompt || '',
           repos: payload.repos?.map((r: { repoId: string }) => r.repoId),
           jobDetails: {
-            ...payload.gitCredentials,
+            ...normalizedGitCreds,
             ...payload.vibeCoderCredentials,
             step: 'build',
             buildCommands: payload.repos?.[0]?.buildCommands?.join(';') || '',
@@ -336,13 +376,23 @@ export async function sendCommandToAgent(params: {
           } chars`
         );
 
+        // Normalize git credentials to the format expected by agent
+        const normalizedGitCreds = payload.gitCredentials
+          ? {
+              github_token: payload.gitCredentials.token,
+              githubToken: payload.gitCredentials.token,
+              github_username: payload.gitCredentials.username,
+              githubUsername: payload.gitCredentials.username,
+            }
+          : {};
+
         // Agent: Execute code generation task
         await agentClient.executeJob({
           jobId,
           prompt: payload.prompt || '',
           repos: payload.repos?.map((r: { repoId: string }) => r.repoId),
           jobDetails: {
-            ...payload.gitCredentials,
+            ...normalizedGitCreds,
             ...payload.vibeCoderCredentials,
             step: 'execute',
             reposJson: JSON.stringify(payload.repos || []),
@@ -375,7 +425,7 @@ export async function sendCommandToAgent(params: {
     );
     throw error;
   } finally {
-    await log('info', `[Activity] Closing gRPC connection to agent`);
+    await log('info', `[Activity] Command ${command} completed successfully`);
     agentClient.close();
   }
 }

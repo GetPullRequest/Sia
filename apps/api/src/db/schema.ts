@@ -133,6 +133,7 @@ export const jobs = pgTable(
         level: 'debug' | 'info' | 'warning' | 'error' | 'fatal';
         timestamp: string; // UTC ISO timestamp
         message: string;
+        stage?: string; // Original stage (workflow, code-generation, etc.)
       }>
     >(),
     codeVerificationLogs: jsonb('code_verification_logs').$type<
@@ -140,6 +141,7 @@ export const jobs = pgTable(
         level: 'debug' | 'info' | 'warning' | 'error' | 'fatal';
         timestamp: string; // UTC ISO timestamp
         message: string;
+        stage?: string; // Original stage (build, verification, etc.)
       }>
     >(),
     codeGenerationDetailLogs: jsonb('code_generation_detail_logs').$type<
@@ -565,6 +567,7 @@ export type LogEntry = {
   level: 'debug' | 'info' | 'warning' | 'error' | 'fatal';
   timestamp: string; // UTC ISO timestamp
   message: string;
+  stage?: string; // Original stage (workflow, code-generation, verification, etc.)
 };
 export type Repo = InferSelectModel<typeof repos>;
 export type NewRepo = InferInsertModel<typeof repos>;

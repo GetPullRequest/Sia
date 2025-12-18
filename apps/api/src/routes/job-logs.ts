@@ -266,7 +266,7 @@ async function jobLogsRoutes(fastify: FastifyInstance) {
               level: log.level,
               timestamp: log.timestamp,
               message: log.message,
-              stage: 'code-generation',
+              stage: log.stage || 'code-generation', // Use original stage if available
             });
           });
         }
@@ -278,7 +278,7 @@ async function jobLogsRoutes(fastify: FastifyInstance) {
               level: log.level,
               timestamp: log.timestamp,
               message: log.message,
-              stage: 'verification',
+              stage: log.stage || 'verification', // Use original stage if available
             });
           });
         }
@@ -575,7 +575,7 @@ async function jobLogsRoutes(fastify: FastifyInstance) {
                           timestamp: log.timestamp,
                           message: log.message,
                           jobId,
-                          stage: 'code-generation',
+                          stage: log.stage || 'code-generation', // Use original stage if available
                         });
                       });
                     }
@@ -588,12 +588,12 @@ async function jobLogsRoutes(fastify: FastifyInstance) {
                           timestamp: log.timestamp,
                           message: log.message,
                           jobId,
-                          stage: 'verification',
+                          stage: log.stage || 'verification', // Use original stage if available
                         });
                       });
                     }
 
-                    // Sort by timestamp (oldest first, then reverse to get newest first)
+                    // Sort by timestamp
                     allLogs.sort(
                       (a, b) =>
                         new Date(a.timestamp).getTime() -

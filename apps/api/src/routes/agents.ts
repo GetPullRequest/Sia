@@ -6,6 +6,9 @@ import type { CreateAgentRequest, UpdateAgentRequest } from '../types.js';
 import { getCurrentUser, type User } from '../auth/index.js';
 import { queueWorkflowService } from '../services/queue-workflow-service.js';
 import { initializeScheduleForAgent } from '../services/queue-initialization.js';
+import { agentStreamManager } from '../services/agent-stream-manager.js';
+import { BackendStreamMessageType } from '@sia/models/proto';
+import { AgentClient } from '../services/agent-client.js';
 
 const { agents, integrations } = schema;
 
@@ -656,15 +659,45 @@ async function agentsRoutes(fastify: FastifyInstance) {
 
         const currentAgent = currentAgentResult[0];
 
-        // Import the ping activity
-        const { pingAgentViaStream } = await import(
-          '../temporal/activities/ping-agent-via-stream-activity.js'
+        // Attempt to ping the agent via stream first, then fallback to gRPC
+        let pingSuccess = await agentStreamManager.sendMessage(
+          id,
+          BackendStreamMessageType.HEALTH_CHECK_PING,
+          { timestamp: Date.now() }
         );
 
-        // Attempt to ping the agent
-        const pingResult = await pingAgentViaStream({ agentId: id });
+        // If stream send failed, try direct gRPC call as fallback
+        if (!pingSuccess) {
+          try {
+            const host = currentAgent.host || currentAgent.ip || 'localhost';
+            const port = currentAgent.port || 50051;
+            const agentAddress = `${host}:${port}`;
+            const agentClient = new AgentClient(agentAddress);
 
-        if (pingResult.success) {
+            const healthCheckResponse = await Promise.race([
+              agentClient.healthCheck(id),
+              new Promise<never>((_, reject) =>
+                setTimeout(
+                  () => reject(new Error('Health check timeout')),
+                  5000
+                )
+              ),
+            ]);
+
+            if (healthCheckResponse.success) {
+              pingSuccess = true;
+            }
+
+            agentClient.close();
+          } catch (error) {
+            fastify.log.warn(
+              { error },
+              `Failed to ping agent ${id} via direct gRPC`
+            );
+          }
+        }
+
+        if (pingSuccess) {
           // Agent is alive - reset consecutive failures and mark as active
           const updatedAgentResult = await db
             .update(agents)
@@ -698,9 +731,7 @@ async function agentsRoutes(fastify: FastifyInstance) {
           // Agent is still not responding
           return reply.send({
             success: false,
-            message: `Failed to reconnect: ${
-              pingResult.error || 'Agent not responding'
-            }`,
+            message: 'Failed to reconnect: Agent not responding',
             agent: await transformAgentResponse(currentAgent),
           });
         }

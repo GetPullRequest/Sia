@@ -1,10 +1,14 @@
 import { repoConfigService } from '../../services/repo-config.service.js';
 import { db, schema } from '../../db/index.js';
 import { inArray } from 'drizzle-orm';
+import { logStorage } from '../../services/log-storage.js';
+import { websocketManager } from '../../services/websocket-manager.js';
 
 export interface GetRepoConfigsParams {
   repoIds: string[];
   orgId: string;
+  jobId: string;
+  jobVersion: number;
 }
 
 export interface RepoConfigResult {
@@ -28,10 +32,23 @@ export interface RepoConfigResult {
 export async function getRepoConfigs(
   params: GetRepoConfigsParams
 ): Promise<Record<string, RepoConfigResult>> {
-  const { repoIds } = params;
+  const { repoIds, jobId, jobVersion, orgId } = params;
 
   if (!repoIds || repoIds.length === 0) {
     return {};
+  }
+
+  // Log fetching repository configs
+  const fetchLog = {
+    level: 'info' as const,
+    message: `Fetching configurations for ${repoIds.length} repository(ies)`,
+    timestamp: new Date().toISOString(),
+    jobId,
+    stage: 'workflow',
+  };
+  await logStorage.addLog(jobId, jobVersion, orgId, fetchLog);
+  if (websocketManager.hasSubscribers(jobId)) {
+    websocketManager.broadcast(jobId, { type: 'log', data: fetchLog });
   }
 
   // Fetch all configs for the repos
@@ -72,6 +89,23 @@ export async function getRepoConfigs(
         inferenceSource: config.inferenceSource || undefined,
         inferenceConfidence: config.inferenceConfidence || undefined,
       };
+
+      // Log config status for this repo
+      const statusLog = {
+        level: 'info' as const,
+        message: `${
+          config.isConfirmed ? '✓ Confirmed' : '⚠ Unconfirmed'
+        } config for ${repo?.name || repoId}${
+          config.detectedFrom ? ` (from ${config.detectedFrom})` : ''
+        }`,
+        timestamp: new Date().toISOString(),
+        jobId,
+        stage: 'workflow',
+      };
+      await logStorage.addLog(jobId, jobVersion, orgId, statusLog);
+      if (websocketManager.hasSubscribers(jobId)) {
+        websocketManager.broadcast(jobId, { type: 'log', data: statusLog });
+      }
     } else {
       // No config found - will trigger runtime detection
       result[repoId] = {
@@ -80,6 +114,21 @@ export async function getRepoConfigs(
         url: repo?.url,
         isConfirmed: false,
       };
+
+      // Log warning for missing config
+      const warnLog = {
+        level: 'warn' as const,
+        message: `No configuration found for ${
+          repo?.name || repoId
+        } - will attempt runtime detection`,
+        timestamp: new Date().toISOString(),
+        jobId,
+        stage: 'workflow',
+      };
+      await logStorage.addLog(jobId, jobVersion, orgId, warnLog);
+      if (websocketManager.hasSubscribers(jobId)) {
+        websocketManager.broadcast(jobId, { type: 'log', data: warnLog });
+      }
     }
   }
 

@@ -69,6 +69,19 @@ async function main() {
   const { apiKey, port, backendUrl, containerImage, local, workspaceDir } =
     parseArgs();
 
+  // Add global error handlers to prevent agent crashes
+  process.on('uncaughtException', error => {
+    console.error('Uncaught Exception:', error);
+    console.error('Agent will continue running...');
+    // Don't exit - let the agent continue serving requests
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    console.error('Agent will continue running...');
+    // Don't exit - let the agent continue serving requests
+  });
+
   console.log(`Starting SIA Agent on port ${port}...`);
   console.log(`Connecting to backend at ${backendUrl}...`);
 

@@ -33,20 +33,12 @@ export class GitService {
         const token = credentials.token;
 
         if (repoId.includes('github.com')) {
-          // GitHub: Handle App tokens (ghs_*) vs personal tokens
-          if (token.startsWith('ghs_')) {
-            // GitHub App installation token - use x-access-token format
-            return repoId.replace(
-              'https://github.com/',
-              `https://x-access-token:${token}@github.com/`
-            );
-          } else {
-            // Personal access token - use token:x-oauth-basic format
-            return repoId.replace(
-              'https://github.com/',
-              `https://${token}:x-oauth-basic@github.com/`
-            );
-          }
+          // GitHub: Use x-access-token format for all token types
+          // This works with personal access tokens, fine-grained tokens, and app tokens
+          return repoId.replace(
+            'https://github.com/',
+            `https://x-access-token:${token}@github.com/`
+          );
         } else {
           // Other git providers - use standard basic auth
           return repoId.replace('https://', `https://${token}:x-oauth-basic@`);
@@ -58,13 +50,8 @@ export class GitService {
     // Assume GitHub format: owner/repo
     if (credentials?.token) {
       const token = credentials.token;
-      if (token.startsWith('ghs_')) {
-        // GitHub App installation token
-        return `https://x-access-token:${token}@github.com/${repoId}.git`;
-      } else {
-        // Personal access token
-        return `https://${token}:x-oauth-basic@github.com/${repoId}.git`;
-      }
+      // Use x-access-token format for all GitHub token types
+      return `https://x-access-token:${token}@github.com/${repoId}.git`;
     }
 
     return `https://github.com/${repoId}.git`;
@@ -440,9 +427,15 @@ export class GitService {
     try {
       const repoUrl = this.buildRepoUrl(repoId, credentials);
 
+      // Log credential status for debugging
+      const hasCredentials = !!(credentials?.token || credentials?.username);
       yield {
         level: 'info',
-        message: `Cloning bare repository: ${repoId} to ${bareRepoPath}`,
+        message: `Cloning bare repository: ${repoId} to ${bareRepoPath}${
+          hasCredentials
+            ? ' (using credentials)'
+            : ' (no credentials - public repo only)'
+        }`,
         timestamp: new Date().toISOString(),
         jobId: jobId || 'unknown',
         stage: 'clone',
@@ -458,6 +451,52 @@ export class GitService {
           jobId: jobId || 'unknown',
           stage: 'clone',
         };
+
+        // Update remote URL with credentials if provided
+        // This ensures authentication works even if credentials have changed or expired
+        if (credentials?.token) {
+          try {
+            // Always update the remote URL to use the latest credentials
+            await this.execGitCommand(
+              `git -C "${bareRepoPath}" remote set-url origin "${repoUrl}"`,
+              jobId
+            );
+            yield {
+              level: 'info',
+              message: `Updated remote URL with current credentials`,
+              timestamp: new Date().toISOString(),
+              jobId: jobId || 'unknown',
+              stage: 'clone',
+            };
+          } catch (error) {
+            // If remote doesn't exist, try to add it
+            try {
+              await this.execGitCommand(
+                `git -C "${bareRepoPath}" remote add origin "${repoUrl}"`,
+                jobId
+              );
+              yield {
+                level: 'info',
+                message: `Added remote origin with credentials`,
+                timestamp: new Date().toISOString(),
+                jobId: jobId || 'unknown',
+                stage: 'clone',
+              };
+            } catch (addError) {
+              // If add also fails, log but continue - fetch might still work
+              yield {
+                level: 'warn',
+                message: `Failed to update remote URL: ${
+                  addError instanceof Error ? addError.message : 'Unknown error'
+                }`,
+                timestamp: new Date().toISOString(),
+                jobId: jobId || 'unknown',
+                stage: 'clone',
+              };
+            }
+          }
+        }
+
         // Fetch latest changes
         await this.execGitCommand(
           `git -C "${bareRepoPath}" fetch --all`,
@@ -487,11 +526,29 @@ export class GitService {
         stage: 'clone',
       };
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      // Provide helpful error messages based on the error type
+      let helpfulMessage = `Failed to clone bare repository: ${errorMessage}`;
+
+      if (errorMessage.includes('Repository not found')) {
+        const hasCredentials = !!(credentials?.token || credentials?.username);
+        if (!hasCredentials) {
+          helpfulMessage = `Failed to clone bare repository: Repository not found. This repository may be private. Please ensure GitHub credentials are configured in the job settings.`;
+        } else {
+          helpfulMessage = `Failed to clone bare repository: Repository not found. Please verify:
+1. The repository URL is correct: ${repoId}
+2. The repository exists on GitHub
+3. The GitHub token has access to this repository`;
+        }
+      } else if (errorMessage.includes('Authentication failed')) {
+        helpfulMessage = `Failed to clone bare repository: Authentication failed. Please check that your GitHub token is valid and has not expired.`;
+      }
+
       yield {
         level: 'error',
-        message: `Failed to clone bare repository: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
+        message: helpfulMessage,
         timestamp: new Date().toISOString(),
         jobId: jobId || 'unknown',
         stage: 'clone',

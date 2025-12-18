@@ -176,95 +176,134 @@ export class JobExecutor {
       // For step-based flow, run git commands directly on host (no container)
       const gitService = new GitService(this.workspaceManager.getBasePath());
 
+      const successfulRepos: string[] = [];
+      const failedRepos: string[] = [];
+
       for (const repo of repos) {
-        // Use URL if available, otherwise fall back to repoId
-        const repoUrlOrId = repo.url || repo.repoId;
+        try {
+          // Use URL if available, otherwise fall back to repoId
+          const repoUrlOrId = repo.url || repo.repoId;
 
-        // Extract repo identifier for path generation (prefer owner/repo format)
-        let repoIdentifier = repo.repoId;
-        if (repo.url) {
-          // Extract owner/repo from URL (e.g., https://github.com/owner/repo.git -> owner/repo)
-          const urlMatch = repo.url.match(
-            /github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/
-          );
-          if (urlMatch) {
-            repoIdentifier = `${urlMatch[1]}/${urlMatch[2]}`;
+          // Extract repo identifier for path generation (prefer owner/repo format)
+          let repoIdentifier = repo.repoId;
+          if (repo.url) {
+            // Extract owner/repo from URL (e.g., https://github.com/owner/repo.git -> owner/repo)
+            const urlMatch = repo.url.match(
+              /github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/
+            );
+            if (urlMatch) {
+              repoIdentifier = `${urlMatch[1]}/${urlMatch[2]}`;
+            }
           }
-        }
 
-        // Use repo.name for worktree path, but ensure it's not a numeric ID
-        // If name looks like a numeric ID, extract name from URL
-        let repoName = repo.name;
-        if (repo.url && /^\d+$/.test(repoName)) {
-          // Name is numeric, extract from URL instead
-          const urlMatch = repo.url.match(
-            /github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/
-          );
-          if (urlMatch) {
-            repoName = urlMatch[2]; // Use the repo name from URL
+          // Use repo.name for worktree path, but ensure it's not a numeric ID
+          // If name looks like a numeric ID, extract name from URL
+          let repoName = repo.name;
+          if (repo.url && /^\d+$/.test(repoName)) {
+            // Name is numeric, extract from URL instead
+            const urlMatch = repo.url.match(
+              /github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/
+            );
+            if (urlMatch) {
+              repoName = urlMatch[2]; // Use the repo name from URL
+            }
           }
+
+          const bareRepoPath =
+            this.workspaceManager.getBareRepoPath(repoIdentifier);
+          const worktreePath = this.workspaceManager.getRepoWorktreePath(
+            jobId,
+            repoName
+          );
+          const baseBranch = repo.branch || 'main';
+
+          // Clone bare repo (or fetch if exists)
+          yield {
+            level: 'info',
+            message: `Ensuring repository is available: ${repoName} (${repoUrlOrId})`,
+            timestamp: new Date().toISOString(),
+            jobId,
+            stage: 'clone',
+          };
+
+          for await (const log of gitService.cloneBareRepository(
+            repoUrlOrId,
+            bareRepoPath,
+            credentials,
+            jobId
+          )) {
+            yield log;
+          }
+
+          // Create worktree from base branch (checkout existing branch)
+          yield {
+            level: 'info',
+            message: `Creating worktree for ${repoName} from branch ${baseBranch}`,
+            timestamp: new Date().toISOString(),
+            jobId,
+            stage: 'checkout',
+          };
+
+          for await (const log of gitService.createWorktreeFromBranch(
+            bareRepoPath,
+            worktreePath,
+            baseBranch,
+            jobId
+          )) {
+            yield log;
+          }
+
+          yield {
+            level: 'success',
+            message: `Successfully checked out ${repoName} on branch ${baseBranch}`,
+            timestamp: new Date().toISOString(),
+            jobId,
+            stage: 'checkout',
+          };
+
+          successfulRepos.push(repoName);
+        } catch (error) {
+          // Log the error but continue with other repos
+          const repoName = repo.name;
+          failedRepos.push(repoName);
+          yield {
+            level: 'error',
+            message: `⚠️ Failed to checkout ${repoName}: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }. Continuing with other repositories...`,
+            timestamp: new Date().toISOString(),
+            jobId,
+            stage: 'checkout',
+          };
         }
+      }
 
-        const bareRepoPath =
-          this.workspaceManager.getBareRepoPath(repoIdentifier);
-        const worktreePath = this.workspaceManager.getRepoWorktreePath(
-          jobId,
-          repoName
-        );
-        const baseBranch = repo.branch || 'main';
-
-        // Clone bare repo (or fetch if exists)
-        yield {
-          level: 'info',
-          message: `Ensuring repository is available: ${repoName} (${repoUrlOrId})`,
-          timestamp: new Date().toISOString(),
-          jobId,
-          stage: 'clone',
-        };
-
-        for await (const log of gitService.cloneBareRepository(
-          repoUrlOrId,
-          bareRepoPath,
-          credentials,
-          jobId
-        )) {
-          yield log;
-        }
-
-        // Create worktree from base branch (checkout existing branch)
-        yield {
-          level: 'info',
-          message: `Creating worktree for ${repoName} from branch ${baseBranch}`,
-          timestamp: new Date().toISOString(),
-          jobId,
-          stage: 'checkout',
-        };
-
-        for await (const log of gitService.createWorktreeFromBranch(
-          bareRepoPath,
-          worktreePath,
-          baseBranch,
-          jobId
-        )) {
-          yield log;
-        }
-
+      // Report summary
+      if (successfulRepos.length > 0) {
         yield {
           level: 'success',
-          message: `Successfully checked out ${repoName} on branch ${baseBranch}`,
+          message: `Checkout step completed for job ${jobId}: ${
+            successfulRepos.length
+          } repo(s) successful${
+            failedRepos.length > 0
+              ? `, ${failedRepos.length} repo(s) failed (${failedRepos.join(
+                  ', '
+                )})`
+              : ''
+          }`,
           timestamp: new Date().toISOString(),
           jobId,
           stage: 'checkout',
         };
       }
 
-      yield {
-        level: 'success',
-        message: `Checkout step completed for job ${jobId}`,
-        timestamp: new Date().toISOString(),
-        jobId,
-        stage: 'checkout',
-      };
+      // Only throw error if ALL repos failed
+      if (failedRepos.length > 0 && successfulRepos.length === 0) {
+        throw new Error(
+          `Checkout failed: All ${failedRepos.length} repository(ies) failed to clone`
+        );
+      }
+
       return;
     }
 
