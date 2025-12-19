@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Sidebar } from './sidebar';
 import { Navbar } from './navbar';
 import { SidebarProvider, SidebarInset } from './ui/sidebar';
@@ -12,6 +13,10 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Check if we're on the home page (root route)
+  const isHomePage = pathname === '/';
 
   // Cmd+K / Ctrl+K keyboard shortcut
   useEffect(() => {
@@ -25,6 +30,11 @@ export function Layout({ children }: LayoutProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // If on home page, render without sidebar and navbar
+  if (isHomePage) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex flex-grow h-screen w-screen bg-muted/10 overflow-hidden">
