@@ -203,11 +203,18 @@ export const api = {
     return (result.data as JobResponse[]) || [];
   },
 
-  async getJob(id: string): Promise<Job | undefined> {
+  async getJob(id: string, version?: number): Promise<Job | undefined> {
     try {
       const headers = await getAuthHeaders();
       const result = await getJobsById({
         path: { id },
+        ...(version !== undefined
+          ? {
+              query: {
+                version: String(version),
+              },
+            }
+          : {}),
         headers,
       });
       return result.data as JobResponse;

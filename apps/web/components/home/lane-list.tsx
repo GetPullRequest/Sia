@@ -16,7 +16,7 @@ type LaneListProps = {
   onStartJob?: (id: string) => void;
   onCancelJob?: (id: string) => void;
   onSelectReviewJob?: (job: JobResponse) => void;
-  activeAgent: Agent | null;
+  activeAgents: Agent[];
   theme?: string;
 };
 
@@ -27,7 +27,7 @@ export function LaneList({
   onStartJob,
   onCancelJob,
   onSelectReviewJob,
-  activeAgent,
+  activeAgents,
   theme,
 }: LaneListProps) {
   return (
@@ -63,7 +63,7 @@ export function LaneList({
             onExecuteRework={handleExecuteRework}
             onExecuteBacklog={handleExecuteBacklog}
             showRework={showRework}
-            activeAgent={lane.id === 'in-progress' ? activeAgent : undefined}
+            activeAgents={lane.id === 'in-progress' ? activeAgents : undefined}
             theme={theme}
             renderJob={(job, helpers) => (
               <JobCard

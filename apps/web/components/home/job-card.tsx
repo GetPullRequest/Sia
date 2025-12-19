@@ -3,7 +3,12 @@
 import { useState, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, GripVertical, MoreHorizontal } from 'lucide-react';
+import {
+  LayoutGrid,
+  GripVertical,
+  MoreHorizontal,
+  ExternalLink,
+} from 'lucide-react';
 import type { JobResponse } from '@/types';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -294,11 +299,12 @@ export function JobCard({
               href={job.repositories[0].url || '#'}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate text-primary hover:text-primary transition-colors "
+              className="truncate flex flex-row gap-1 items-center justify-center text-primary hover:text-primary transition-colors "
               onClick={event => event.stopPropagation()}
               onPointerDown={event => event.stopPropagation()}
             >
               {job.repositories[0].name || 'Unnamed Repository'}
+              <ExternalLink className="h-3 w-3" />
             </Link>
           ) : (
             <span className="truncate text-destructive">

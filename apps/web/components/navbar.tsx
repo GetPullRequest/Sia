@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { Bell, Search, Plus } from 'lucide-react';
+import { Bell, Search, Plus, CircleAlert } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -218,6 +218,7 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                 System healthy
               </Badge>
+
               <Popover
                 open={isAgentPopoverOpen}
                 onOpenChange={setIsAgentPopoverOpen}
@@ -225,13 +226,26 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                 <PopoverTrigger asChild>
                   <Badge
                     variant="secondary"
-                    className="hidden sm:inline-flex items-center gap-1.5 bg-secondary text-muted-foreground text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                    className={`hidden sm:inline-flex items-center gap-1.5 text-xs cursor-pointer transition-colors ${
+                      activeAgentCount === 0
+                        ? ' text-warning hover:bg-warning/20'
+                        : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                    }`}
                     onMouseEnter={() => setIsAgentPopoverOpen(true)}
                     onMouseLeave={() => setIsAgentPopoverOpen(false)}
                   >
-                    <span className="h-2 w-2 rounded-full bg-blue-500" />
-                    {activeAgentCount}{' '}
-                    {activeAgentCount === 1 ? 'agent' : 'agents'}
+                    {activeAgentCount === 0 ? (
+                      <>
+                        <CircleAlert className="h-3.5 w-3.5" />
+                        <span>No agents available</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="h-2 w-2 rounded-full bg-blue-500" />
+                        {activeAgentCount}{' '}
+                        {activeAgentCount === 1 ? 'agent' : 'agents'}
+                      </>
+                    )}
                   </Badge>
                 </PopoverTrigger>
                 <PopoverContent
@@ -270,7 +284,7 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                         </div>
                       ) : (
                         <div className="text-sm text-muted-foreground">
-                          No active agents
+                          No active agents available
                         </div>
                       )}
                     </div>
@@ -316,6 +330,7 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                   </div>
                 </PopoverContent>
               </Popover>
+
               <Popover
                 open={isVibePlatformsPopoverOpen}
                 onOpenChange={setIsVibePlatformsPopoverOpen}
@@ -323,17 +338,30 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                 <PopoverTrigger asChild>
                   <Badge
                     variant="secondary"
-                    className="hidden sm:inline-flex items-center gap-1.5 bg-secondary text-muted-foreground text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                    className={`hidden sm:inline-flex items-center gap-1.5 text-xs cursor-pointer transition-colors ${
+                      connectedVibePlatformsCount === 0
+                        ? ' text-warning hover:bg-warning/20'
+                        : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                    }`}
                     onMouseEnter={() => setIsVibePlatformsPopoverOpen(true)}
                     onMouseLeave={() => setIsVibePlatformsPopoverOpen(false)}
                     onClick={() => router.push('/integrations')}
                   >
-                    <span className="h-2 w-2 rounded-full bg-blue-500" />
-                    {connectedVibePlatformsCount}{' '}
-                    {connectedVibePlatformsCount === 1
-                      ? 'vibe coding platform'
-                      : 'vibe coding platforms'}{' '}
-                    connected
+                    {connectedVibePlatformsCount === 0 ? (
+                      <>
+                        <CircleAlert className="h-3.5 w-3.5" />
+                        <span>No vibe coding agents connected</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="h-2 w-2 rounded-full bg-blue-500" />
+                        {connectedVibePlatformsCount}{' '}
+                        {connectedVibePlatformsCount === 1
+                          ? 'vibe coding platform'
+                          : 'vibe coding platforms'}{' '}
+                        connected
+                      </>
+                    )}
                   </Badge>
                 </PopoverTrigger>
                 <PopoverContent
@@ -374,8 +402,9 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                       </div>
                     ) : (
                       <div className="space-y-1">
-                        <div className="text-sm text-muted-foreground">
-                          No vibe platforms connected
+                        <div className="flex items-center gap-1.5 text-sm text-amber-500">
+                          <CircleAlert className="h-3.5 w-3.5" />
+                          <span>No vibe coding platforms connected</span>
                         </div>
                         <Link
                           href="/integrations"

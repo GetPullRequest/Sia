@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { JobCard } from '@/components/home/job-card';
-import { mockAgents } from '@/lib/mockData';
-import type { JobResponse } from '@/types';
+import type { JobResponse, Agent } from '@/types';
 import {
   DndContext,
   DragOverlay,
@@ -31,7 +31,6 @@ import {
   useToggleQueue,
   useDeleteJob,
 } from '@/hooks/use-jobs';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
 import { LaneColumn } from './lane-column';
 import { LANE_DEFINITIONS } from './type';
@@ -168,6 +167,13 @@ export function JobBoard({
   const queryClient = useQueryClient();
   const { resolvedTheme } = useTheme();
 
+  // Fetch agents (same approach as Navbar)
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ['agents'],
+    queryFn: api.getAgents,
+    refetchInterval: 10000,
+  });
+
   // Queue pause state for rework and backlog queues
   const { data: reworkQueueStatus } = useQueueStatus('rework');
   const { data: backlogQueueStatus } = useQueueStatus('backlog');
@@ -194,9 +200,11 @@ export function JobBoard({
       activeJobId ? jobs.find(job => job.id === activeJobId) ?? null : null,
     [jobs, activeJobId]
   ) as JobResponse | null;
-  const activeAgent = useMemo(
-    () => mockAgents.find(agent => agent.status === 'active') ?? null,
-    []
+
+  // Derive active agents from API data
+  const activeAgents = useMemo(
+    () => agents.filter(agent => agent.status === 'active'),
+    [agents]
   );
 
   // Automatically show the Rework section when there are rework jobs
@@ -916,8 +924,8 @@ export function JobBoard({
                   lane.id === 'queue' ? handleToggleBacklogQueue : undefined
                 }
                 showRework={showRework}
-                activeAgent={
-                  lane.id === 'in-progress' ? activeAgent : undefined
+                activeAgents={
+                  lane.id === 'in-progress' ? activeAgents : undefined
                 }
                 theme={resolvedTheme}
                 dropIndicator={lane.id === 'queue' ? dropIndicator : null}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useJob } from '@/hooks/use-jobs';
@@ -10,6 +10,11 @@ import { RotateCw, Trash, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface JobDetailModalProps {
   jobId: string;
@@ -25,6 +30,7 @@ export function JobDetailModal({
   const { data: job, isLoading, isError } = useJob(jobId);
   const [isRetryFormOpen, setIsRetryFormOpen] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const dialogContentRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -99,7 +105,20 @@ export function JobDetailModal({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className="max-w-[80%] p-0 rounded-3xl">
+      <DialogContent
+        ref={dialogContentRef}
+        className="max-w-[80%] p-0 rounded-3xl"
+        tabIndex={-1}
+        onOpenAutoFocus={(event: Event) => {
+          // Prevent Radix from auto-focusing the first interactive element
+          // (like the close button) and instead focus the dialog container
+          // so that keyboard users start at the top and can Tab through.
+          event.preventDefault();
+          window.setTimeout(() => {
+            dialogContentRef.current?.focus();
+          }, 0);
+        }}
+      >
         <DialogTitle className="text-base font-semibold text-foreground p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-3xl px-5 py-4">
             <div className="flex flex-wrap items-center gap-4">
@@ -125,7 +144,7 @@ export function JobDetailModal({
                   <Button
                     type="button"
                     size="sm"
-                    variant="outline"
+                    // variant="outline"
                     onClick={handleRetryOpen}
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
@@ -137,7 +156,7 @@ export function JobDetailModal({
                     className="h-8"
                   >
                     <RotateCw className="h-4 w-4 mr-1" />
-                    <p className="text-xs font-medium text-foreground">Retry</p>
+                    <p className="text-xs font-medium ">Retry</p>
                   </Button>
                 )}
               {job?.status === 'in-progress' && !isRetryFormOpen && (
@@ -163,23 +182,30 @@ export function JobDetailModal({
                 </Button>
               )}
               {!isRetryFormOpen && (
-                <Button
-                  // type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowDeleteConfirmation(true)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setShowDeleteConfirmation(true);
-                    }
-                  }}
-                  className="h-8 text-destructive"
-                >
-                  <Trash className="h-4 w-4 " />
-                  {/* <p className="text-xs font-medium">Delete job</p> */}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      // type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowDeleteConfirmation(true)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          // setShowDeleteConfirmation(true);
+                        }
+                      }}
+                      className="h-8 text-destructive"
+                    >
+                      <Trash className="h-4 w-4 " />
+                      {/* <p className="text-xs font-medium">Delete job</p> */}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    Delete this job permanently
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
