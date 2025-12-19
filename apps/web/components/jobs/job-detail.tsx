@@ -29,6 +29,7 @@ import {
 import { ScrollArea } from '../ui/scroll-area';
 import { useDebouncedCallback } from 'use-debounce';
 import { useAuthInfo } from '@propelauth/react';
+import { JobPullRequest } from './job-pull-request';
 
 interface JobDetailProps {
   job: JobResponse;
@@ -71,6 +72,9 @@ export function JobDetail({
     generation: false,
     verification: false,
   });
+  const [activeJob, setActiveJob] = useState<JobResponse>(job);
+  const [maxVersion, setMaxVersion] = useState(job.version);
+  const [selectedVersion, setSelectedVersion] = useState(job.version);
   const [editForm, setEditForm] = useState({
     generated_name: job?.generated_name || '',
     generated_description: job?.generated_description || '',
@@ -81,22 +85,31 @@ export function JobDetail({
   });
   const [titleError, setTitleError] = useState<string>('');
 
+  const isViewingLatestVersion = selectedVersion === maxVersion;
+
+  useEffect(() => {
+    setMaxVersion(prev => Math.max(prev, job.version));
+    if (selectedVersion === job.version) {
+      setActiveJob(job);
+    }
+  }, [job, selectedVersion]);
+
   useEffect(() => {
     setEditForm({
-      generated_name: job?.generated_name || '',
-      generated_description: job?.generated_description || '',
-      user_input_prompt: job?.user_input?.prompt || '',
-      order_in_queue: job?.order_in_queue?.toString() || '',
-      repo_names: job?.repositories?.map(repo => repo.name) || [],
-      priority: job?.priority || 'medium',
+      generated_name: activeJob?.generated_name || '',
+      generated_description: activeJob?.generated_description || '',
+      user_input_prompt: activeJob?.user_input?.prompt || '',
+      order_in_queue: activeJob?.order_in_queue?.toString() || '',
+      repo_names: activeJob?.repositories?.map(repo => repo.name) || [],
+      priority: activeJob?.priority || 'medium',
     });
   }, [
-    job?.generated_name,
-    job?.generated_description,
-    job?.user_input?.prompt,
-    job?.order_in_queue,
-    job?.repositories,
-    job?.priority,
+    activeJob?.generated_name,
+    activeJob?.generated_description,
+    activeJob?.user_input?.prompt,
+    activeJob?.order_in_queue,
+    activeJob?.repositories,
+    activeJob?.priority,
   ]);
 
   const inlineUpdateMutation = useMutation({
@@ -145,6 +158,11 @@ export function JobDetail({
 
   // Track pending updates
   const handleInlineChangeWithTracking = (field: string, value: string) => {
+    // Prevent editing when viewing a non-latest version
+    if (!isViewingLatestVersion) {
+      return;
+    }
+
     setEditForm(prev => ({ ...prev, [field]: value }));
 
     const updates: UpdateJobRequest = {
@@ -189,6 +207,11 @@ export function JobDetail({
     repoNames: string[],
     repoIds?: string[]
   ) => {
+    // Prevent editing when viewing a non-latest version
+    if (!isViewingLatestVersion) {
+      return;
+    }
+
     setEditForm(prev => ({ ...prev, repo_names: repoNames }));
 
     const updates: UpdateJobRequest = {
@@ -202,7 +225,7 @@ export function JobDetail({
       // Fallback: try to map names to IDs from job.repositories
       const mappedIds = repoNames
         .map(name => {
-          const repo = job?.repositories?.find(r => r.name === name);
+          const repo = activeJob?.repositories?.find(r => r.name === name);
           return repo?.id;
         })
         .filter((id): id is string => id !== undefined);
@@ -274,7 +297,9 @@ export function JobDetail({
     );
   }
 
-  const comments = Array.isArray(job.user_comments) ? job.user_comments : [];
+  const comments = Array.isArray(activeJob.user_comments)
+    ? activeJob.user_comments
+    : [];
 
   // Helper function to format JSON logs to string
   const formatLogs = (logs: unknown): string => {
@@ -309,7 +334,33 @@ export function JobDetail({
   // };
 
   const getVerificationLogsContent = () =>
-    formatLogs(job.code_verification_logs);
+    formatLogs(activeJob.code_verification_logs);
+
+  const handleVersionChange = async (version: number) => {
+    if (!version || version === selectedVersion) return;
+
+    try {
+      const updatedJob = (await api.getJob(job.id, version)) as
+        | JobResponse
+        | undefined;
+      if (!updatedJob) {
+        toast({
+          variant: 'destructive',
+          description: `Unable to load job version ${version}.`,
+        });
+        return;
+      }
+      setSelectedVersion(updatedJob.version ?? version);
+      setActiveJob(updatedJob);
+    } catch (error) {
+      console.error('Failed to load job version:', error);
+      toast({
+        variant: 'destructive',
+        description:
+          'Failed to load the selected job version. Please try again.',
+      });
+    }
+  };
 
   return (
     <div className="flex w-full flex-col gap-4 max-h-[85vh] overflow-auto px-2 lg:px-0">
@@ -322,7 +373,7 @@ export function JobDetail({
             <div className="space-y-1">
               <p className="text-base font-semibold text-destructive">
                 Are you sure you want to delete “
-                {job.generated_name || 'this job'}”?
+                {activeJob.generated_name || 'this job'}”?
               </p>
               <p className="text-xs text-muted-foreground">
                 This action cannot be undone. The job and its data will be
@@ -366,7 +417,11 @@ export function JobDetail({
         <Card className="space-y-3 border border-border shadow-none p-0 h-[50vh] overflow-auto">
           <div className="px-8 mt-2">
             <JobHeaderSection
-              job={job}
+              job={activeJob}
+              maxVersion={maxVersion}
+              selectedVersion={selectedVersion}
+              onVersionChange={handleVersionChange}
+              isReadOnly={!isViewingLatestVersion}
               editForm={editForm}
               titleError={titleError}
               onEditFormChange={handleInlineChangeWithTracking}
@@ -386,16 +441,24 @@ export function JobDetail({
 
           <div className="px-7 pb-2">
             <JobDescription
-              job={job}
+              job={activeJob}
               generatedDescription={editForm.generated_description}
               onGeneratedDescriptionChange={value =>
                 handleInlineChangeWithTracking('generated_description', value)
               }
+              isReadOnly={!isViewingLatestVersion}
             />
           </div>
 
           <div className="px-7 pb-4">
-            <JobConfigurations repositories={job?.repositories || []} />
+            <JobPullRequest job={activeJob} />
+          </div>
+
+          <div className="px-7 pb-4">
+            <JobConfigurations
+              repositories={activeJob?.repositories || []}
+              isReadOnly={!isViewingLatestVersion}
+            />
           </div>
         </Card>
 
@@ -405,7 +468,8 @@ export function JobDetail({
               jobId={job.id}
               comments={comments}
               currentUserName={currentUserName}
-              updates={job.updates || ''}
+              updates={activeJob.updates || ''}
+              isReadOnly={!isViewingLatestVersion}
             />
           </div>
         </Card>
@@ -486,13 +550,13 @@ export function JobDetail({
                 <ScrollArea className="h-[360px]">
                   <StreamingLogsViewer
                     jobId={job.id}
-                    jobVersion={job.version}
+                    jobVersion={activeJob.version}
                     enabled={isModalOpen && logsOpen.generation}
-                    useWebSocket={job.status === 'in-progress'}
+                    useWebSocket={activeJob.status === 'in-progress'}
                     height="360px"
                     initialLogs={
-                      Array.isArray(job.code_generation_logs)
-                        ? job.code_generation_logs
+                      Array.isArray(activeJob.code_generation_logs)
+                        ? activeJob.code_generation_logs
                         : []
                     }
                   />

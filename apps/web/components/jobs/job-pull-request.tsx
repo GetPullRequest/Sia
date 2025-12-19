@@ -1,45 +1,45 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ExternalLink } from 'lucide-react';
+import type { JobResponse } from '@/types';
+import { ExternalLink, GitBranch } from 'lucide-react';
 
 interface JobPullRequestProps {
-  prLink: string | null | undefined;
-  confidenceScore: string | undefined;
+  job: JobResponse;
 }
 
-export function JobPullRequest({
-  prLink,
-  confidenceScore,
-}: JobPullRequestProps) {
+export function JobPullRequest({ job }: JobPullRequestProps) {
+  const prLink = job.pr_link;
+  const status = job.status;
+
+  // Render only for completed or in-review jobs
+  if (status !== 'completed' && status !== 'in-review') {
+    return null;
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Pull Request</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4 max-h-[300px] overflow-y-auto">
-        <Button
-          variant="outline"
-          className="w-full flex flex-row items-center"
-          disabled={!prLink}
-        >
+    <div className="bg-transparent flex flex-row px-4">
+      <div className="text-base flex flex-wrap items-center gap-2 text-foreground">
+        <GitBranch className="h-4 w-4" />
+        <p className="text-base font-medium">Pull Request</p>
+      </div>
+
+      <div className="text-sm  rounded-lg bg-card border-none px-5  outline-none flex flex-wrap items-center justify-between gap-2">
+        {prLink ? (
           <a
-            href={prLink || '#'}
+            href={prLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-row items-center"
-            aria-disabled={!prLink}
+            className="flex items-center gap-1 text-xs text-primary hover:underline"
           >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            {prLink ? 'View PR' : 'PR not available'}
+            <ExternalLink className="h-3 w-3" />
+            <span className="truncate max-w-[220px]">{prLink}</span>
           </a>
-        </Button>
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">Confidence Score</p>
-          <p className="text-base font-semibold">{confidenceScore ?? '—'}</p>
-        </div>
-      </CardContent>
-    </Card>
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            No pull requests are available
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

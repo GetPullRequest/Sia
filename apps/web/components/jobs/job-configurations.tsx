@@ -22,10 +22,12 @@ interface JobConfigurationsProps {
     name: string;
     url: string;
   }>;
+  isReadOnly?: boolean;
 }
 
 export function JobConfigurations({
   repositories = [],
+  isReadOnly = false,
 }: JobConfigurationsProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -270,9 +272,9 @@ export function JobConfigurations({
     });
   };
 
-  if (repositories.length === 0) {
-    return null;
-  }
+  // if (repositories.length === 0) {
+  //   return null;
+  // }
 
   return (
     <Card className="w-full  shadow-none p-0">
@@ -281,6 +283,11 @@ export function JobConfigurations({
           <Wrench className="h-5 w-5" />
           Repositories Configurations
         </CardTitle>
+        {repositories.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No Repositories selected
+          </p>
+        )}
       </CardHeader>
       <CardContent className="px-6 pb-2 space-y-2">
         <ul className="space-y-2">
@@ -314,6 +321,17 @@ export function JobConfigurations({
                       <span className="text-xs text-muted-foreground">
                         Loading...
                       </span>
+                    ) : isReadOnly ? (
+                      isConfigured ? (
+                        <div className="flex items-center gap-1 text-green-600 text-xs">
+                          <CheckCircle className="h-3 w-3" />
+                          <span>Configured</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          Not configured
+                        </span>
+                      )
                     ) : isConfigured ? (
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1 text-green-600 text-xs">

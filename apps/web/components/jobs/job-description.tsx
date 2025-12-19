@@ -9,12 +9,14 @@ interface JobDescriptionProps {
   job: JobResponse;
   generatedDescription: string;
   onGeneratedDescriptionChange: (value: string) => void;
+  isReadOnly?: boolean;
 }
 
 export function JobDescription({
   job,
   generatedDescription,
   onGeneratedDescriptionChange,
+  isReadOnly = false,
 }: JobDescriptionProps) {
   return (
     <Card className="bg-transparent shadow-none border-0 p-0">
@@ -25,24 +27,32 @@ export function JobDescription({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 pt-0 p-0">
-        <Textarea
-          value={generatedDescription || ''}
-          onChange={e => onGeneratedDescriptionChange(e.target.value)}
-          onKeyDown={e => {
-            // Prevent Enter key from bubbling up to modal handlers
-            // Allow normal textarea behavior (new line) but stop propagation
-            if (e.key === 'Enter') {
-              e.stopPropagation();
-            }
-            // Prevent Space key from bubbling up to modal handlers
-            // Allow normal textarea behavior (add space) but stop propagation
-            if (e.key === ' ') {
-              e.stopPropagation();
-            }
-          }}
-          className="text-sm min-h-[40px] max-h-full  resize-none rounded-lg bg-card border-none px-5  outline-none"
-          placeholder="No description available"
-        />
+        {isReadOnly ? (
+          <div className="text-sm min-h-[40px] rounded-lg bg-card border-none px-5 py-2 outline-none">
+            <p className="whitespace-pre-line text-foreground/90">
+              {generatedDescription || 'No description available'}
+            </p>
+          </div>
+        ) : (
+          <Textarea
+            value={generatedDescription || ''}
+            onChange={e => onGeneratedDescriptionChange(e.target.value)}
+            onKeyDown={e => {
+              // Prevent Enter key from bubbling up to modal handlers
+              // Allow normal textarea behavior (new line) but stop propagation
+              if (e.key === 'Enter') {
+                e.stopPropagation();
+              }
+              // Prevent Space key from bubbling up to modal handlers
+              // Allow normal textarea behavior (add space) but stop propagation
+              if (e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
+            className="text-sm min-h-[40px] max-h-full  resize-none rounded-lg bg-card border-none px-5  outline-none"
+            placeholder="No description available"
+          />
+        )}
         {/* <div className="rounded-2xl border border-dashed border-muted p-4">
           <p className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
             <ClipboardList className="h-4 w-4" />
