@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Command } from 'cmdk';
 import { Search, FileText, Clock, Tag } from 'lucide-react';
 import {
@@ -23,6 +23,7 @@ interface JobSearchDialogProps {
 export function JobSearchDialog({ open, onOpenChange }: JobSearchDialogProps) {
   const [search, setSearch] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: jobs, isLoading } = useJobs();
 
   // Reset search when dialog closes
@@ -67,7 +68,18 @@ export function JobSearchDialog({ open, onOpenChange }: JobSearchDialogProps) {
   }, [jobs, search]);
 
   const handleSelectJob = (job: JobResponse) => {
-    router.push(`/jobs/${job.id}`);
+    // Update URL params with jobStack pattern (same as job-card.tsx)
+    // The job-card components on the page will handle rendering the modal
+    const params = new URLSearchParams(searchParams.toString());
+    const currentStack =
+      params.get('jobStack')?.split(',').filter(Boolean) || [];
+    // Only add if not already the last item in stack (prevent duplicates)
+    if (currentStack[currentStack.length - 1] !== job.id) {
+      currentStack.push(job.id);
+      params.set('jobStack', currentStack.join(','));
+      router.push(`?${params.toString()}`, { scroll: false });
+    }
+    // Close the search dialog
     onOpenChange(false);
   };
 
