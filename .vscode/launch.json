@@ -27,7 +27,8 @@
         "--api-key",
         "${input:apiKey}",
         "--backend-url",
-        "${input:backendUrl}"
+        "${input:backendUrl}",
+        "--local"
       ],
       "cwd": "${workspaceFolder}",
       "skipFiles": ["<node_internals>/**"],

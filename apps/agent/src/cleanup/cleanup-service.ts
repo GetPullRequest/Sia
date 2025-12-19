@@ -30,7 +30,7 @@ export class CleanupService {
         'pnpm',
         'python',
         'python3',
-        'cursor',
+        'cursor-agent',
         'code',
       ];
 

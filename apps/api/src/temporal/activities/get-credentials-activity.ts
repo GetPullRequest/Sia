@@ -1,6 +1,5 @@
 import { db, schema } from '../../db/index.js';
 import { eq, and } from 'drizzle-orm';
-import { SecretStorageService } from '../../services/secrets/secret-storage-service.js';
 import { getValidAccessToken } from '../../routes/github.js';
 
 export interface GitCredentials {
@@ -12,6 +11,7 @@ export interface GitCredentials {
 export interface VibeCoderCredentials {
   type: 'cursor' | 'claude-code' | 'kiro-cli';
   executablePath?: string;
+  apiKey?: string; // Cursor API key, Claude API key, etc.
 }
 
 export async function getGitCredentials(params: {
@@ -82,14 +82,13 @@ export async function getVibeCoderCredentials(params: {
   orgId: string;
   agentId?: string;
 }): Promise<VibeCoderCredentials> {
-  const secretStorageService = new SecretStorageService();
-
   // If agentId provided, read vibeAgent and executablePath from agent record
   if (params.agentId) {
     const agent = await db
       .select({
         vibeAgent: schema.agents.vibeAgent,
         vibeAgentExecutablePath: schema.agents.vibeAgentExecutablePath,
+        vibeConnectionId: schema.agents.vibeConnectionId,
       })
       .from(schema.agents)
       .where(
@@ -103,69 +102,55 @@ export async function getVibeCoderCredentials(params: {
     if (agent[0]) {
       const vibeAgent = agent[0].vibeAgent || 'cursor';
       const executablePath = agent[0].vibeAgentExecutablePath;
+      const vibeConnectionId = agent[0].vibeConnectionId;
 
-      // Get vibe-agent credentials from integrations table
-      // Look for integration with providerType matching the vibe-agent type
-      const integration = await db
-        .select()
-        .from(schema.integrations)
-        .where(
-          and(
-            eq(schema.integrations.orgId, params.orgId),
-            eq(schema.integrations.providerType, vibeAgent)
-          )
-        )
-        .limit(1);
+      // Use executable path from agent record if available
+      // Otherwise, fall back to default CLI command names (assumes they are installed and in PATH)
+      let finalExecutablePath: string | undefined = executablePath || undefined;
 
-      let decryptedExecutablePath: string | undefined =
-        executablePath || undefined;
-
-      // If integration found and has accessToken, decrypt it to get executable path
-      if (integration[0]?.accessToken) {
-        const metadata = integration[0].metadata as Record<
-          string,
-          unknown
-        > | null;
-        const storageType = metadata?.secretStorageType as
-          | 'gcp'
-          | 'encrypted_local'
-          | undefined;
-
-        if (storageType) {
-          try {
-            decryptedExecutablePath = await secretStorageService.retrieveSecret(
-              integration[0].accessToken,
-              storageType
-            );
-          } catch (error) {
-            console.error(
-              `Failed to decrypt vibe-agent executable path: ${error}`
-            );
-            // Fall back to executablePath from agent record or undefined
-          }
-        }
-      }
-
-      // If no executable path found, assume CLI is in PATH (v0 behavior)
-      if (!decryptedExecutablePath) {
-        // Use default CLI command names (assumes they are installed and in PATH)
+      if (!finalExecutablePath) {
         const defaultCommands: Record<string, string> = {
-          cursor: 'cursor',
+          cursor: 'cursor-agent',
           'claude-code': 'claude',
           'kiro-cli': 'kiro-cli',
         };
 
-        decryptedExecutablePath =
+        finalExecutablePath =
           defaultCommands[vibeAgent] || vibeAgent.toLowerCase();
 
         console.log(
-          `[getVibeCoderCredentials] No executable path configured for vibe-agent "${vibeAgent}". Assuming "${decryptedExecutablePath}" is available in PATH.`
+          `[getVibeCoderCredentials] No executable path configured for vibe-agent "${vibeAgent}". Assuming "${finalExecutablePath}" is available in PATH.`
         );
+      }
+
+      // Fetch API key from integration if vibeConnectionId is set
+      let apiKey: string | undefined;
+      if (vibeConnectionId) {
+        const integration = await db
+          .select({
+            accessToken: schema.integrations.accessToken,
+          })
+          .from(schema.integrations)
+          .where(
+            and(
+              eq(schema.integrations.id, vibeConnectionId),
+              eq(schema.integrations.orgId, params.orgId)
+            )
+          )
+          .limit(1);
+
+        if (integration[0]?.accessToken) {
+          apiKey = integration[0].accessToken;
+          console.log(
+            `[getVibeCoderCredentials] Found API key for vibe-agent "${vibeAgent}" from integration ${vibeConnectionId}`
+          );
+        }
       }
 
       return {
         type: vibeAgent as 'cursor' | 'claude-code' | 'kiro-cli',
-        executablePath: decryptedExecutablePath,
+        executablePath: finalExecutablePath,
+        apiKey,
       };
     }
   }
@@ -177,6 +162,6 @@ export async function getVibeCoderCredentials(params: {
 
   return {
     type: 'cursor', // Default to cursor for v0
-    executablePath: 'cursor', // Assume cursor is in PATH
+    executablePath: 'cursor-agent', // Assume cursor is in PATH
   };
 }

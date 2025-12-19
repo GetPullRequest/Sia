@@ -9,9 +9,11 @@ export interface BuildResult {
 
 export class BuildService {
   private workspacePath: string;
+  private timeoutMs: number;
 
-  constructor(workspacePath: string) {
+  constructor(workspacePath: string, timeoutMs: number = 20 * 60 * 1000) {
     this.workspacePath = workspacePath;
+    this.timeoutMs = timeoutMs;
   }
 
   async *build(
@@ -45,9 +47,45 @@ export class BuildService {
             shell: true, // Execute through shell to resolve npm, node, etc.
           });
 
+          // Timeout configuration
+          const startTime = Date.now();
+          let lastOutputTime = Date.now();
+          let hasTimedOut = false;
+
+          // Start a timeout checker interval
+          const timeoutChecker = setInterval(() => {
+            const now = Date.now();
+            const timeSinceLastOutput = now - lastOutputTime;
+            const totalRuntime = now - startTime;
+
+            // Check if no output for configured timeout
+            if (timeSinceLastOutput > this.timeoutMs) {
+              hasTimedOut = true;
+              clearInterval(timeoutChecker);
+              subprocess.kill('SIGTERM');
+              console.error(
+                `Build command timed out: no output for ${Math.floor(
+                  timeSinceLastOutput / 60000
+                )} minutes`
+              );
+            }
+            // Check if total runtime exceeds configured timeout
+            else if (totalRuntime > this.timeoutMs) {
+              hasTimedOut = true;
+              clearInterval(timeoutChecker);
+              subprocess.kill('SIGTERM');
+              console.error(
+                `Build command timed out: total runtime exceeded ${Math.floor(
+                  this.timeoutMs / 60000
+                )} minutes`
+              );
+            }
+          }, 5000); // Check every 5 seconds
+
           // Stream combined output (stdout + stderr) in real-time
           if (subprocess.all) {
             for await (const chunk of subprocess.all) {
+              lastOutputTime = Date.now(); // Update last output time
               const output = chunk.toString();
               if (output.trim()) {
                 yield {
@@ -59,6 +97,42 @@ export class BuildService {
                 };
               }
             }
+          }
+
+          // Clear the timeout checker
+          clearInterval(timeoutChecker);
+
+          // Check if timed out
+          if (hasTimedOut) {
+            const timeSinceLastOutput = Date.now() - lastOutputTime;
+            const totalRuntime = Date.now() - startTime;
+
+            let timeoutReason = '';
+            if (timeSinceLastOutput > this.timeoutMs) {
+              timeoutReason = `Command timed out after ${Math.floor(
+                timeSinceLastOutput / 60000
+              )} minutes without output`;
+            } else {
+              timeoutReason = `Command timed out after ${Math.floor(
+                totalRuntime / 60000
+              )} minutes of execution`;
+            }
+
+            yield {
+              level: 'error',
+              message: `Build command terminated: ${command}\n${timeoutReason}. Build commands should complete within ${Math.floor(
+                this.timeoutMs / 60000
+              )} minutes or provide regular output.`,
+              timestamp: new Date().toISOString(),
+              jobId,
+              stage: 'build',
+            };
+
+            throw new Error(
+              `Build timed out: ${timeoutReason}. Commands taking longer than ${Math.floor(
+                this.timeoutMs / 60000
+              )} minutes without output are automatically terminated.`
+            );
           }
 
           // Wait for the command to complete
@@ -77,13 +151,16 @@ export class BuildService {
           const stderr = (error as any)?.stderr || '';
           const stdout = (error as any)?.stdout || '';
 
-          yield {
-            level: 'error',
-            message: `Build command failed: ${command}\n${errorMessage}\n${stderr}\n${stdout}`,
-            timestamp: new Date().toISOString(),
-            jobId,
-            stage: 'build',
-          };
+          // Don't duplicate timeout error messages
+          if (!errorMessage.includes('Build timed out')) {
+            yield {
+              level: 'error',
+              message: `Build command failed: ${command}\n${errorMessage}\n${stderr}\n${stdout}`,
+              timestamp: new Date().toISOString(),
+              jobId,
+              stage: 'build',
+            };
+          }
 
           throw new Error(`Build failed: ${errorMessage}`);
         }

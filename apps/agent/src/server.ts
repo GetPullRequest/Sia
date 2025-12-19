@@ -14,13 +14,14 @@ import {
 
 // TODO: These types will be available after proto regeneration
 // For now, use type assertions
-type VerificationRequest = { jobId: string };
 type PRRequest = {
   jobId: string;
   repoId: string;
   branchName: string;
   title: string;
   body: string;
+  verificationErrors?: string[];
+  vibeCoderCredentials?: Record<string, string>;
 };
 type CleanupRequest = { jobId: string };
 import type { VibeCodingPlatform } from './vibe/vibe-coding-platform.js';
@@ -115,22 +116,6 @@ class AgentServer {
       }
     };
 
-    const runVerification: grpc.handleUnaryCall<any, any> = async (
-      call,
-      callback
-    ) => {
-      try {
-        const request = call.request as VerificationRequest;
-        const result = await this.vibePlatform.runVerification(request.jobId);
-        callback(null, result as any);
-      } catch (error) {
-        callback({
-          code: grpc.status.INTERNAL,
-          message: error instanceof Error ? error.message : 'Unknown error',
-        } as grpc.ServiceError);
-      }
-    };
-
     const createPR: grpc.handleUnaryCall<any, any> = async (call, callback) => {
       try {
         const request = call.request as PRRequest;
@@ -139,7 +124,9 @@ class AgentServer {
           request.repoId,
           request.branchName,
           request.title,
-          request.body
+          request.body,
+          request.vibeCoderCredentials,
+          request.verificationErrors
         );
         callback(null, result as any);
       } catch (error) {
@@ -196,7 +183,6 @@ class AgentServer {
       executeJob,
       hintJob,
       cancelJob,
-      runVerification,
       createPR: createPR as any, // Proto generates createPr, but we use createPR
       cleanupWorkspace,
       healthCheck,

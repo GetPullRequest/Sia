@@ -200,6 +200,32 @@ export class GitService {
         stage: 'git',
       };
     } catch (error) {
+      // Check if error is about branch already existing
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStderr =
+        typeof error === 'object' && error !== null && 'stderr' in error
+          ? String(error.stderr)
+          : '';
+
+      const isBranchExistsError =
+        (errorMessage.includes('already exists') &&
+          errorMessage.includes('branch')) ||
+        (errorStderr.includes('already exists') &&
+          errorStderr.includes('branch'));
+
+      if (isBranchExistsError) {
+        // Branch already exists, which is fine - just continue
+        yield {
+          level: 'info',
+          message: `Branch ${branchName} already exists, using existing branch`,
+          timestamp: new Date().toISOString(),
+          jobId: jobId || 'unknown',
+          stage: 'git',
+        };
+        return;
+      }
+
       yield {
         level: 'error',
         message: `Failed to create branch in worktree: ${
@@ -318,6 +344,45 @@ export class GitService {
     }
   }
 
+  async getDiff(baseBranch = 'main'): Promise<string> {
+    try {
+      const diff = await this.git.diff([`origin/${baseBranch}...HEAD`]);
+      return diff || '';
+    } catch (error) {
+      // If diff fails, try without origin prefix
+      try {
+        const diff = await this.git.diff([`${baseBranch}...HEAD`]);
+        return diff || '';
+      } catch {
+        // Fallback to staged and unstaged changes
+        return (await this.git.diff()) || '';
+      }
+    }
+  }
+
+  async getStatus(): Promise<{
+    files: string[];
+    staged: string[];
+    modified: string[];
+    created: string[];
+  }> {
+    try {
+      const status = await this.git.status();
+      return {
+        files: status.files.map(f => f.path),
+        staged: status.files.filter(f => f.index !== ' ').map(f => f.path),
+        modified: status.files
+          .filter(f => f.working_dir !== ' ' && f.index === ' ')
+          .map(f => f.path),
+        created: status.files
+          .filter(f => f.working_dir === '??')
+          .map(f => f.path),
+      };
+    } catch (error) {
+      return { files: [], staged: [], modified: [], created: [] };
+    }
+  }
+
   async createPullRequest(
     repoId: string,
     branchName: string,
@@ -352,7 +417,7 @@ export class GitService {
           title,
           body,
           head: branchName,
-          base: 'main', // TODO: Make base branch configurable
+          base: 'main',
         }),
       }
     );

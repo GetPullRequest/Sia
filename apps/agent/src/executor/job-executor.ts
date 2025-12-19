@@ -28,6 +28,7 @@ export interface JobExecutionConfig {
   cursorExecutablePath?: string;
   containerImage?: string;
   workspacePath?: string; // Base path for workspace (defaults to ~/.sia/workspace for local, /workspace for container)
+  buildTimeout?: number; // Build timeout in milliseconds (defaults to 20 minutes)
 }
 
 export class JobExecutor {
@@ -36,10 +37,11 @@ export class JobExecutor {
   private cleanupService: CleanupService;
   private config: Omit<
     Required<JobExecutionConfig>,
-    'cursorExecutablePath' | 'workspacePath'
+    'cursorExecutablePath' | 'workspacePath' | 'buildTimeout'
   > & {
     cursorExecutablePath?: string;
     workspacePath?: string;
+    buildTimeout?: number;
   };
 
   constructor(config: JobExecutionConfig = {}) {
@@ -56,6 +58,7 @@ export class JobExecutor {
       cursorExecutablePath: config.cursorExecutablePath,
       containerImage: config.containerImage || 'sia-dev-env:latest',
       workspacePath: config.workspacePath,
+      buildTimeout: config.buildTimeout,
     };
   }
 
@@ -87,7 +90,7 @@ export class JobExecutor {
 
   private getVibeCoder(jobDetails?: Record<string, string>): VibeCoder {
     const vibeAgentType =
-      jobDetails?.type || jobDetails?.vibeAgentType || 'cursor';
+      jobDetails?.type || jobDetails?.vibeAgentType || 'cursor-agent';
     const executablePath =
       jobDetails?.executablePath ||
       jobDetails?.vibeAgentExecutablePath ||
@@ -107,6 +110,10 @@ export class JobExecutor {
 
   getWorkspacePath(jobId: string): string {
     return this.workspaceManager.getJobWorkspace(jobId);
+  }
+
+  getBuildTimeout(): number | undefined {
+    return this.config.buildTimeout;
   }
 
   async cleanupWorkspace(jobId: string): Promise<void> {
@@ -357,7 +364,18 @@ export class JobExecutor {
         stage: 'code-generation',
       };
 
-      const codeGen = vibeCoder.generateCode(jobWorkspace, prompt, jobId);
+      // Extract vibe agent credentials from jobDetails if available
+      const vibeCredentials: Record<string, string> = {};
+      if (jobDetails?.vibeApiKey) {
+        vibeCredentials.vibeApiKey = jobDetails.vibeApiKey;
+      }
+
+      const codeGen = vibeCoder.generateCode(
+        jobWorkspace,
+        prompt,
+        jobId,
+        vibeCredentials
+      );
       for await (const log of codeGen) {
         yield log;
       }
@@ -425,7 +443,7 @@ export class JobExecutor {
         jobId,
         repoName
       );
-      const buildService = new BuildService(repoPath);
+      const buildService = new BuildService(repoPath, this.config.buildTimeout);
 
       yield {
         level: 'info',

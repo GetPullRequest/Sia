@@ -12,16 +12,20 @@ export interface VibeCodingPlatform {
     hint: string
   ): Promise<{ success: boolean; message: string }>;
   cancelJob(jobId: string): Promise<{ success: boolean; message: string }>;
-  runVerification(
-    jobId: string
-  ): Promise<{ success: boolean; message: string; errors?: string[] }>;
   createPR(
     jobId: string,
     repoId: string,
     branchName: string,
     title: string,
-    body: string
-  ): Promise<{ success: boolean; prLink: string; message: string }>;
+    body: string,
+    vibeCoderCredentials?: Record<string, string>,
+    verificationErrors?: string[]
+  ): Promise<{
+    success: boolean;
+    prLink: string;
+    message: string;
+    changesSummary?: string;
+  }>;
   cleanupWorkspace(
     jobId: string
   ): Promise<{ success: boolean; message: string }>;

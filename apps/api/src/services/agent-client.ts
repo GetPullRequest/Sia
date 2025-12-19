@@ -11,16 +11,11 @@ import { AgentServiceClient } from '@sia/models/proto';
 
 // TODO: These types will be available after proto regeneration
 // For now, define them locally to avoid TypeScript errors
-interface VerificationResponse {
-  success: boolean;
-  message: string;
-  errors?: string[];
-}
-
 interface PRResponse {
   success: boolean;
   prLink: string;
   message: string;
+  changesSummary?: string;
 }
 
 interface CleanupResponse {
@@ -132,37 +127,14 @@ export class AgentClient {
     });
   }
 
-  async runVerification(jobId: string): Promise<VerificationResponse> {
-    console.log(`[AgentClient] runVerification called for jobId=${jobId}`);
-    return new Promise((resolve, reject) => {
-      // TODO: Type will be available after proto regeneration
-      (this.client as any).runVerification(
-        { jobId },
-        (error: grpc.ServiceError | null, response: VerificationResponse) => {
-          if (error) {
-            console.error(
-              `[AgentClient] runVerification error for jobId=${jobId}: code=${error.code}, message=${error.message}`
-            );
-            reject(error);
-          } else {
-            console.log(
-              `[AgentClient] runVerification success for jobId=${jobId}: ${JSON.stringify(
-                response
-              )}`
-            );
-            resolve(response);
-          }
-        }
-      );
-    });
-  }
-
   async createPR(params: {
     jobId: string;
     repoId: string;
     branchName: string;
     title: string;
     body: string;
+    verificationErrors?: string[];
+    vibeCoderCredentials?: Record<string, string>;
   }): Promise<PRResponse> {
     console.log(
       `[AgentClient] createPR called for jobId=${params.jobId}, repoId=${params.repoId}, branch=${params.branchName}`
@@ -176,6 +148,8 @@ export class AgentClient {
           branchName: params.branchName,
           title: params.title,
           body: params.body,
+          verificationErrors: params.verificationErrors || [],
+          vibeCoderCredentials: params.vibeCoderCredentials || {},
         },
         (error: grpc.ServiceError | null, response: PRResponse) => {
           if (error) {

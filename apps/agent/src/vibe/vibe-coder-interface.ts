@@ -4,7 +4,8 @@ export interface VibeCoder {
   generateCode(
     workspacePath: string,
     prompt: string,
-    jobId: string
+    jobId: string,
+    credentials?: Record<string, string>
   ): AsyncGenerator<LogMessage>;
 }
 

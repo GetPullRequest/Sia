@@ -18,6 +18,50 @@ declare module 'fastify' {
   }
 }
 
+async function getVibeAgentFromConnection(
+  vibeConnectionId: string | null,
+  orgId: string
+): Promise<{
+  vibeAgent: 'cursor' | 'claude-code' | 'kiro-cli' | null;
+  vibeAgentExecutablePath: string | null;
+}> {
+  if (!vibeConnectionId) {
+    return { vibeAgent: null, vibeAgentExecutablePath: null };
+  }
+
+  const [connection] = await db
+    .select({ providerType: integrations.providerType })
+    .from(integrations)
+    .where(
+      and(eq(integrations.id, vibeConnectionId), eq(integrations.orgId, orgId))
+    )
+    .limit(1);
+
+  if (!connection) {
+    return { vibeAgent: null, vibeAgentExecutablePath: null };
+  }
+
+  const providerType = connection.providerType;
+  const executablePathMap: Record<string, string> = {
+    cursor: 'cursor-agent',
+    'claude-code': 'claude',
+    'kiro-cli': 'kiro-cli',
+  };
+
+  const vibeAgent =
+    providerType === 'cursor' ||
+    providerType === 'claude-code' ||
+    providerType === 'kiro-cli'
+      ? (providerType as 'cursor' | 'claude-code' | 'kiro-cli')
+      : null;
+
+  const vibeAgentExecutablePath = vibeAgent
+    ? executablePathMap[vibeAgent] || null
+    : null;
+
+  return { vibeAgent, vibeAgentExecutablePath };
+}
+
 async function transformAgentResponse(agent: Agent) {
   let vibeConnection = null;
 
@@ -127,6 +171,14 @@ async function agentsRoutes(fastify: FastifyInstance) {
           });
         }
 
+        const vibeConnectionId =
+          vibe_connection_id && vibe_connection_id.trim() !== ''
+            ? vibe_connection_id
+            : null;
+
+        const { vibeAgent, vibeAgentExecutablePath } =
+          await getVibeAgentFromConnection(vibeConnectionId, user.orgId);
+
         const agentId = `agent-${uuidv4()}`;
         const newAgent: NewAgent = {
           id: agentId,
@@ -136,10 +188,9 @@ async function agentsRoutes(fastify: FastifyInstance) {
           host,
           port,
           ip: ip || null,
-          vibeConnectionId:
-            vibe_connection_id && vibe_connection_id.trim() !== ''
-              ? vibe_connection_id
-              : null,
+          vibeConnectionId,
+          vibeAgent,
+          vibeAgentExecutablePath,
           lastActive: null,
         };
 
@@ -425,11 +476,17 @@ async function agentsRoutes(fastify: FastifyInstance) {
         if (ip !== undefined) updateData.ip = ip;
         if (status !== undefined) updateData.status = status;
         if (vibe_connection_id !== undefined) {
-          // Convert empty string to null, otherwise use the provided value
-          updateData.vibeConnectionId =
+          const vibeConnectionId =
             vibe_connection_id && vibe_connection_id.trim() !== ''
               ? vibe_connection_id
               : null;
+
+          const { vibeAgent, vibeAgentExecutablePath } =
+            await getVibeAgentFromConnection(vibeConnectionId, user.orgId);
+
+          updateData.vibeConnectionId = vibeConnectionId;
+          updateData.vibeAgent = vibeAgent;
+          updateData.vibeAgentExecutablePath = vibeAgentExecutablePath;
         }
 
         const updatedAgentResult = await db

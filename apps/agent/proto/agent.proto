@@ -71,12 +71,15 @@ message PRRequest {
   string branch_name = 3;
   string title = 4;
   string body = 5;
+  repeated string verification_errors = 6;
+  map<string, string> vibe_coder_credentials = 7;
 }
 
 message PRResponse {
   bool success = 1;
   string pr_link = 2;
   string message = 3;
+  string changes_summary = 4;
 }
 
 message CleanupRequest {

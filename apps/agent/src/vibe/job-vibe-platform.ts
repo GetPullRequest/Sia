@@ -110,57 +110,193 @@ export class JobVibePlatform implements VibeCodingPlatform {
     return { success: true, message: `Job ${jobId} cancelled` };
   }
 
-  async runVerification(
-    jobId: string
-  ): Promise<{ success: boolean; message: string; errors?: string[] }> {
-    try {
-      // Get workspace path from executor
-      const workspacePath = this.executor.getWorkspacePath(jobId);
-      const { BuildService } = await import('../build/build-service.js');
-      const buildService = new BuildService(workspacePath);
-
-      // Run verification commands (build, test, lint, etc.)
-      const buildCommands = ['npm install', 'npm run build', 'npm test'];
-      const result = await buildService.executeBuild(buildCommands);
-
-      return {
-        success: result.success,
-        message: result.success ? 'Verification passed' : 'Verification failed',
-        errors: result.errors,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Verification failed',
-        errors: [error instanceof Error ? error.message : 'Unknown error'],
-      };
-    }
-  }
-
   async createPR(
     jobId: string,
     repoId: string,
     branchName: string,
     title: string,
-    body: string
-  ): Promise<{ success: boolean; prLink: string; message: string }> {
+    body: string,
+    vibeCoderCredentials?: Record<string, string>,
+    verificationErrors?: string[]
+  ): Promise<{
+    success: boolean;
+    prLink: string;
+    message: string;
+    changesSummary?: string;
+  }> {
     try {
-      const workspacePath = this.executor.getWorkspacePath(jobId);
+      // Extract repo name from repoId to find the correct workspace
+      const repoName = repoId.split('/').pop() || repoId;
+
+      // Get the repo-specific worktree path
+      const { WorkspaceManager } = await import(
+        '../workspace/workspace-manager.js'
+      );
+      const workspaceManager = new WorkspaceManager();
+      const repoPath = workspaceManager.getRepoWorktreePath(jobId, repoName);
+
       const { GitService } = await import('../git/git-service.js');
-      const gitService = new GitService(workspacePath);
+      const repoGitService = new GitService(repoPath);
+
+      // Build prompt for vibe coder to generate commit message and PR body
+      // Zero-shot prompting: let the vibe coder analyze the workspace and generate content
+      const verificationErrorsText =
+        verificationErrors && verificationErrors.length > 0
+          ? `\n\n**Note:** Some verification steps failed:\n${verificationErrors
+              .map(e => `- ${e}`)
+              .join('\n')}`
+          : '';
+
+      const prompt = `Analyze the changes in this workspace and generate a commit message and PR description following Conventional Commits format.
+
+${verificationErrorsText}
+
+Provide your response as JSON:
+\`\`\`json
+{
+  "commitMessage": "type: short description",
+  "prTitle": "Short PR title",
+  "prBody": "Detailed PR description with markdown formatting",
+  "changesSummary": "Brief summary of all changes made (to be used for future revisions)"
+}
+\`\`\`
+
+Only output the JSON, no other text.`;
+
+      // Use vibe coder to generate PR content
+      let generatedContent: {
+        commitMessage?: string;
+        prTitle?: string;
+        prBody?: string;
+        changesSummary?: string;
+      } = {};
+
+      try {
+        const { CursorVibeCoder } = await import('./cursor-vibe-coder.js');
+        const vibeCoder = new CursorVibeCoder(
+          vibeCoderCredentials?.executablePath
+        );
+        const generator = vibeCoder.generateCode(
+          repoPath,
+          prompt,
+          `${jobId}-pr-gen`,
+          vibeCoderCredentials
+        );
+
+        let accumulatedResponse = '';
+        for await (const log of generator) {
+          // Accumulate assistant messages
+          if (log.message) {
+            accumulatedResponse += log.message + '\n';
+          }
+        }
+
+        // Extract JSON from response
+        const jsonMatch =
+          accumulatedResponse.match(/```json\s*([\s\S]*?)\s*```/) ||
+          accumulatedResponse.match(/\{[\s\S]*\}/);
+
+        if (jsonMatch) {
+          try {
+            generatedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+          } catch (parseError) {
+            console.error('Failed to parse generated JSON:', parseError);
+          }
+        }
+      } catch (vibeError) {
+        console.error(
+          'Failed to generate PR content with vibe coder:',
+          vibeError
+        );
+        // Fallback to basic generation based on git status
+      }
+
+      // Fallback if vibe coder didn't generate content
+      const commitMessage =
+        generatedContent.commitMessage || `chore: update code for job ${jobId}`;
+      const finalTitle = generatedContent.prTitle || title;
+      let finalBody = generatedContent.prBody || body;
+
+      // Add footer with job info and verification errors if any
+      const footer = `\n\n---\n\n_This PR was automatically generated by Sia for job ${jobId}._`;
+      if (verificationErrors && verificationErrors.length > 0) {
+        finalBody += `\n\n**⚠️ Verification Errors:**\n${verificationErrors
+          .map(e => `- ${e}`)
+          .join('\n')}`;
+      }
+      finalBody += footer;
+
+      // Stage and commit changes if not already committed
+      // Check git status to see if there are uncommitted changes
+      const repoStatus = await repoGitService.getStatus();
+
+      if (
+        repoStatus.staged.length === 0 &&
+        (repoStatus.modified.length > 0 || repoStatus.created.length > 0)
+      ) {
+        for await (const _log of repoGitService.addAll(jobId)) {
+          // Consume logs
+        }
+      }
+
+      // Create commit if there are changes (re-check status after staging)
+      const finalStatus = await repoGitService.getStatus();
+      if (
+        finalStatus.staged.length > 0 ||
+        finalStatus.modified.length > 0 ||
+        finalStatus.created.length > 0
+      ) {
+        for await (const _log of repoGitService.commit(commitMessage, jobId)) {
+          // Consume logs
+        }
+      }
+
+      // Extract git credentials from vibeCoderCredentials
+      const gitCredentials =
+        vibeCoderCredentials?.githubToken || vibeCoderCredentials?.github_token
+          ? {
+              token:
+                vibeCoderCredentials.githubToken ||
+                vibeCoderCredentials.github_token,
+              username:
+                vibeCoderCredentials.githubUsername ||
+                vibeCoderCredentials.github_username,
+            }
+          : undefined;
+
+      // Push branch if there are commits to push
+      try {
+        for await (const _log of repoGitService.push(
+          branchName,
+          gitCredentials,
+          jobId
+        )) {
+          // Consume logs
+        }
+      } catch (pushError) {
+        // If push fails, it might be because branch is already up to date or doesn't exist remotely
+        // Continue with PR creation anyway
+        console.warn(
+          `Failed to push branch ${branchName}, continuing with PR creation:`,
+          pushError
+        );
+      }
 
       // Create PR using GitHub API
-      const prLink = await gitService.createPullRequest(
+      const prLink = await repoGitService.createPullRequest(
         repoId,
         branchName,
-        title,
-        body
+        finalTitle,
+        finalBody,
+        gitCredentials
       );
 
       return {
         success: true,
         prLink,
         message: 'PR created successfully',
+        changesSummary:
+          generatedContent.changesSummary || `Changes made for job ${jobId}`,
       };
     } catch (error) {
       return {

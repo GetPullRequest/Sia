@@ -12,6 +12,7 @@ function parseArgs(): {
   containerImage?: string;
   local: boolean;
   workspaceDir?: string;
+  buildTimeout?: number;
 } {
   const args = process.argv.slice(2);
   let apiKey = '';
@@ -20,6 +21,7 @@ function parseArgs(): {
   let containerImage: string | undefined;
   let local = false;
   let workspaceDir: string | undefined;
+  let buildTimeout: number | undefined;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--api-key' && args[i + 1]) {
@@ -39,6 +41,9 @@ function parseArgs(): {
     } else if (args[i] === '--workspace-dir' && args[i + 1]) {
       workspaceDir = args[i + 1];
       i++;
+    } else if (args[i] === '--build-timeout' && args[i + 1]) {
+      buildTimeout = parseInt(args[i + 1], 10);
+      i++;
     }
   }
 
@@ -54,6 +59,9 @@ function parseArgs(): {
   if (!workspaceDir) {
     workspaceDir = process.env.SIA_WORKSPACE_DIR;
   }
+  if (!buildTimeout && process.env.SIA_BUILD_TIMEOUT) {
+    buildTimeout = parseInt(process.env.SIA_BUILD_TIMEOUT, 10);
+  }
 
   if (!apiKey) {
     console.error(
@@ -62,12 +70,27 @@ function parseArgs(): {
     process.exit(1);
   }
 
-  return { apiKey, port, backendUrl, containerImage, local, workspaceDir };
+  return {
+    apiKey,
+    port,
+    backendUrl,
+    containerImage,
+    local,
+    workspaceDir,
+    buildTimeout,
+  };
 }
 
 async function main() {
-  const { apiKey, port, backendUrl, containerImage, local, workspaceDir } =
-    parseArgs();
+  const {
+    apiKey,
+    port,
+    backendUrl,
+    containerImage,
+    local,
+    workspaceDir,
+    buildTimeout,
+  } = parseArgs();
 
   // Add global error handlers to prevent agent crashes
   process.on('uncaughtException', error => {
@@ -143,6 +166,7 @@ async function main() {
   const vibePlatform = new JobVibePlatform({
     workspacePath: workspaceDir,
     containerImage: local ? undefined : containerImage,
+    buildTimeout,
   });
 
   const server = new AgentServer(vibePlatform, backendClient);

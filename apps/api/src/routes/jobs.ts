@@ -17,6 +17,7 @@ import { jobExecutionService } from '../services/job-execution.js';
 import { queueWorkflowService } from '../services/queue-workflow-service.js';
 import { getCurrentUser, type User } from '../auth/index.js';
 import { generateJobTitleAndDescription } from '../services/job-title-generator.js';
+import { createTemporalClient } from '../temporal/client.js';
 
 const { jobs, repos: reposTable, activities } = schema;
 
@@ -86,6 +87,46 @@ async function removeJobFromQueue(
     .where(
       and(eq(jobs.id, jobId), eq(jobs.version, version), eq(jobs.orgId, orgId))
     );
+}
+
+// Terminate Temporal workflow for a job
+async function terminateJobWorkflow(
+  jobId: string,
+  version: number,
+  reason: string
+): Promise<boolean> {
+  try {
+    const temporalClient = await createTemporalClient();
+    const workflowId = `job-execution-${jobId}-v${version}`;
+
+    try {
+      const handle = temporalClient.workflow.getHandle(workflowId);
+      await handle.terminate(reason);
+      console.log(`Terminated workflow ${workflowId}: ${reason}`);
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // If workflow not found, it's already terminated or never existed
+      if (
+        message.includes('not found') ||
+        message.includes('NotFound') ||
+        message.includes('NOT_FOUND')
+      ) {
+        console.log(
+          `Workflow ${workflowId} not found (already terminated or never existed)`
+        );
+        return true;
+      }
+      console.error(`Failed to terminate workflow ${workflowId}:`, error);
+      return false;
+    }
+  } catch (error) {
+    console.error(
+      `Failed to create Temporal client for terminating workflow:`,
+      error
+    );
+    return false;
+  }
 }
 
 declare module 'fastify' {
@@ -852,6 +893,16 @@ async function jobsRoutes(fastify: FastifyInstance) {
             newOrderInQueue = currentJob.orderInQueue;
           }
 
+          // If job is being cancelled (status changing to failed from in-progress), terminate the Temporal workflow
+          if (status === 'failed' && currentJob.status === 'in-progress') {
+            // Check if this is a user cancellation by looking for cancellation message in updates or comments
+            await terminateJobWorkflow(
+              id,
+              currentJob.version,
+              `Job cancelled by user ${updated_by || user.id}`
+            );
+          }
+
           // Build updates message for status changes
           let newUpdates = currentJob.updates || null;
           if (status !== undefined && status !== currentJob.status) {
@@ -1025,6 +1076,16 @@ async function jobsRoutes(fastify: FastifyInstance) {
           }
           if (status !== undefined) {
             updateData.status = status;
+
+            // If job is being cancelled (status changing to failed from in-progress), terminate the Temporal workflow
+            if (status === 'failed' && currentJob.status === 'in-progress') {
+              await terminateJobWorkflow(
+                id,
+                currentJob.version,
+                `Job cancelled by user ${updated_by || user.id}`
+              );
+            }
+
             // Handle queue state based on status change
             if (status === 'in-progress' || status === 'in-review') {
               // Remove from queue
