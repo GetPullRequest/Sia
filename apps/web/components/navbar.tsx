@@ -101,9 +101,37 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
 
   // Get dynamic heading based on route
   const getNavbarTitle = () => {
+    // Check if we're in a project route
+    const projectIdMatch = pathname?.match(/^\/projects\/([^/]+)/);
+
     if (pathname === '/') {
       return 'Jobs Overview';
     }
+
+    if (projectIdMatch) {
+      const projectPath = pathname.replace(
+        `/projects/${projectIdMatch[1]}`,
+        ''
+      );
+
+      if (projectPath === '' || projectPath === '/') {
+        return 'Jobs Overview';
+      }
+      if (projectPath === '/recents') {
+        return 'Recents Overview';
+      }
+      if (projectPath === '/agents') {
+        return 'Agents Overview';
+      }
+      if (projectPath === '/repositories') {
+        return 'Repositories Overview';
+      }
+      if (projectPath === '/integrations') {
+        return 'Integrations Overview';
+      }
+    }
+
+    // Legacy routes (for backward compatibility)
     if (pathname === '/recents') {
       return 'Recents Overview';
     }
@@ -182,7 +210,7 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
   return (
     <header className="sticky rounded-full m-4 top-0 z-30 bg-sidebar border border-border">
       <div className="flex h-20 w-full justify-between items-center gap-4 px-4 sm:px-6">
-        <div className="flex items-center justify-start gap-10 w-1/2">
+        <div className="flex items-center justify-start gap-10 w-full">
           <div className="flex flex-col gap-1 ">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-foreground">
@@ -237,7 +265,8 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                     {activeAgentCount === 0 ? (
                       <>
                         <CircleAlert className="h-3.5 w-3.5" />
-                        <span>No agents available</span>
+                        <span>Activate an agent to execute the job</span>
+                        {/* <span>Needs to connect the agent?</span> */}
                       </>
                     ) : (
                       <>
@@ -293,7 +322,7 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                     {configuredAgents.length > 0 && (
                       <div className="space-y-2 border-t border-border pt-4">
                         <div className="text-xs font-medium text-muted-foreground">
-                          Configured Agents
+                          Offline Agents
                         </div>
                         <div className="space-y-2">
                           {configuredAgents.map((agent: Agent) => (
@@ -324,7 +353,7 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                         href="/agents"
                         className="text-xs text-primary hover:underline flex items-center gap-1"
                       >
-                        View Agents
+                        Configure offline agents?
                       </Link>
                     </div>
                   </div>
@@ -350,7 +379,7 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
                     {connectedVibePlatformsCount === 0 ? (
                       <>
                         <CircleAlert className="h-3.5 w-3.5" />
-                        <span>No vibe coding agents connected</span>
+                        <span>Connect a vibe coding platform ?</span>
                       </>
                     ) : (
                       <>
