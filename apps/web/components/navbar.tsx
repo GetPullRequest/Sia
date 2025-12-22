@@ -175,6 +175,40 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
     };
   }, []);
 
+  // Keyboard shortcut handler for Add Task (Ctrl+N or Cmd+N)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check if Ctrl+N (Windows/Linux) or Cmd+N (Mac) is pressed
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key === 'n' &&
+        !event.shiftKey &&
+        !event.altKey
+      ) {
+        // Prevent default browser behavior (like opening new window)
+        event.preventDefault();
+
+        // Don't open if user is typing in an input, textarea, or contenteditable
+        const target = event.target as HTMLElement;
+        if (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+
+        // Open the Add Task dialog
+        setIsModalOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   const handleAddTaskClick = () => {
     setIsModalOpen(true);
   };
