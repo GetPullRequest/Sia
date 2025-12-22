@@ -14,12 +14,13 @@ export interface VibeCodingPlatform {
   cancelJob(jobId: string): Promise<{ success: boolean; message: string }>;
   createPR(
     jobId: string,
-    repoId: string,
     branchName: string,
     title: string,
     body: string,
     vibeCoderCredentials?: Record<string, string>,
-    verificationErrors?: string[]
+    verificationErrors?: string[],
+    repos?: Array<{ repoId: string; name: string; url: string }>,
+    gitCredentials?: { token: string; username: string }
   ): Promise<{
     success: boolean;
     prLink: string;

@@ -1,6 +1,28 @@
 {
   "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Debug Test Activity (Compound)",
+      "configurations": ["Attach to Test Activity"],
+      "preLaunchTask": "Run Test Activity with Debug",
+      "stopAll": true
+    }
+  ],
   "configurations": [
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to Test Activity",
+      "port": 9229,
+      "restart": true,
+      "cwd": "${workspaceFolder}",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
     {
       "type": "node",
       "request": "launch",
@@ -40,12 +62,26 @@
       "request": "launch",
       "name": "Debug @sia/api",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["tsx", "src/main.ts"],
-      "cwd": "${workspaceFolder}/apps/api",
+      "runtimeArgs": ["tsx", "apps/api/src/main.ts"],
+      "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/apps/api/.env",
       "skipFiles": ["<node_internals>/**"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to @sia/api",
+      "port": 9229,
+      "restart": true,
+      "cwd": "${workspaceFolder}/apps/api",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
     },
     {
       "type": "node",
@@ -62,6 +98,46 @@
         "uriFormat": "http://localhost:%s",
         "action": "debugWithChrome"
       }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Test Activity",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "tsx",
+        "--inspect",
+        "apps/api/scripts/test-activity.ts",
+        "${input:activityName}",
+        "${input:activityPayload}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/apps/api/.env",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Test Activity (Example)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "tsx",
+        "apps/api/scripts/test-activity.ts",
+        "${input:activityName}",
+        "--example"
+      ],
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/apps/api/.env",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
     }
   ],
   "inputs": [
@@ -76,6 +152,26 @@
       "type": "promptString",
       "description": "Enter Backend URL (optional, defaults to localhost:50052)",
       "default": "localhost:50052"
+    },
+    {
+      "id": "activityName",
+      "type": "pickString",
+      "description": "Select activity to test",
+      "options": [
+        "sendCommandToAgent",
+        "getGitCredentials",
+        "updateJobStatus",
+        "getJobDetails",
+        "getRepoConfigs",
+        "preprocessActivity",
+        "setQueuePaused"
+      ]
+    },
+    {
+      "id": "activityPayload",
+      "type": "promptString",
+      "description": "Enter JSON payload (or file path). Copy from Temporal UI or use --example flag",
+      "default": ""
     }
   ]
 }

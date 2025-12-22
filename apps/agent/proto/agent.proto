@@ -67,12 +67,24 @@ message VerificationResponse {
 
 message PRRequest {
   string job_id = 1;
-  string repo_id = 2;
-  string branch_name = 3;
-  string title = 4;
-  string body = 5;
-  repeated string verification_errors = 6;
-  map<string, string> vibe_coder_credentials = 7;
+  string branch_name = 2;
+  string title = 3;
+  string body = 4;
+  repeated string verification_errors = 5;
+  map<string, string> vibe_coder_credentials = 6;
+  repeated RepoInfo repos = 7;
+  GitCredentials git_credentials = 8;
+}
+
+message GitCredentials {
+  string token = 1;
+  string username = 2;
+}
+
+message RepoInfo {
+  string repo_id = 1;
+  string name = 2;
+  string url = 3;
 }
 
 message PRResponse {

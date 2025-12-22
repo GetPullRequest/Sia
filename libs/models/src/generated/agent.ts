@@ -174,16 +174,36 @@ export interface VerificationResponse {
 
 export interface PRRequest {
   jobId: string;
-  repoId: string;
   branchName: string;
   title: string;
   body: string;
+  verificationErrors: string[];
+  vibeCoderCredentials: { [key: string]: string };
+  repos: RepoInfo[];
+  gitCredentials?: GitCredentials | undefined;
+}
+
+export interface PRRequest_VibeCoderCredentialsEntry {
+  key: string;
+  value: string;
+}
+
+export interface GitCredentials {
+  token: string;
+  username: string;
+}
+
+export interface RepoInfo {
+  repoId: string;
+  name: string;
+  url: string;
 }
 
 export interface PRResponse {
   success: boolean;
   prLink: string;
   message: string;
+  changesSummary: string;
 }
 
 export interface CleanupRequest {
@@ -1105,7 +1125,16 @@ export const VerificationResponse: MessageFns<VerificationResponse> = {
 };
 
 function createBasePRRequest(): PRRequest {
-  return { jobId: '', repoId: '', branchName: '', title: '', body: '' };
+  return {
+    jobId: '',
+    branchName: '',
+    title: '',
+    body: '',
+    verificationErrors: [],
+    vibeCoderCredentials: {},
+    repos: [],
+    gitCredentials: undefined,
+  };
 }
 
 export const PRRequest: MessageFns<PRRequest> = {
@@ -1116,17 +1145,32 @@ export const PRRequest: MessageFns<PRRequest> = {
     if (message.jobId !== '') {
       writer.uint32(10).string(message.jobId);
     }
-    if (message.repoId !== '') {
-      writer.uint32(18).string(message.repoId);
-    }
     if (message.branchName !== '') {
-      writer.uint32(26).string(message.branchName);
+      writer.uint32(18).string(message.branchName);
     }
     if (message.title !== '') {
-      writer.uint32(34).string(message.title);
+      writer.uint32(26).string(message.title);
     }
     if (message.body !== '') {
-      writer.uint32(42).string(message.body);
+      writer.uint32(34).string(message.body);
+    }
+    for (const v of message.verificationErrors) {
+      writer.uint32(42).string(v!);
+    }
+    Object.entries(message.vibeCoderCredentials).forEach(([key, value]) => {
+      PRRequest_VibeCoderCredentialsEntry.encode(
+        { key: key as any, value },
+        writer.uint32(50).fork()
+      ).join();
+    });
+    for (const v of message.repos) {
+      RepoInfo.encode(v!, writer.uint32(58).fork()).join();
+    }
+    if (message.gitCredentials !== undefined) {
+      GitCredentials.encode(
+        message.gitCredentials,
+        writer.uint32(66).fork()
+      ).join();
     }
     return writer;
   },
@@ -1152,7 +1196,7 @@ export const PRRequest: MessageFns<PRRequest> = {
             break;
           }
 
-          message.repoId = reader.string();
+          message.branchName = reader.string();
           continue;
         }
         case 3: {
@@ -1160,7 +1204,7 @@ export const PRRequest: MessageFns<PRRequest> = {
             break;
           }
 
-          message.branchName = reader.string();
+          message.title = reader.string();
           continue;
         }
         case 4: {
@@ -1168,7 +1212,7 @@ export const PRRequest: MessageFns<PRRequest> = {
             break;
           }
 
-          message.title = reader.string();
+          message.body = reader.string();
           continue;
         }
         case 5: {
@@ -1176,7 +1220,40 @@ export const PRRequest: MessageFns<PRRequest> = {
             break;
           }
 
-          message.body = reader.string();
+          message.verificationErrors.push(reader.string());
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          const entry6 = PRRequest_VibeCoderCredentialsEntry.decode(
+            reader,
+            reader.uint32()
+          );
+          if (entry6.value !== undefined) {
+            message.vibeCoderCredentials[entry6.key] = entry6.value;
+          }
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.repos.push(RepoInfo.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.gitCredentials = GitCredentials.decode(
+            reader,
+            reader.uint32()
+          );
           continue;
         }
       }
@@ -1191,12 +1268,28 @@ export const PRRequest: MessageFns<PRRequest> = {
   fromJSON(object: any): PRRequest {
     return {
       jobId: isSet(object.jobId) ? globalThis.String(object.jobId) : '',
-      repoId: isSet(object.repoId) ? globalThis.String(object.repoId) : '',
       branchName: isSet(object.branchName)
         ? globalThis.String(object.branchName)
         : '',
       title: isSet(object.title) ? globalThis.String(object.title) : '',
       body: isSet(object.body) ? globalThis.String(object.body) : '',
+      verificationErrors: globalThis.Array.isArray(object?.verificationErrors)
+        ? object.verificationErrors.map((e: any) => globalThis.String(e))
+        : [],
+      vibeCoderCredentials: isObject(object.vibeCoderCredentials)
+        ? Object.entries(object.vibeCoderCredentials).reduce<{
+            [key: string]: string;
+          }>((acc, [key, value]) => {
+            acc[key] = String(value);
+            return acc;
+          }, {})
+        : {},
+      repos: globalThis.Array.isArray(object?.repos)
+        ? object.repos.map((e: any) => RepoInfo.fromJSON(e))
+        : [],
+      gitCredentials: isSet(object.gitCredentials)
+        ? GitCredentials.fromJSON(object.gitCredentials)
+        : undefined,
     };
   },
 
@@ -1204,9 +1297,6 @@ export const PRRequest: MessageFns<PRRequest> = {
     const obj: any = {};
     if (message.jobId !== '') {
       obj.jobId = message.jobId;
-    }
-    if (message.repoId !== '') {
-      obj.repoId = message.repoId;
     }
     if (message.branchName !== '') {
       obj.branchName = message.branchName;
@@ -1216,6 +1306,24 @@ export const PRRequest: MessageFns<PRRequest> = {
     }
     if (message.body !== '') {
       obj.body = message.body;
+    }
+    if (message.verificationErrors?.length) {
+      obj.verificationErrors = message.verificationErrors;
+    }
+    if (message.vibeCoderCredentials) {
+      const entries = Object.entries(message.vibeCoderCredentials);
+      if (entries.length > 0) {
+        obj.vibeCoderCredentials = {};
+        entries.forEach(([k, v]) => {
+          obj.vibeCoderCredentials[k] = v;
+        });
+      }
+    }
+    if (message.repos?.length) {
+      obj.repos = message.repos.map(e => RepoInfo.toJSON(e));
+    }
+    if (message.gitCredentials !== undefined) {
+      obj.gitCredentials = GitCredentials.toJSON(message.gitCredentials);
     }
     return obj;
   },
@@ -1228,16 +1336,301 @@ export const PRRequest: MessageFns<PRRequest> = {
   ): PRRequest {
     const message = createBasePRRequest();
     message.jobId = object.jobId ?? '';
-    message.repoId = object.repoId ?? '';
     message.branchName = object.branchName ?? '';
     message.title = object.title ?? '';
     message.body = object.body ?? '';
+    message.verificationErrors = object.verificationErrors?.map(e => e) || [];
+    message.vibeCoderCredentials = Object.entries(
+      object.vibeCoderCredentials ?? {}
+    ).reduce<{ [key: string]: string }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = globalThis.String(value);
+      }
+      return acc;
+    }, {});
+    message.repos = object.repos?.map(e => RepoInfo.fromPartial(e)) || [];
+    message.gitCredentials =
+      object.gitCredentials !== undefined && object.gitCredentials !== null
+        ? GitCredentials.fromPartial(object.gitCredentials)
+        : undefined;
+    return message;
+  },
+};
+
+function createBasePRRequest_VibeCoderCredentialsEntry(): PRRequest_VibeCoderCredentialsEntry {
+  return { key: '', value: '' };
+}
+
+export const PRRequest_VibeCoderCredentialsEntry: MessageFns<PRRequest_VibeCoderCredentialsEntry> =
+  {
+    encode(
+      message: PRRequest_VibeCoderCredentialsEntry,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.key !== '') {
+        writer.uint32(10).string(message.key);
+      }
+      if (message.value !== '') {
+        writer.uint32(18).string(message.value);
+      }
+      return writer;
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): PRRequest_VibeCoderCredentialsEntry {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBasePRRequest_VibeCoderCredentialsEntry();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.key = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
+
+            message.value = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): PRRequest_VibeCoderCredentialsEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : '',
+        value: isSet(object.value) ? globalThis.String(object.value) : '',
+      };
+    },
+
+    toJSON(message: PRRequest_VibeCoderCredentialsEntry): unknown {
+      const obj: any = {};
+      if (message.key !== '') {
+        obj.key = message.key;
+      }
+      if (message.value !== '') {
+        obj.value = message.value;
+      }
+      return obj;
+    },
+
+    create<
+      I extends Exact<DeepPartial<PRRequest_VibeCoderCredentialsEntry>, I>
+    >(base?: I): PRRequest_VibeCoderCredentialsEntry {
+      return PRRequest_VibeCoderCredentialsEntry.fromPartial(
+        base ?? ({} as any)
+      );
+    },
+    fromPartial<
+      I extends Exact<DeepPartial<PRRequest_VibeCoderCredentialsEntry>, I>
+    >(object: I): PRRequest_VibeCoderCredentialsEntry {
+      const message = createBasePRRequest_VibeCoderCredentialsEntry();
+      message.key = object.key ?? '';
+      message.value = object.value ?? '';
+      return message;
+    },
+  };
+
+function createBaseGitCredentials(): GitCredentials {
+  return { token: '', username: '' };
+}
+
+export const GitCredentials: MessageFns<GitCredentials> = {
+  encode(
+    message: GitCredentials,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.token !== '') {
+      writer.uint32(10).string(message.token);
+    }
+    if (message.username !== '') {
+      writer.uint32(18).string(message.username);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GitCredentials {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGitCredentials();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.token = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.username = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GitCredentials {
+    return {
+      token: isSet(object.token) ? globalThis.String(object.token) : '',
+      username: isSet(object.username)
+        ? globalThis.String(object.username)
+        : '',
+    };
+  },
+
+  toJSON(message: GitCredentials): unknown {
+    const obj: any = {};
+    if (message.token !== '') {
+      obj.token = message.token;
+    }
+    if (message.username !== '') {
+      obj.username = message.username;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GitCredentials>, I>>(
+    base?: I
+  ): GitCredentials {
+    return GitCredentials.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GitCredentials>, I>>(
+    object: I
+  ): GitCredentials {
+    const message = createBaseGitCredentials();
+    message.token = object.token ?? '';
+    message.username = object.username ?? '';
+    return message;
+  },
+};
+
+function createBaseRepoInfo(): RepoInfo {
+  return { repoId: '', name: '', url: '' };
+}
+
+export const RepoInfo: MessageFns<RepoInfo> = {
+  encode(
+    message: RepoInfo,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.repoId !== '') {
+      writer.uint32(10).string(message.repoId);
+    }
+    if (message.name !== '') {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.url !== '') {
+      writer.uint32(26).string(message.url);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RepoInfo {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRepoInfo();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.repoId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.url = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RepoInfo {
+    return {
+      repoId: isSet(object.repoId) ? globalThis.String(object.repoId) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      url: isSet(object.url) ? globalThis.String(object.url) : '',
+    };
+  },
+
+  toJSON(message: RepoInfo): unknown {
+    const obj: any = {};
+    if (message.repoId !== '') {
+      obj.repoId = message.repoId;
+    }
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.url !== '') {
+      obj.url = message.url;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RepoInfo>, I>>(base?: I): RepoInfo {
+    return RepoInfo.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RepoInfo>, I>>(object: I): RepoInfo {
+    const message = createBaseRepoInfo();
+    message.repoId = object.repoId ?? '';
+    message.name = object.name ?? '';
+    message.url = object.url ?? '';
     return message;
   },
 };
 
 function createBasePRResponse(): PRResponse {
-  return { success: false, prLink: '', message: '' };
+  return { success: false, prLink: '', message: '', changesSummary: '' };
 }
 
 export const PRResponse: MessageFns<PRResponse> = {
@@ -1253,6 +1646,9 @@ export const PRResponse: MessageFns<PRResponse> = {
     }
     if (message.message !== '') {
       writer.uint32(26).string(message.message);
+    }
+    if (message.changesSummary !== '') {
+      writer.uint32(34).string(message.changesSummary);
     }
     return writer;
   },
@@ -1289,6 +1685,14 @@ export const PRResponse: MessageFns<PRResponse> = {
           message.message = reader.string();
           continue;
         }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.changesSummary = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1305,6 +1709,9 @@ export const PRResponse: MessageFns<PRResponse> = {
         : false,
       prLink: isSet(object.prLink) ? globalThis.String(object.prLink) : '',
       message: isSet(object.message) ? globalThis.String(object.message) : '',
+      changesSummary: isSet(object.changesSummary)
+        ? globalThis.String(object.changesSummary)
+        : '',
     };
   },
 
@@ -1319,6 +1726,9 @@ export const PRResponse: MessageFns<PRResponse> = {
     if (message.message !== '') {
       obj.message = message.message;
     }
+    if (message.changesSummary !== '') {
+      obj.changesSummary = message.changesSummary;
+    }
     return obj;
   },
 
@@ -1332,6 +1742,7 @@ export const PRResponse: MessageFns<PRResponse> = {
     message.success = object.success ?? false;
     message.prLink = object.prLink ?? '';
     message.message = object.message ?? '';
+    message.changesSummary = object.changesSummary ?? '';
     return message;
   },
 };

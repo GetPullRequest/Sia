@@ -129,27 +129,31 @@ export class AgentClient {
 
   async createPR(params: {
     jobId: string;
-    repoId: string;
     branchName: string;
     title: string;
     body: string;
     verificationErrors?: string[];
     vibeCoderCredentials?: Record<string, string>;
+    repos?: Array<{ repoId: string; name: string; url: string }>;
+    gitCredentials?: { token: string; username: string };
   }): Promise<PRResponse> {
     console.log(
-      `[AgentClient] createPR called for jobId=${params.jobId}, repoId=${params.repoId}, branch=${params.branchName}`
+      `[AgentClient] createPR called for jobId=${params.jobId}, repos: ${
+        params.repos?.length || 0
+      }, branch=${params.branchName}`
     );
     return new Promise((resolve, reject) => {
-      // TODO: Type will be available after proto regeneration
-      (this.client as any).createPR(
+      // Proto generates createPr (camelCase), not createPR
+      (this.client as any).createPr(
         {
           jobId: params.jobId,
-          repoId: params.repoId,
           branchName: params.branchName,
           title: params.title,
           body: params.body,
           verificationErrors: params.verificationErrors || [],
           vibeCoderCredentials: params.vibeCoderCredentials || {},
+          repos: params.repos || [],
+          gitCredentials: params.gitCredentials,
         },
         (error: grpc.ServiceError | null, response: PRResponse) => {
           if (error) {

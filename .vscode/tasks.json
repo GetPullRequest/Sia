@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Test Activity with Debug",
+      "type": "shell",
+      "command": "npx",
+      "args": [
+        "tsx",
+        "--inspect-brk=9229",
+        "apps/api/scripts/test-activity.ts",
+        "${input:activityName}",
+        "${input:activityPayload}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {}
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Debugger listening",
+          "endsPattern": "^Debugger listening"
+        }
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "activityName",
+      "type": "pickString",
+      "description": "Select activity to test",
+      "options": [
+        "sendCommandToAgent",
+        "getGitCredentials",
+        "updateJobStatus",
+        "getJobDetails",
+        "getRepoConfigs",
+        "preprocessActivity",
+        "setQueuePaused"
+      ]
+    },
+    {
+      "id": "activityPayload",
+      "type": "promptString",
+      "description": "Enter JSON payload (or --example)",
+      "default": "--example"
+    }
+  ]
+}

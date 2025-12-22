@@ -1,6 +1,7 @@
 import { db, schema } from '../../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { getValidAccessToken } from '../../routes/github.js';
+import { SecretStorageService } from '../../services/secrets/secret-storage-service.js';
 
 export interface GitCredentials {
   token?: string;
@@ -129,6 +130,7 @@ export async function getVibeCoderCredentials(params: {
         const integration = await db
           .select({
             accessToken: schema.integrations.accessToken,
+            metadata: schema.integrations.metadata,
           })
           .from(schema.integrations)
           .where(
@@ -140,10 +142,39 @@ export async function getVibeCoderCredentials(params: {
           .limit(1);
 
         if (integration[0]?.accessToken) {
-          apiKey = integration[0].accessToken;
-          console.log(
-            `[getVibeCoderCredentials] Found API key for vibe-agent "${vibeAgent}" from integration ${vibeConnectionId}`
-          );
+          try {
+            // Get storage type from metadata (defaults to 'encrypted_local' if not specified)
+            const metadata =
+              (integration[0].metadata as Record<string, unknown> | null) || {};
+            const storageType =
+              (metadata.secretStorageType as
+                | 'gcp'
+                | 'encrypted_local'
+                | undefined) || 'encrypted_local';
+
+            // Decrypt the access token using SecretStorageService
+            const secretStorageService = new SecretStorageService();
+            apiKey = await secretStorageService.retrieveSecret(
+              integration[0].accessToken,
+              storageType
+            );
+
+            console.log(
+              `[getVibeCoderCredentials] Found and decrypted API key for vibe-agent "${vibeAgent}" from integration ${vibeConnectionId}`
+            );
+          } catch (decryptError) {
+            console.error(
+              `[getVibeCoderCredentials] Failed to decrypt API key for integration ${vibeConnectionId}:`,
+              decryptError
+            );
+            throw new Error(
+              `Failed to decrypt API key: ${
+                decryptError instanceof Error
+                  ? decryptError.message
+                  : 'Unknown error'
+              }`
+            );
+          }
         }
       }
 

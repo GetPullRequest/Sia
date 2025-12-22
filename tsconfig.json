@@ -24,9 +24,6 @@
       "path": "./apps/api"
     },
     {
-      "path": "./apps/web"
-    },
-    {
       "path": "./apps/landing-page"
     }
   ]

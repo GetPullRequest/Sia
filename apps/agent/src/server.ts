@@ -10,20 +10,11 @@ import {
   CancelJobResponse,
   HealthCheckRequest,
   HealthCheckResponse,
+  PRRequest,
+  PRResponse,
+  CleanupRequest,
+  CleanupResponse,
 } from '@sia/models';
-
-// TODO: These types will be available after proto regeneration
-// For now, use type assertions
-type PRRequest = {
-  jobId: string;
-  repoId: string;
-  branchName: string;
-  title: string;
-  body: string;
-  verificationErrors?: string[];
-  vibeCoderCredentials?: Record<string, string>;
-};
-type CleanupRequest = { jobId: string };
 import type { VibeCodingPlatform } from './vibe/vibe-coding-platform.js';
 import { JobVibePlatform } from './vibe/job-vibe-platform.js';
 import type { BackendGrpcClient } from './api/backend-grpc-client.js';
@@ -116,19 +107,39 @@ class AgentServer {
       }
     };
 
-    const createPR: grpc.handleUnaryCall<any, any> = async (call, callback) => {
+    const createPr: grpc.handleUnaryCall<PRRequest, PRResponse> = async (
+      call,
+      callback
+    ) => {
       try {
-        const request = call.request as PRRequest;
+        const request = call.request;
+        // Ensure arrays and objects are properly initialized if undefined
+        const verificationErrors = request.verificationErrors || [];
+        const vibeCoderCredentials = request.vibeCoderCredentials || {};
+        const repos = request.repos || [];
+        const gitCredentials = request.gitCredentials;
+
+        // Debug logging
+        console.log(
+          `[AgentServer] createPr - jobId=${request.jobId}, repos: ${repos.length}, ` +
+            `vibeCoderCredentials keys: ${Object.keys(
+              vibeCoderCredentials
+            ).join(', ')}, ` +
+            `verificationErrors count: ${verificationErrors.length}, ` +
+            `gitCredentials: ${gitCredentials ? 'provided' : 'missing'}`
+        );
+
         const result = await this.vibePlatform.createPR(
           request.jobId,
-          request.repoId,
           request.branchName,
           request.title,
           request.body,
-          request.vibeCoderCredentials,
-          request.verificationErrors
+          vibeCoderCredentials,
+          verificationErrors,
+          repos,
+          gitCredentials
         );
-        callback(null, result as any);
+        callback(null, result as PRResponse);
       } catch (error) {
         callback({
           code: grpc.status.INTERNAL,
@@ -137,14 +148,14 @@ class AgentServer {
       }
     };
 
-    const cleanupWorkspace: grpc.handleUnaryCall<any, any> = async (
-      call,
-      callback
-    ) => {
+    const cleanupWorkspace: grpc.handleUnaryCall<
+      CleanupRequest,
+      CleanupResponse
+    > = async (call, callback) => {
       try {
-        const request = call.request as CleanupRequest;
+        const request = call.request;
         const result = await this.vibePlatform.cleanupWorkspace(request.jobId);
-        callback(null, result as any);
+        callback(null, result as CleanupResponse);
       } catch (error) {
         callback({
           code: grpc.status.INTERNAL,
@@ -183,7 +194,7 @@ class AgentServer {
       executeJob,
       hintJob,
       cancelJob,
-      createPR: createPR as any, // Proto generates createPr, but we use createPR
+      createPr,
       cleanupWorkspace,
       healthCheck,
     } as any;

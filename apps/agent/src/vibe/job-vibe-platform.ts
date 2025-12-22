@@ -112,21 +112,57 @@ export class JobVibePlatform implements VibeCodingPlatform {
 
   async createPR(
     jobId: string,
-    repoId: string,
     branchName: string,
     title: string,
     body: string,
     vibeCoderCredentials?: Record<string, string>,
-    verificationErrors?: string[]
+    verificationErrors?: string[],
+    repos?: Array<{ repoId: string; name: string; url: string }>,
+    gitCredentials?: { token: string; username: string }
   ): Promise<{
     success: boolean;
     prLink: string;
     message: string;
     changesSummary?: string;
   }> {
+    // Debug logging
+    console.log(
+      `[JobVibePlatform] createPR - jobId=${jobId}, repos: ${
+        repos?.length || 0
+      }, ` +
+        `vibeCoderCredentials keys: ${
+          vibeCoderCredentials
+            ? Object.keys(vibeCoderCredentials).join(', ')
+            : 'none'
+        }, ` +
+        `verificationErrors count: ${
+          verificationErrors ? verificationErrors.length : 0
+        }`
+    );
+
+    if (!repos || repos.length === 0) {
+      throw new Error('No repositories provided for PR creation');
+    }
+
+    // Use first repo for PR creation
+    const repo = repos[0];
+
     try {
-      // Extract repo name from repoId to find the correct workspace
-      const repoName = repoId.split('/').pop() || repoId;
+      // Extract repo name from repo (prefer name, fallback to extracting from URL or repoId)
+      let repoName = repo.name;
+      if (!repoName || /^\d+$/.test(repoName)) {
+        // Name is numeric or missing, extract from URL or repoId
+        if (repo.url) {
+          const urlMatch = repo.url.match(
+            /github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/
+          );
+          if (urlMatch) {
+            repoName = urlMatch[2]; // Use the repo name from URL
+          }
+        } else {
+          repoName = repo.repoId.split('/').pop() || repo.repoId;
+        }
+      }
 
       // Get the repo-specific worktree path
       const { WorkspaceManager } = await import(
@@ -139,37 +175,43 @@ export class JobVibePlatform implements VibeCodingPlatform {
       const repoGitService = new GitService(repoPath);
 
       // Build prompt for vibe coder to generate commit message and PR body
-      // Zero-shot prompting: let the vibe coder analyze the workspace and generate content
+      // Ask agent to create a file instead of JSON output (more reliable for coding agents)
       const verificationErrorsText =
         verificationErrors && verificationErrors.length > 0
-          ? `\n\n**Note:** Some verification steps failed:\n${verificationErrors
+          ? `\n\nnote: some verification steps failed:\n${verificationErrors
               .map(e => `- ${e}`)
               .join('\n')}`
           : '';
 
+      const siaDir = '.sia';
+      const prInfoFileName = 'pr.json';
       const prompt = `Analyze the changes in this workspace and generate a commit message and PR description following Conventional Commits format.
 
 ${verificationErrorsText}
 
-Provide your response as JSON:
+We store temporary metadata and any user-uploaded assets (including images) under the \`${siaDir}\` directory in this repo. You can reference any files under that directory from the PR body using relative paths.
+
+Create or update a JSON file at \`${siaDir}/${prInfoFileName}\` with the following structure:
+
 \`\`\`json
 {
   "commitMessage": "type: short description",
   "prTitle": "Short PR title",
-  "prBody": "Detailed PR description with markdown formatting",
-  "changesSummary": "Brief summary of all changes made (to be used for future revisions)"
+  "prBody": "Detailed PR description with markdown formatting.\\nThis can span multiple lines.",
+  "changesSummary": "Brief summary of all changes made (to be used for future revisions).\\nThis can also span multiple lines."
 }
 \`\`\`
 
-Only output the JSON, no other text.`;
+Only write valid JSON to this file. Do not include any backticks or markdown fences inside the file. Use \\n for line breaks in multi-line strings.`;
 
       // Use vibe coder to generate PR content
-      let generatedContent: {
+      const generatedContent: {
         commitMessage?: string;
         prTitle?: string;
         prBody?: string;
         changesSummary?: string;
       } = {};
+      const prLogs: string[] = [];
 
       try {
         const { CursorVibeCoder } = await import('./cursor-vibe-coder.js');
@@ -183,25 +225,50 @@ Only output the JSON, no other text.`;
           vibeCoderCredentials
         );
 
-        let accumulatedResponse = '';
         for await (const log of generator) {
-          // Accumulate assistant messages
-          if (log.message) {
-            accumulatedResponse += log.message + '\n';
-          }
+          // Collect logs so they can be surfaced to the frontend
+          prLogs.push(
+            `[code-generation] ${log.level?.toUpperCase?.() || 'INFO'}: ${
+              log.message || ''
+            }`
+          );
         }
 
-        // Extract JSON from response
-        const jsonMatch =
-          accumulatedResponse.match(/```json\s*([\s\S]*?)\s*```/) ||
-          accumulatedResponse.match(/\{[\s\S]*\}/);
+        // Ensure .sia directory exists and read the generated JSON file
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const siaPath = path.join(repoPath, siaDir);
+        const prInfoPath = path.join(siaPath, prInfoFileName);
 
-        if (jsonMatch) {
-          try {
-            generatedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-          } catch (parseError) {
-            console.error('Failed to parse generated JSON:', parseError);
+        try {
+          await fs.mkdir(siaPath, { recursive: true });
+          const fileContent = await fs.readFile(prInfoPath, 'utf-8');
+
+          // Parse JSON file
+          const parsed = JSON.parse(fileContent) as {
+            commitMessage?: string;
+            prTitle?: string;
+            prBody?: string;
+            changesSummary?: string;
+          };
+
+          if (parsed?.commitMessage) {
+            generatedContent.commitMessage = parsed.commitMessage;
           }
+          if (parsed?.prTitle) {
+            generatedContent.prTitle = parsed.prTitle;
+          }
+          if (parsed?.prBody) {
+            generatedContent.prBody = parsed.prBody;
+          }
+          if (parsed?.changesSummary) {
+            generatedContent.changesSummary = parsed.changesSummary;
+          }
+        } catch (readError) {
+          console.error(
+            `Failed to read or parse ${prInfoFileName}:`,
+            readError
+          );
         }
       } catch (vibeError) {
         console.error(
@@ -234,8 +301,22 @@ Only output the JSON, no other text.`;
         repoStatus.staged.length === 0 &&
         (repoStatus.modified.length > 0 || repoStatus.created.length > 0)
       ) {
-        for await (const _log of repoGitService.addAll(jobId)) {
-          // Consume logs
+        for await (const log of repoGitService.addAll(jobId)) {
+          prLogs.push(
+            `[git:add] ${log.level?.toUpperCase?.() || 'INFO'}: ${
+              log.message || ''
+            }`
+          );
+        }
+
+        // Unstage the .sia directory so temp metadata (including images) is not committed
+        try {
+          const { default: simpleGit } = await import('simple-git');
+          const git = simpleGit(repoPath);
+          await git.reset(['HEAD', siaDir]);
+        } catch (resetError) {
+          // .sia might not be staged, ignore error
+          console.debug(`Could not unstage ${siaDir}:`, resetError);
         }
       }
 
@@ -246,50 +327,84 @@ Only output the JSON, no other text.`;
         finalStatus.modified.length > 0 ||
         finalStatus.created.length > 0
       ) {
-        for await (const _log of repoGitService.commit(commitMessage, jobId)) {
-          // Consume logs
+        for await (const log of repoGitService.commit(commitMessage, jobId)) {
+          prLogs.push(
+            `[git:commit] ${log.level?.toUpperCase?.() || 'INFO'}: ${
+              log.message || ''
+            }`
+          );
         }
       }
 
-      // Extract git credentials from vibeCoderCredentials
-      const gitCredentials =
-        vibeCoderCredentials?.githubToken || vibeCoderCredentials?.github_token
-          ? {
-              token:
-                vibeCoderCredentials.githubToken ||
-                vibeCoderCredentials.github_token,
-              username:
-                vibeCoderCredentials.githubUsername ||
-                vibeCoderCredentials.github_username,
-            }
-          : undefined;
+      // Use git credentials from parameter (passed separately, not in vibeCoderCredentials)
+      if (!gitCredentials) {
+        throw new Error('Git credentials are required to create PR');
+      }
+
+      // Determine which branch to push: prefer the current branch in the worktree
+      const statusForPush = await repoGitService.getStatus();
+      const branchToPush = statusForPush.currentBranch || branchName;
 
       // Push branch if there are commits to push
       try {
-        for await (const _log of repoGitService.push(
-          branchName,
+        for await (const log of repoGitService.push(
+          branchToPush,
           gitCredentials,
           jobId
         )) {
-          // Consume logs
+          prLogs.push(
+            `[git:push] ${log.level?.toUpperCase?.() || 'INFO'}: ${
+              log.message || ''
+            }`
+          );
         }
       } catch (pushError) {
         // If push fails, it might be because branch is already up to date or doesn't exist remotely
         // Continue with PR creation anyway
         console.warn(
-          `Failed to push branch ${branchName}, continuing with PR creation:`,
+          `Failed to push branch ${branchToPush}, continuing with PR creation:`,
           pushError
+        );
+      }
+
+      // Determine the repo identifier for PR creation
+      // Prefer URL format (owner/repo), fallback to repoId
+      let repoIdentifier: string;
+      if (repo.url) {
+        // Extract owner/repo from URL
+        const urlMatch = repo.url.match(
+          /github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/
+        );
+        if (urlMatch) {
+          repoIdentifier = `${urlMatch[1]}/${urlMatch[2]}`;
+        } else {
+          throw new Error(`Invalid GitHub URL format: ${repo.url}`);
+        }
+      } else if (repo.repoId.includes('/')) {
+        // repoId is already in owner/repo format
+        repoIdentifier = repo.repoId;
+      } else {
+        // repoId is numeric, we need URL to create PR
+        throw new Error(
+          `Cannot create PR: repoId "${repo.repoId}" is numeric and no URL provided. Please provide repo URL.`
         );
       }
 
       // Create PR using GitHub API
       const prLink = await repoGitService.createPullRequest(
-        repoId,
-        branchName,
+        repoIdentifier,
+        branchToPush,
         finalTitle,
         finalBody,
         gitCredentials
       );
+
+      // Append automation logs to the PR body so the frontend can display them
+      if (prLogs.length > 0) {
+        finalBody += `\n\n<details>\n<summary>Automation logs</summary>\n\n${prLogs
+          .map(line => `- ${line}`)
+          .join('\n')}\n\n</details>`;
+      }
 
       return {
         success: true,
@@ -299,11 +414,10 @@ Only output the JSON, no other text.`;
           generatedContent.changesSummary || `Changes made for job ${jobId}`,
       };
     } catch (error) {
-      return {
-        success: false,
-        prLink: '',
-        message: error instanceof Error ? error.message : 'Failed to create PR',
-      };
+      // Throw error instead of returning success: false to fail the workflow
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to create PR';
+      throw new Error(`PR creation failed: ${errorMessage}`);
     }
   }
 

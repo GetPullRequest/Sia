@@ -215,10 +215,24 @@ export class GitService {
           errorStderr.includes('branch'));
 
       if (isBranchExistsError) {
-        // Branch already exists, which is fine - just continue
+        // Branch already exists, checkout the existing branch
         yield {
           level: 'info',
-          message: `Branch ${branchName} already exists, using existing branch`,
+          message: `Branch ${branchName} already exists, checking out existing branch`,
+          timestamp: new Date().toISOString(),
+          jobId: jobId || 'unknown',
+          stage: 'git',
+        };
+
+        // Checkout the existing branch
+        await this.execGitCommand(
+          `git -C "${worktreePath}" checkout "${branchName}"`,
+          jobId
+        );
+
+        yield {
+          level: 'success',
+          message: `Successfully checked out existing branch ${branchName}`,
           timestamp: new Date().toISOString(),
           jobId: jobId || 'unknown',
           stage: 'git',
@@ -365,21 +379,29 @@ export class GitService {
     staged: string[];
     modified: string[];
     created: string[];
+    currentBranch?: string;
   }> {
     try {
       const status = await this.git.status();
       return {
         files: status.files.map(f => f.path),
-        staged: status.files.filter(f => f.index !== ' ').map(f => f.path),
-        modified: status.files
-          .filter(f => f.working_dir !== ' ' && f.index === ' ')
-          .map(f => f.path),
-        created: status.files
-          .filter(f => f.working_dir === '??')
-          .map(f => f.path),
+        // Use status.staged directly - files that are staged for commit
+        staged: status.staged || [],
+        // Use status.modified directly - files modified but not staged
+        modified: status.modified || [],
+        // Use status.not_added for untracked files (created but not added)
+        // Also include status.created if it exists (newly created files)
+        created: [...(status.not_added || []), ...(status.created || [])],
+        currentBranch: status.current || undefined,
       };
     } catch (error) {
-      return { files: [], staged: [], modified: [], created: [] };
+      return {
+        files: [],
+        staged: [],
+        modified: [],
+        created: [],
+        currentBranch: undefined,
+      };
     }
   }
 
@@ -390,11 +412,25 @@ export class GitService {
     body: string,
     credentials?: GitCredentials
   ): Promise<string> {
-    // Extract owner and repo from repoId (format: owner/repo)
-    const [owner, repo] = repoId.split('/');
-    if (!owner || !repo) {
+    // Extract owner and repo from repoId
+    // repoId can be in format: owner/repo (preferred) or numeric ID
+    let owner: string;
+    let repo: string;
+
+    if (repoId.includes('/')) {
+      // Format: owner/repo
+      const parts = repoId.split('/');
+      owner = parts[0];
+      repo = parts[1];
+      if (!owner || !repo) {
+        throw new Error(
+          `Invalid repoId format: ${repoId}. Expected format: owner/repo`
+        );
+      }
+    } else {
+      // Numeric ID - cannot create PR without owner/repo
       throw new Error(
-        `Invalid repoId format: ${repoId}. Expected format: owner/repo`
+        `Invalid repoId format: ${repoId}. Cannot create PR with numeric ID. Expected format: owner/repo`
       );
     }
 
@@ -506,53 +542,71 @@ export class GitService {
         stage: 'clone',
       };
 
-      // Check if bare repo already exists
+      // Check if bare repo already exists and delete it for a fresh clone
       const bareRepoExists = await this.directoryExists(bareRepoPath);
       if (bareRepoExists) {
         yield {
           level: 'info',
-          message: `Bare repository already exists at ${bareRepoPath}, fetching latest changes`,
+          message: `Bare repository already exists at ${bareRepoPath}, cleaning up worktrees and deleting for fresh clone`,
           timestamp: new Date().toISOString(),
           jobId: jobId || 'unknown',
           stage: 'clone',
         };
 
-        // Update remote URL with credentials if provided
-        // This ensures authentication works even if credentials have changed or expired
-        if (credentials?.token) {
-          try {
-            // Always update the remote URL to use the latest credentials
-            await this.execGitCommand(
-              `git -C "${bareRepoPath}" remote set-url origin "${repoUrl}"`,
-              jobId
-            );
-            yield {
-              level: 'info',
-              message: `Updated remote URL with current credentials`,
-              timestamp: new Date().toISOString(),
-              jobId: jobId || 'unknown',
-              stage: 'clone',
-            };
-          } catch (error) {
-            // If remote doesn't exist, try to add it
+        // First, remove all worktrees associated with this bare repo
+        try {
+          const { execa } = await import('execa');
+          const { stdout } = await execa(
+            'git',
+            ['-C', bareRepoPath, 'worktree', 'list', '--porcelain'],
+            {
+              env: {
+                ...process.env,
+                GIT_TERMINAL_PROMPT: '0',
+              },
+            }
+          );
+
+          // Parse worktree list to find all worktrees
+          const lines = stdout.split('\n');
+          const worktreesToRemove: string[] = [];
+
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].startsWith('worktree ')) {
+              const path = lines[i].substring('worktree '.length);
+              worktreesToRemove.push(path);
+            }
+          }
+
+          // Remove all worktrees
+          for (const worktreePath of worktreesToRemove) {
             try {
-              await this.execGitCommand(
-                `git -C "${bareRepoPath}" remote add origin "${repoUrl}"`,
-                jobId
-              );
               yield {
                 level: 'info',
-                message: `Added remote origin with credentials`,
+                message: `Removing worktree at ${worktreePath}`,
                 timestamp: new Date().toISOString(),
                 jobId: jobId || 'unknown',
                 stage: 'clone',
               };
-            } catch (addError) {
-              // If add also fails, log but continue - fetch might still work
+
+              await this.execGitCommand(
+                `git -C "${bareRepoPath}" worktree remove "${worktreePath}" --force`,
+                jobId
+              );
+
+              // Also remove the directory if it still exists
+              await this.execGitCommand(
+                `rm -rf "${worktreePath}"`,
+                jobId
+              ).catch(() => {
+                // Ignore errors, directory might already be gone
+              });
+            } catch (err) {
+              // Ignore errors for individual worktree removal
               yield {
                 level: 'warn',
-                message: `Failed to update remote URL: ${
-                  addError instanceof Error ? addError.message : 'Unknown error'
+                message: `Failed to remove worktree at ${worktreePath}: ${
+                  err instanceof Error ? err.message : 'Unknown error'
                 }`,
                 timestamp: new Date().toISOString(),
                 jobId: jobId || 'unknown',
@@ -560,21 +614,37 @@ export class GitService {
               };
             }
           }
+
+          // Prune stale worktree entries
+          await this.execGitCommand(
+            `git -C "${bareRepoPath}" worktree prune`,
+            jobId
+          ).catch(() => {
+            // Ignore errors
+          });
+        } catch (error) {
+          // If listing worktrees fails, continue with deletion anyway
+          yield {
+            level: 'warn',
+            message: `Failed to list worktrees before deletion: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }. Proceeding with deletion anyway.`,
+            timestamp: new Date().toISOString(),
+            jobId: jobId || 'unknown',
+            stage: 'clone',
+          };
         }
 
-        // Fetch latest changes
-        await this.execGitCommand(
-          `git -C "${bareRepoPath}" fetch --all`,
-          jobId
-        );
+        // Delete the bare repository directory (includes .git folder and worktrees directory)
+        await this.execGitCommand(`rm -rf "${bareRepoPath}"`, jobId);
+
         yield {
-          level: 'success',
-          message: `Successfully updated bare repository: ${repoId}`,
+          level: 'info',
+          message: `Deleted existing bare repository and all associated worktrees, proceeding with fresh clone`,
           timestamp: new Date().toISOString(),
           jobId: jobId || 'unknown',
           stage: 'clone',
         };
-        return;
       }
 
       // Clone as bare
