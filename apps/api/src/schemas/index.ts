@@ -481,7 +481,7 @@ export const StoreIntegrationSecretRequestSchema = Type.Object(
   {
     providerType: Type.String({
       description:
-        'The type of integration provider (e.g., cursor, claude-code, kiro-cli)',
+        'The type of integration provider (e.g., cursor, claude-code, kiro-cli, rovo-dev)',
     }),
     name: Type.String({
       description: 'A short description/label to help identify the key',

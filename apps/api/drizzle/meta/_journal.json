@@ -134,6 +134,13 @@
       "when": 1765791416945,
       "tag": "0018_add-repo-config-confirmation-tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1766421480577,
+      "tag": "0019_adding_rovo_dev_vibe_agent_provider",
+      "breakpoints": true
     }
   ]
 }

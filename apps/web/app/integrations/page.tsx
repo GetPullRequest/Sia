@@ -35,6 +35,7 @@ const supportedIntegrations = [
   'cursor',
   'claude-code',
   'kiro-cli',
+  'rovo-dev',
 ];
 const comingSoonIntegrations = ['discord', 'linear', 'gitlab'];
 
@@ -238,7 +239,7 @@ export default function Integrations() {
     const isConnected = isIntegrationConnected(id);
 
     // Check if this is a vibe coding platform that requires API key
-    const vibePlatforms = ['cursor', 'claude-code', 'kiro-cli'];
+    const vibePlatforms = ['cursor', 'claude-code', 'kiro-cli', 'rovo-dev'];
     if (vibePlatforms.includes(id)) {
       // If already connected, disconnect by deleting the stored secret
       if (isConnected) {
@@ -418,7 +419,7 @@ export default function Integrations() {
       return slackProviders.length > 0;
     }
     // Check if there's an integration secret for API key-based integrations
-    const vibePlatforms = ['cursor', 'claude-code', 'kiro-cli'];
+    const vibePlatforms = ['cursor', 'claude-code', 'kiro-cli', 'rovo-dev'];
     if (vibePlatforms.includes(id)) {
       return (
         integrationSecrets.length > 0 &&
@@ -450,7 +451,8 @@ export default function Integrations() {
     const isLinear = integration.id === 'linear';
     const isDiscord = integration.id === 'discord';
     const isGitLab = integration.id === 'gitlab';
-    const vibePlatforms = ['cursor', 'claude-code', 'kiro-cli'];
+    const isRovoDev = integration.id === 'rovo-dev';
+    const vibePlatforms = ['cursor', 'claude-code', 'kiro-cli', 'rovo-dev'];
     const isVibePlatform = vibePlatforms.includes(integration.id);
     const githubProvider = isGitHub ? githubProviders[0] : null;
     const slackProvider = isSlack ? slackProviders[0] : null;
@@ -545,6 +547,17 @@ export default function Integrations() {
           <Image
             src="/icons/gitlab.png"
             alt="GitLab"
+            width={24}
+            height={24}
+            className="h-6 w-6"
+          />
+        );
+      }
+      if (isRovoDev) {
+        return (
+          <Image
+            src="/icons/rovo.png"
+            alt="Rovo Dev"
             width={24}
             height={24}
             className="h-6 w-6"

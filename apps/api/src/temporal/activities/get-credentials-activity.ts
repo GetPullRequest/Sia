@@ -10,7 +10,7 @@ export interface GitCredentials {
 }
 
 export interface VibeCoderCredentials {
-  type: 'cursor' | 'claude-code' | 'kiro-cli';
+  type: 'cursor' | 'claude-code' | 'kiro-cli' | 'rovo-dev';
   executablePath?: string;
   apiKey?: string; // Cursor API key, Claude API key, etc.
 }
@@ -114,6 +114,7 @@ export async function getVibeCoderCredentials(params: {
           cursor: 'cursor-agent',
           'claude-code': 'claude',
           'kiro-cli': 'kiro-cli',
+          'rovo-dev': 'rovo-dev',
         };
 
         finalExecutablePath =
@@ -179,7 +180,7 @@ export async function getVibeCoderCredentials(params: {
       }
 
       return {
-        type: vibeAgent as 'cursor' | 'claude-code' | 'kiro-cli',
+        type: vibeAgent as 'cursor' | 'claude-code' | 'kiro-cli' | 'rovo-dev',
         executablePath: finalExecutablePath,
         apiKey,
       };

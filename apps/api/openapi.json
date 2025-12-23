@@ -2561,7 +2561,7 @@
         "type": "object",
         "properties": {
           "providerType": {
-            "description": "The type of integration provider (e.g., cursor, claude-code, kiro-cli)",
+            "description": "The type of integration provider (e.g., cursor, claude-code, kiro-cli, rovo-dev)",
             "type": "string"
           },
           "name": {
@@ -5520,7 +5520,7 @@
             "in": "query",
             "name": "providerType",
             "required": false,
-            "description": "Filter by provider type (e.g., cursor, claude-code, kiro-cli)"
+            "description": "Filter by provider type (e.g., cursor, claude-code, kiro-cli, rovo-dev)"
           }
         ],
         "responses": {

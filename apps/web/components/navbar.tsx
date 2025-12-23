@@ -78,11 +78,12 @@ export function Navbar({ onSearchClick }: NavbarProps = {}) {
   const activeAgentCount = useMemo(() => activeAgents.length, [activeAgents]);
 
   // Vibe coding platforms
-  const vibePlatforms = ['cursor', 'claude-code', 'kiro-cli'];
+  const vibePlatforms = ['cursor', 'claude-code', 'kiro-cli', 'rovo-dev'];
   const vibePlatformNames: Record<string, string> = {
     cursor: 'Cursor',
     'claude-code': 'Claude Code',
     'kiro-cli': 'Kiro CLI',
+    'rovo-dev': 'Rovo Dev',
   };
 
   // Count connected vibe platforms

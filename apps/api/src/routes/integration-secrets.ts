@@ -95,7 +95,12 @@ async function integrationSecretsRoutes(fastify: FastifyInstance) {
         }
 
         // Validate provider type
-        const validProviderTypes = ['cursor', 'claude-code', 'kiro-cli'];
+        const validProviderTypes = [
+          'cursor',
+          'claude-code',
+          'kiro-cli',
+          'rovo-dev',
+        ];
         if (!validProviderTypes.includes(providerType)) {
           return reply.code(400).send({
             error: `Invalid providerType. Must be one of: ${validProviderTypes.join(
@@ -175,7 +180,7 @@ async function integrationSecretsRoutes(fastify: FastifyInstance) {
             providerType: {
               type: 'string',
               description:
-                'Filter by provider type (e.g., cursor, claude-code, kiro-cli)',
+                'Filter by provider type (e.g., cursor, claude-code, kiro-cli, rovo-dev)',
             },
           },
         },

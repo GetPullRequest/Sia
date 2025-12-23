@@ -292,6 +292,14 @@ export const supportedIntegrations: Integration[] = [
     icon: 'kiro-cli',
   },
   {
+    id: 'rovo-dev',
+    name: 'Atlassian Rovo Dev CLI',
+    description:
+      'Connect Atlassian Rovo Dev CLI for AI-powered code generation with Jira and Bitbucket integration',
+    status: 'disconnected',
+    icon: 'rovo-dev',
+  },
+  {
     id: 'gitlab',
     name: 'GitLab',
     description:

@@ -60,6 +60,7 @@ export const vibeAgentEnum = pgEnum('gpr_vibe_agent', [
   'cursor',
   'kiro-cli',
   'claude-code',
+  'rovo-dev',
 ]);
 
 export const executionStrategyEnum = pgEnum('gpr_execution_strategy', [

@@ -225,7 +225,9 @@ export default function AgentsPage() {
       updatedAt: string;
     }>
   ).filter(secret =>
-    ['cursor', 'claude-code', 'kiro-cli'].includes(secret.providerType)
+    ['cursor', 'claude-code', 'kiro-cli', 'rovo-dev'].includes(
+      secret.providerType
+    )
   );
 
   const getVibeProviderIcon = (providerType: string) => {
@@ -236,6 +238,8 @@ export default function AgentsPage() {
         return '/icons/claude.png';
       case 'kiro-cli':
         return '/icons/kiro.svg';
+      case 'rovo-dev':
+        return '/icons/rovo.png';
       default:
         return null;
     }

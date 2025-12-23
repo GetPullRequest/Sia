@@ -22,7 +22,7 @@ async function getVibeAgentFromConnection(
   vibeConnectionId: string | null,
   orgId: string
 ): Promise<{
-  vibeAgent: 'cursor' | 'claude-code' | 'kiro-cli' | null;
+  vibeAgent: 'cursor' | 'claude-code' | 'kiro-cli' | 'rovo-dev' | null;
   vibeAgentExecutablePath: string | null;
 }> {
   if (!vibeConnectionId) {
@@ -46,13 +46,15 @@ async function getVibeAgentFromConnection(
     cursor: 'cursor-agent',
     'claude-code': 'claude',
     'kiro-cli': 'kiro-cli',
+    'rovo-dev': 'rovo-dev',
   };
 
   const vibeAgent =
     providerType === 'cursor' ||
     providerType === 'claude-code' ||
-    providerType === 'kiro-cli'
-      ? (providerType as 'cursor' | 'claude-code' | 'kiro-cli')
+    providerType === 'kiro-cli' ||
+    providerType === 'rovo-dev'
+      ? (providerType as 'cursor' | 'claude-code' | 'kiro-cli' | 'rovo-dev')
       : null;
 
   const vibeAgentExecutablePath = vibeAgent
