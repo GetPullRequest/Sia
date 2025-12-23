@@ -243,6 +243,7 @@ export default function Hero() {
               and creates pull requests while you sleep.
             </p>
 
+            {/* Commented out: Get Early Access and Watch Demo buttons
             <div
               className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fadeInUp"
               style={{ animationDelay: '300ms' }}
@@ -261,10 +262,41 @@ export default function Hero() {
                 <span>Watch Demo</span>
               </a>
             </div>
+            */}
+
+            {/* Loom Video Embed */}
+            <div
+              className="max-w-4xl mx-auto animate-fadeInUp"
+              style={{ animationDelay: '400ms' }}
+            >
+              <div className="relative bg-card backdrop-blur-sm rounded-xl p-2 border border-white/10 overflow-hidden">
+                <div
+                  style={{
+                    position: 'relative',
+                    paddingBottom: '57.93991416309014%',
+                    height: 0,
+                  }}
+                >
+                  <iframe
+                    src="https://www.loom.com/embed/c5f91f06036b4f5588963723a464d04f?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true"
+                    frameBorder="0"
+                    allowFullScreen
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '0.5rem',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
 
             <div
-              className="flex flex-wrap gap-8 justify-center text-white/70 mb-16 animate-fadeInUp"
-              style={{ animationDelay: '400ms' }}
+              className="flex flex-wrap gap-8 justify-center text-white/70 mt-8 animate-fadeInUp"
+              style={{ animationDelay: '500ms' }}
             >
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
@@ -283,37 +315,6 @@ export default function Hero() {
                   style={{ animationDelay: '400ms' }}
                 />
                 <span>Mobile Control</span>
-              </div>
-            </div>
-
-            <div
-              className="max-w-2xl mx-auto animate-fadeInUp"
-              style={{ animationDelay: '500ms' }}
-            >
-              <div className="relative bg-card backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-white/10 transition-all group overflow-hidden">
-                <div className="absolute inset-0 bg-white/5 animate-shimmer" />
-
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Terminal className="w-5 h-5 text-white" />
-                    <span className="text-sm font-medium text-white/70">
-                      Example task
-                    </span>
-                  </div>
-                  <code className="block text-left gap-2 text-white/70 font-mono text-sm md:text-base">
-                    <span className="text-white">@sia-</span>
-                    <span className="pl-1">
-                      {displayedText}
-                      {isTyping && (
-                        <span className="inline-block w-2 h-4 bg-white/70 ml-0.5 animate-blink"></span>
-                      )}
-                    </span>
-                  </code>
-                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 text-sm text-white/70">
-                    <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-                    <span>Task queued • Est. 5 minutes</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
