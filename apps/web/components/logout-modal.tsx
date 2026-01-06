@@ -14,17 +14,20 @@ import { useLogoutFunction } from '@propelauth/react';
 interface LogoutIndicationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onLogoutSuccess?: () => void;
 }
 
 export const LogoutIndicationModal = ({
   isOpen,
   onClose,
+  onLogoutSuccess,
 }: LogoutIndicationModalProps) => {
   const logout = useLogoutFunction();
 
   const handleConfirmLogout = async () => {
     try {
       await logout(false);
+      onLogoutSuccess?.();
     } catch (error) {
       console.error('Error during logout:', error);
     } finally {
