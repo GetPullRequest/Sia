@@ -1,5 +1,7 @@
 # <a alt="Sia logo" href="https://getpullrequest.com" target="_blank" rel="noreferrer"><img src="apps/landing-page/public/favicon.svg" width="40"></a> Sia
 
+> ⚠️ **This project is abandoned and no longer actively maintained.** It is provided as-is for reference and historical purposes only.
+
 <!-- <div align="center" style="margin-bottom: 2rem;">
   <img src="apps/landing-page/public/banner.png" alt="Sia - Wake Up To Ready Pull Requests" style="border-radius: 12px; aspect-ratio: 16/9; width: 100%; max-width: 1200px; object-fit: cover;" />
 </div> -->
@@ -39,7 +41,7 @@ Queue tasks from Slack or Discord. Sia writes the code, runs tests, fixes issues
 
 ### Ship Code While You Sleep
 
-Traditional AI coding assistants require you to be at your computer, actively guiding them. Sia is different—it works asynchronously. Queue up small tasks before you clock out, and wake up to ready pull requests.
+Traditional AI coding assistants require you to be at your computer, actively guiding them. Sia is different—it works asynchronously. Queue up small tasks before you clock out, and wake up to re[...]
 
 ### Works Where You Already Are
 
@@ -131,7 +133,7 @@ This starts:
 - API server (port 3001)
 - Web UI (port 3000)
 
-**For detailed setup instructions**, including local development without Docker, configuration guides, and troubleshooting, see **[CONTRIBUTING.md](./CONTRIBUTING.md#development-setup)** and **[DOCKER_SETUP.md](./DOCKER_SETUP.md)**.
+**For detailed setup instructions**, including local development without Docker, configuration guides, and troubleshooting, see **[CONTRIBUTING.md](./CONTRIBUTING.md#development-setup)** and **[D[...]
 
 ## Documentation
 
